@@ -44,21 +44,21 @@ export function PerformanceChart({
             <XAxis dataKey={xKey} axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
             <Tooltip cursor={{ fill: "#f1f5f9" }} />
-            <Bar dataKey={dataKey} fill="#0f8b8d" radius={[6, 6, 0, 0]} />
+            <Bar dataKey={dataKey} fill="#e59a88" radius={[6, 6, 0, 0]} />
           </BarChart>
         ) : (
           <AreaChart data={data} margin={{ top: 10, right: 4, bottom: 0, left: -24 }}>
             <defs>
               <linearGradient id={`chart-fill-${variant}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#0f8b8d" stopOpacity={0.28} />
-                <stop offset="100%" stopColor="#0f8b8d" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="#52798a" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="#52798a" stopOpacity={0.02} />
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} stroke="#e5edf4" />
             <XAxis dataKey={xKey} axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
             <Tooltip />
-            <Area type="monotone" dataKey={dataKey} stroke="#0f8b8d" strokeWidth={2.5} fill={`url(#chart-fill-${variant})`} />
+            <Area type="monotone" dataKey={dataKey} stroke="#3f6577" strokeWidth={2.5} fill={`url(#chart-fill-${variant})`} />
           </AreaChart>
         )}
       </ResponsiveContainer>

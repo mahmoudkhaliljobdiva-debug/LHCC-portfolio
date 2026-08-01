@@ -1,22 +1,38 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans: "Inter", "Segoe UI", Arial, sans-serif;
-  --color-background: #f7f9fc;
-  --color-foreground: #10233f;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f0f5fa;
-  --color-border: #dbe5ef;
-  --color-primary: #075985;
-  --color-primary-hover: #064b70;
-  --color-accent: #0f8b8d;
+  --color-background: #f8f7f2;
+  --color-foreground: #203e50;
+  --color-surface: #fffefa;
+  --color-surface-muted: #f2f0eb;
+  --color-border: #d9e0e2;
+  --color-primary: #3f6577;
+  --color-primary-hover: #304f60;
+  --color-accent: #e59a88;
   --color-success: #15803d;
   --color-warning: #b45309;
   --color-danger: #b91c1c;
+  --color-teal-50: #f8eeea;
+  --color-teal-100: #f3ddd6;
+  --color-teal-200: #ecc4b9;
+  --color-teal-600: #52798a;
+  --color-teal-700: #3f6577;
+  --color-teal-800: #304f60;
+  --color-teal-900: #203e50;
+  --color-coral-50: #fdf5f2;
+  --color-coral-100: #f8e2dc;
+  --color-coral-500: #e59a88;
+  --color-coral-600: #d6816e;
 }
 
 :root {
   color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
 }
 
 * {
@@ -34,6 +50,9 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans);
   text-rendering: optimizeLegibility;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
 }
 
 button,
@@ -50,7 +69,61 @@ textarea:focus-visible {
 }
 
 ::selection {
-  background: #bce9e5;
-  color: #0b3043;
+  background: #f3d4cb;
+  color: #203e50;
 }
 
+/* Theme surface mappings keep shared components consistent without duplicating
+   dark-mode classes in every feature screen. */
+.dark body,
+.dark .bg-\[\#f6f8fb\] {
+  background-color: #10232e;
+  color: #e6edf0;
+}
+
+.dark .bg-white,
+.dark .bg-white\/95 {
+  background-color: #172f3b;
+}
+
+.dark .bg-slate-50 {
+  background-color: #1d3946;
+}
+
+.dark .bg-slate-100 {
+  background-color: #294653;
+}
+
+.dark .text-slate-950,
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: #edf2f3;
+}
+
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: #afbec5;
+}
+
+.dark .text-slate-400 {
+  color: #91a4ad;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300,
+.dark .border {
+  border-color: #36515d;
+}
+
+.dark input,
+.dark textarea {
+  background-color: #132a35;
+  color: #edf2f3;
+}
+
+.dark .shadow-sm,
+.dark .shadow-md {
+  --tw-shadow-color: rgb(0 0 0 / 0.24);
+}

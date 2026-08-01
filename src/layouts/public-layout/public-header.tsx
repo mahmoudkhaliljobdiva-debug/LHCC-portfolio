@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { Brand } from "@/components/ui/brand";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/cn";
 
 const links = [
@@ -33,6 +34,7 @@ export function PublicHeader() {
           ))}
         </nav>
         <div className="hidden items-center gap-3 md:flex">
+          <ThemeToggle />
           <Link href="/login" className="px-3 py-2 text-sm font-semibold text-slate-700">
             Sign in
           </Link>
@@ -60,6 +62,10 @@ export function PublicHeader() {
         )}
       >
         <nav aria-label="Mobile navigation" className="flex flex-col gap-1">
+          <div className="mb-2 flex items-center justify-between rounded-lg px-3 py-2">
+            <span className="text-sm font-medium text-slate-600">Appearance</span>
+            <ThemeToggle />
+          </div>
           {links.map((link) => (
             <Link
               key={link.href}
@@ -78,4 +84,3 @@ export function PublicHeader() {
     </header>
   );
 }
-

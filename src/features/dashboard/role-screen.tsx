@@ -50,11 +50,15 @@ export function RoleScreen({
 }) {
   const title = section ? sectionTitles[section] ?? "Workspace" : roleCopy[role].title;
 
+  if (section === "wallet" && role !== "admin") {
+    return <DashboardHome role={role} />;
+  }
+
   if (section === "question-banks") {
     return <Page title={title} subtitle="Browse, manage, and monitor structured learning collections."><QuestionBankGrid /></Page>;
   }
 
-  if (section === "wallet") return <WalletPage role={role} />;
+  if (section === "wallet") return <WalletPage />;
   if (section === "analytics" || section === "reports") return <AnalyticsPage title={title} />;
   if (section === "settings" || section === "profile") return <SettingsPage title={title} section={section} />;
   if (section === "questions" || section === "exams" || section === "students" || section === "users") {
@@ -81,7 +85,7 @@ function DashboardHome({ role }: { readonly role: UserRole }) {
     ? [
         ["Average score", "84%", "+6% this month", Target],
         ["Questions answered", "1,441", "72% of study plan", BookOpen],
-        ["Learning credits", "2,450", "+200 this week", CircleDollarSign],
+        ["Study time", "42h", "6.2 hours this week", Clock3],
         ["Study streak", "12 days", "Personal best", Award],
       ] as const
     : role === "teacher"
@@ -142,9 +146,9 @@ function DashboardHome({ role }: { readonly role: UserRole }) {
   );
 }
 
-function WalletPage({ role }: { readonly role: UserRole }) {
+function WalletPage() {
   return (
-    <Page title="Learning wallet" subtitle={role === "student" ? "Track the credits you earn through learning activities." : "Monitor virtual learning credits across the platform."}>
+    <Page title="Learning wallet" subtitle="Monitor and administer virtual learning credits across the platform.">
       <div className="grid gap-4 sm:grid-cols-3">
         <MetricCard label="Current balance" value={WALLET_SUMMARY.balance.toLocaleString()} helper="Available learning credits" icon={CircleDollarSign} />
         <MetricCard label="Total rewards" value={`+${WALLET_SUMMARY.rewards}`} helper="Credits earned this term" icon={Award} />
@@ -197,7 +201,7 @@ function SettingsPage({ title, section }: { readonly title: string; readonly sec
     <Page title={title} subtitle={section === "profile" ? "Manage your personal demo preferences." : "Configure the frontend demonstration experience."}>
       <div className="grid gap-6 lg:grid-cols-[.75fr_1.25fr]">
         <aside className="h-fit rounded-2xl border bg-white p-3 shadow-sm">{["General information", "Notifications", "Appearance", "Privacy"].map((item, index) => <button key={item} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium ${index === 0 ? "bg-teal-50 text-teal-800" : "text-slate-600"}`}><Settings className="size-4" />{item}</button>)}</aside>
-        <section className="rounded-2xl border bg-white p-6 shadow-sm"><div className="flex items-center gap-4 border-b pb-6"><span className="grid size-14 place-items-center rounded-2xl bg-teal-700 text-white"><UserCircle /></span><div><h2 className="font-semibold text-slate-950">General information</h2><p className="mt-1 text-xs text-slate-500">This data is for demonstration only.</p></div></div><div className="mt-6 grid gap-5 sm:grid-cols-2">{["Full name", "Email address", "Institution", "Role"].map((label) => <label key={label} className="grid gap-2 text-sm font-medium text-slate-700">{label}<input className="h-11 rounded-xl border bg-slate-50 px-3 text-slate-700" defaultValue={label === "Role" ? "Student" : label === "Institution" ? "MedLumen University" : label === "Email address" ? "maya@example.edu" : "Maya Carter"} /></label>)}</div><button className="mt-7 rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white">Save changes</button></section>
+        <section className="rounded-2xl border bg-white p-6 shadow-sm"><div className="flex items-center gap-4 border-b pb-6"><span className="grid size-14 place-items-center rounded-2xl bg-teal-700 text-white"><UserCircle /></span><div><h2 className="font-semibold text-slate-950">General information</h2><p className="mt-1 text-xs text-slate-500">This data is for demonstration only.</p></div></div><div className="mt-6 grid gap-5 sm:grid-cols-2">{["Full name", "Email address", "Institution", "Role"].map((label) => <label key={label} className="grid gap-2 text-sm font-medium text-slate-700">{label}<input className="h-11 rounded-xl border bg-slate-50 px-3 text-slate-700" defaultValue={label === "Role" ? "Student" : label === "Institution" ? "L.H.C.C Academy" : label === "Email address" ? "maya@example.edu" : "Maya Carter"} /></label>)}</div><button className="mt-7 rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white">Save changes</button></section>
       </div>
     </Page>
   );

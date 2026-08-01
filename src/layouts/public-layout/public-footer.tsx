@@ -4,7 +4,7 @@ import { Brand } from "@/components/ui/brand";
 
 export function PublicFooter() {
   return (
-    <footer className="bg-[#0b1f33] text-slate-300">
+    <footer className="bg-[#203e50] text-slate-300">
       <div className="mx-auto grid max-w-7xl gap-12 px-5 py-14 md:grid-cols-[1.5fr_1fr_1fr] lg:px-8">
         <div>
           <Brand inverse />
@@ -30,9 +30,8 @@ export function PublicFooter() {
         </div>
       </div>
       <div className="border-t border-white/10 px-5 py-5 text-center text-xs text-slate-500">
-        © 2026 MedLumen. Frontend demonstration only.
+        © 2026 Lebanese Health &amp; Competence Center. Frontend demonstration only.
       </div>
     </footer>
   );
 }
-

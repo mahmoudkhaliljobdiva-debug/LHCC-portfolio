@@ -4,20 +4,33 @@ import "@/app/globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "MedLumen | Healthcare Learning",
-    template: "%s | MedLumen",
+    default: "L.H.C.C | Healthcare Learning",
+    template: "%s | L.H.C.C",
   },
   description:
-    "A modern healthcare learning platform for students, educators, and institutions.",
+    "Lebanese Health & Competence Center — healthcare learning for students, educators, and institutions.",
 };
+
+const themeScript = `
+  try {
+    const saved = localStorage.getItem("lhcc-theme");
+    const theme = saved === "dark" || saved === "light"
+      ? saved
+      : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.style.colorScheme = theme;
+  } catch {}
+`;
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>{children}</body>
     </html>
   );
 }
-

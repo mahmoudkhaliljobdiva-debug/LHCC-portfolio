@@ -1,6 +1,6 @@
-# MedLumen Healthcare Learning Platform — Project Handoff
+# L.H.C.C Healthcare Learning Platform — Project Handoff
 
-Last updated: July 27, 2026
+Last updated: July 28, 2026
 
 ## Project objective
 
@@ -55,7 +55,8 @@ Supporting packages:
 
 ## Design direction
 
-The product name currently used in the demonstration is **MedLumen**.
+The product name is **L.H.C.C**, short for **Lebanese Health & Competence
+Center**.
 
 The requested visual qualities are:
 
@@ -68,11 +69,15 @@ The requested visual qualities are:
 
 Core colors:
 
-- White
-- Blue
-- Teal
+- Warm ivory
+- Muted medical navy
+- Coral
 - Slate
-- Gray
+- White
+
+The palette is derived from the supplied L.H.C.C logo. The primary logo asset is:
+
+`public/images/lhcc-logo.png`
 
 Avoid:
 
@@ -141,7 +146,6 @@ Architectural rules:
 | `/student` | Student dashboard |
 | `/student/question-banks` | Six reusable question banks |
 | `/student/exams` | Mock exam management view |
-| `/student/wallet` | Learning-credit wallet |
 | `/student/analytics` | Performance analytics |
 | `/student/profile` | Presentational profile form |
 
@@ -163,7 +167,7 @@ Architectural rules:
 | `/admin` | Platform dashboard |
 | `/admin/users` | Mock user management |
 | `/admin/question-banks` | Shared question banks |
-| `/admin/wallet` | Credit overview |
+| `/admin/wallet` | Virtual learning-credit administration |
 | `/admin/reports` | Performance reports |
 | `/admin/settings` | Presentational settings |
 
@@ -222,8 +226,9 @@ Current demonstration values:
 - Three recent transactions
 - Six monthly wallet trend points
 
-This is a virtual learning wallet. It must never imply real currency, deposits,
-withdrawals, purchases, or payment processing.
+This is a virtual learning wallet available only to administrators. Students and
+teachers must not see wallet navigation or wallet content. It must never imply
+real currency, deposits, withdrawals, purchases, or payment processing.
 
 ### Analytics
 
@@ -260,8 +265,9 @@ Charts are implemented with Recharts in:
 
 The current implementation includes:
 
-- Desktop dashboard sidebar
-- Mobile off-canvas dashboard navigation
+- Responsive layouts for phone, tablet, and laptop
+- Laptop/desktop dashboard sidebar
+- Phone and tablet off-canvas dashboard navigation
 - Responsive public navigation
 - Responsive grids and tables
 - Semantic header, main, nav, section, article, table, and footer elements
@@ -269,6 +275,20 @@ The current implementation includes:
 - Keyboard-visible focus styles
 - Progress bar ARIA attributes
 - Color combinations designed for readable contrast
+- Light and dark color themes
+- Accessible theme-toggle labels
+- Theme preference stored in `localStorage` under `lhcc-theme`
+- Device color-scheme preference used on the first visit
+
+The shared theme control is:
+
+`src/components/ui/theme-toggle.tsx`
+
+The initial inline theme script in `src/app/layout.tsx` applies the stored or
+device theme before hydration to minimize incorrect-theme flashing.
+
+The homepage "See the whole learning journey" section has a dedicated dark navy
+surface in dark mode. Preserve this contrast treatment when editing that section.
 
 Accessibility should continue to be checked as new interactive components are
 introduced.
@@ -285,6 +305,13 @@ npm run build
 
 The production build generated the expected public, authentication, student,
 teacher, and admin routes successfully.
+
+After the July 28 logo, branding, theme, role, and contrast changes:
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed before the final isolated homepage contrast correction.
+- Typecheck and lint also passed after that final contrast correction.
 
 ## Running locally
 
@@ -318,22 +345,47 @@ Dependencies are already installed and `package-lock.json` is present.
 Continue in this order:
 
 1. Run the development server and visually inspect the public and portal routes.
-2. Test desktop, tablet, and mobile breakpoints.
-3. Add route-aware titles and breadcrumbs inside the dashboard header.
-4. Replace the generic management table with feature-specific exam, question,
+2. Test both light and dark modes at phone, tablet, and laptop breakpoints.
+3. Inspect every pale custom background in dark mode for adequate contrast.
+4. Add route-aware titles and breadcrumbs inside the dashboard header.
+5. Replace the generic management table with feature-specific exam, question,
    student, and user components.
-5. Add detailed question-bank routes using a dynamic bank ID.
-6. Add a mock exam-taking flow with local component state.
-7. Add accessible chart summaries or data-table alternatives.
-8. Add loading, empty, success, and error demonstration states.
-9. Add Vitest, React Testing Library, and Playwright.
-10. Perform an automated accessibility audit.
+6. Add detailed question-bank routes using a dynamic bank ID.
+7. Add a mock exam-taking flow with local component state.
+8. Add accessible chart summaries or data-table alternatives.
+9. Add loading, empty, success, and error demonstration states.
+10. Add Vitest, React Testing Library, and Playwright.
+11. Perform an automated accessibility audit.
+
+## July 28 session summary
+
+Completed changes:
+
+- Added the supplied medical logo and prepared a cleaned project asset.
+- Rebranded all visible product references from MedLumen to `L.H.C.C`.
+- Set the full name to `Lebanese Health & Competence Center`.
+- Changed the visual palette to logo-derived navy, coral, and warm ivory.
+- Updated chart colors to match the logo.
+- Removed Wallet from the student portal.
+- Confirmed teachers also have no Wallet access.
+- Restricted Wallet navigation and content to administrators.
+- Added persistent light and dark themes.
+- Added theme controls to public, mobile, authentication, and dashboard headers.
+- Added a dedicated dark-mode background to the homepage learning-journey CTA
+  after a contrast issue was identified.
+- Confirmed responsive behavior remains designed for phone, tablet, and laptop.
+
+Current Git state:
+
+- Local branch: `main`, tracking `origin/main`.
+- The July 28 changes are currently uncommitted and have not been pushed.
+- The last pushed commit remains `c3eb93a`.
 
 ## Prompt for continuing tomorrow
 
 Use the following prompt in a new session:
 
-> Continue implementing the MedLumen Healthcare Learning Platform frontend demo.
+> Continue implementing the L.H.C.C Healthcare Learning Platform frontend demo.
 > Read `PROJECT_HANDOFF.md` and inspect the existing repository before making
 > changes. Preserve the current feature-oriented architecture, strict TypeScript,
 > mock-only data boundary, medical visual system, responsiveness, and
@@ -341,4 +393,3 @@ Use the following prompt in a new session:
 > Supabase, payment gateway, or real business logic. Start with the next-session
 > checklist in the handoff document, validate changes with typecheck, lint, and
 > production build, and report exactly what was completed.
-

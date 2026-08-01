@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 
 const pages = {
   about: {
-    eyebrow: "About MedLumen",
+    eyebrow: "About L.H.C.C",
     title: "Better learning creates better care.",
     description:
       "We are building a calm, rigorous digital environment where healthcare learners and educators can focus on meaningful progress.",
@@ -23,14 +23,14 @@ const pages = {
     title: "One workspace. Every learning signal.",
     description:
       "Move from focused question practice to assessment, feedback, credit rewards, and long-term performance trends without losing context.",
-    points: ["Reusable question banks", "Mock exams and assignments", "Progress and wallet analytics"],
+    points: ["Reusable question banks", "Mock exams and assignments", "Progress analytics and admin credit oversight"],
   },
   contact: {
     eyebrow: "Contact",
     title: "Let’s talk about better healthcare learning.",
     description:
       "Whether you represent a medical school, teaching team, or learning program, we would be glad to hear what you are building.",
-    points: ["hello@medlumen.example", "+961 1 555 014", "Beirut, Lebanon"],
+    points: ["hello@lhcc.example", "+961 1 555 014", "Beirut, Lebanon"],
   },
 } as const;
 
@@ -96,4 +96,3 @@ export default async function MarketingPage({
     </section>
   );
 }
-

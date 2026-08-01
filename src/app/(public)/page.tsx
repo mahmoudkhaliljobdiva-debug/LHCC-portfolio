@@ -39,7 +39,7 @@ export default function HomePage() {
   return (
     <>
       <section className="relative overflow-hidden bg-white">
-        <div className="absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_70%_20%,#d9f3f0_0,transparent_42%)]" />
+        <div className="absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_70%_20%,#f5ddd6_0,transparent_42%)]" />
         <div className="relative mx-auto grid min-h-[690px] max-w-7xl items-center gap-14 px-5 py-20 lg:grid-cols-[1.04fr_.96fr] lg:px-8">
           <div>
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-teal-800">
@@ -77,7 +77,7 @@ export default function HomePage() {
           </div>
 
           <div className="relative mx-auto w-full max-w-xl">
-            <div className="absolute -inset-5 rounded-[36px] bg-teal-100/50" />
+            <div className="absolute -inset-5 rounded-[36px] bg-coral-100/70" />
             <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_-30px_rgba(15,52,75,.35)] sm:p-7">
               <div className="flex items-center justify-between border-b border-slate-100 pb-5">
                 <div>
@@ -166,7 +166,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#e8f4f5] px-5 py-20">
+      <section className="bg-[#f5e7e1] px-5 py-20 dark:bg-[#263f4b]">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-4xl font-semibold tracking-tight text-slate-950">
             See the whole learning journey.

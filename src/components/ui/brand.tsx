@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { cn } from "@/lib/cn";
@@ -6,18 +7,26 @@ export function Brand({ inverse = false }: { readonly inverse?: boolean }) {
   return (
     <Link
       href="/"
-      aria-label="MedLumen home"
+      aria-label="L.H.C.C home"
       className={cn(
         "inline-flex items-center gap-2.5 font-semibold tracking-[-0.02em]",
         inverse ? "text-white" : "text-slate-950",
       )}
     >
-      <span className="relative grid size-9 place-items-center rounded-xl bg-teal-600 shadow-sm">
-        <span className="h-4 w-1.5 rounded-full bg-white" />
-        <span className="absolute h-1.5 w-4 rounded-full bg-white" />
+      <Image
+        src="/images/lhcc-logo.png"
+        alt=""
+        width={40}
+        height={40}
+        priority
+        className="size-10 rounded-full object-cover"
+      />
+      <span className="leading-tight">
+        <span className="block text-xl">L.H.C.C</span>
+        <span className={cn("hidden text-[9px] font-medium tracking-wide sm:block", inverse ? "text-slate-300" : "text-slate-500 dark:text-slate-400")}>
+          Lebanese Health &amp; Competence Center
+        </span>
       </span>
-      <span className="text-xl">MedLumen</span>
     </Link>
   );
 }
-

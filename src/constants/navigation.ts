@@ -19,7 +19,6 @@ export const ROLE_NAVIGATION = {
     { label: "Dashboard", href: ROUTES.student.dashboard, icon: Gauge },
     { label: "Question Banks", href: ROUTES.student.questionBanks, icon: BookOpen },
     { label: "Exams", href: ROUTES.student.exams, icon: ClipboardCheck },
-    { label: "Wallet", href: ROUTES.student.wallet, icon: CircleDollarSign },
     { label: "Analytics", href: ROUTES.student.analytics, icon: BarChart3 },
     { label: "Profile", href: ROUTES.student.profile, icon: UserCircle },
   ],
@@ -40,4 +39,3 @@ export const ROLE_NAVIGATION = {
     { label: "Settings", href: ROUTES.admin.settings, icon: Settings },
   ],
 } as const satisfies Record<UserRole, readonly NavigationItem[]>;
-

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { Brand } from "@/components/ui/brand";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ROLE_NAVIGATION } from "@/constants/navigation";
 import { cn } from "@/lib/cn";
 import type { UserRole } from "@/types/roles";
@@ -70,7 +71,7 @@ export function DashboardShell({
             );
           })}
         </nav>
-        <div className="mt-auto rounded-2xl bg-[#0b3047] p-4 text-white">
+        <div className="mt-auto rounded-2xl bg-[#304f60] p-4 text-white">
           <p className="text-sm font-semibold">Need a quick tour?</p>
           <p className="mt-1 text-xs leading-5 text-sky-100">Explore the demo navigation to see every workspace.</p>
           <Link href="/" className="mt-3 inline-block text-xs font-semibold text-teal-200">Back to website →</Link>
@@ -87,6 +88,7 @@ export function DashboardShell({
             <input aria-label="Search" placeholder="Search the platform" className="h-10 w-full rounded-xl border bg-slate-50 pr-3 pl-10 text-sm" />
           </div>
           <div className="ml-auto flex items-center gap-3">
+            <ThemeToggle />
             <button aria-label="Notifications" className="grid size-10 place-items-center rounded-xl border text-slate-600">
               <Bell className="size-[18px]" />
             </button>
@@ -104,4 +106,3 @@ export function DashboardShell({
     </div>
   );
 }
-

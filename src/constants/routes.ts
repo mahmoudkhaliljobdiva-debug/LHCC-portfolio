@@ -11,7 +11,6 @@ export const ROUTES = {
     dashboard: "/student",
     questionBanks: "/student/question-banks",
     exams: "/student/exams",
-    wallet: "/student/wallet",
     analytics: "/student/analytics",
     profile: "/student/profile",
   },
@@ -32,4 +31,3 @@ export const ROUTES = {
     settings: "/admin/settings",
   },
 } as const;
-

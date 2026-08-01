@@ -1,4 +1,4 @@
-# L.H.C.C Healthcare Learning Platform
+# L.H.C.C — Lebanese Health & Competence Center
 
 Frontend-only SaaS demonstration built with Next.js App Router, strict TypeScript,
 Tailwind CSS, Recharts, and Lucide React.
@@ -12,6 +12,8 @@ and interactive analytics charts.
 ## Boundaries
 
 - No database, authentication, API, backend, payment gateway, or Supabase.
+- Responsive phone, tablet, and laptop layouts are required for every route.
+- Light and dark themes are user-selectable and persisted locally.
 - Routes stay thin and compose modules from `features` and `layouts`.
 - Shared visual primitives live in `components`.
 - Feature modules must not import another feature's internal files.
