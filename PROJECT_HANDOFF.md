@@ -165,10 +165,10 @@ Architectural rules:
 | Route | Description |
 |---|---|
 | `/admin` | Platform dashboard |
+| `/admin/portfolio` | Public portfolio content editor |
 | `/admin/users` | Mock user management |
 | `/admin/question-banks` | Shared question banks |
-| `/admin/wallet` | Virtual learning-credit administration |
-| `/admin/reports` | Performance reports |
+| `/admin/wallet` | Business wallet analytics and ticket management |
 | `/admin/settings` | Presentational settings |
 
 The role routes use optional catch-all route files so that each role shares one
@@ -214,21 +214,13 @@ Do not create six separate bank implementations.
 
 ### Wallet
 
-Defined in:
+The active admin wallet is derived from the financial transactions stored with
+user-management data. Typed defaults live in `src/data/default-wallet-data.ts`,
+analytics selectors live in `src/utils/wallet-analytics.ts`, and the dedicated
+page is implemented in `src/features/wallet/admin-wallet-page.tsx`.
 
-`src/data/wallet.mock.ts`
-
-Current demonstration values:
-
-- Balance: 2,450 credits
-- Rewards: 780 credits
-- Losses: 190 credits
-- Three recent transactions
-- Six monthly wallet trend points
-
-This is a virtual learning wallet available only to administrators. Students and
-teachers must not see wallet navigation or wallet content. It must never imply
-real currency, deposits, withdrawals, purchases, or payment processing.
+It remains an admin-only frontend simulation. It has no payment processing,
+backend ledger, or production authorization.
 
 ### Analytics
 
@@ -438,6 +430,59 @@ from different banks from being mixed.
 
 QCU forms use native radio inputs and validate at least two non-empty unique
 answers with exactly one correct answer before creating or updating a question.
+
+Validation after implementation:
+
+- `npm run lint` passed.
+- `npm run build` passed, including strict TypeScript validation.
+
+## August 2 admin wallet and question-bank access
+
+The former Admin Reports navigation and route were removed. `/admin/reports`
+now resolves to the application not-found boundary.
+
+User add/edit forms can grant priced access to any managed question bank. A new
+grant creates one automatic positive bank-sale transaction. Price changes add
+only the signed difference as an immutable adjustment. Revocation can preserve
+the original sale or add one negative refund transaction after confirmation.
+Automatic transactions cannot be edited or deleted.
+
+`/admin/wallet` derives its balance, earned, spent, bank sales, other income,
+expenses, chart, and transaction table from the shared transaction collection.
+Admins can add, edit, and delete manual income/expense tickets. All wallet and
+bank-access state persists with the `lhcc-user-management` localStorage record.
+
+Learner-facing question-bank cards consult the same active access collection and
+show inaccessible banks as locked. This is demo UI enforcement only; a
+production backend must enforce authorization and financial integrity.
+
+## August 2 admin user management
+
+The admin portal now has a dedicated `/admin/users` implementation and student
+activity drill-down at `/admin/users/[userId]/activity`.
+
+User and usage state is owned by the root `UserManagementProvider` and persisted
+under `lhcc-user-management`. Demo student/teacher sessions use
+`lhcc-demo-session`. Invalid stored data falls back to generated typed defaults,
+and expired active users are normalized and persisted during loading.
+
+Activation rules are centralized in `src/utils/user-activation.ts`:
+
+- Students always receive exactly one calendar month.
+- Teachers receive 1–36 calendar months.
+- Month-end calculation clamps to the final valid target-month day.
+- Manual inactivity wins over date status.
+- Expiration on or before today is expired.
+- Active accounts within seven days of expiration are `expiring-soon`.
+
+The mock login now resolves a managed user by email and rejects inactive or
+expired accounts. Student and teacher layouts use a client-side demo guard that
+rechecks the same effective status for direct route access. This is explicitly
+frontend-only; production authorization must be enforced by a backend.
+
+Student usage totals and charts are derived from `StudentBankUsage` records.
+`recordStudentQuestionActivity()` is available for future question-answer and
+attempt flows to update the correct student and bank without separate totals.
 
 Validation after implementation:
 

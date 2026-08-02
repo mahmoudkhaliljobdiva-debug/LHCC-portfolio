@@ -17,7 +17,6 @@ import {
 import { PerformanceChart } from "@/components/charts/performance-chart";
 import { Progress } from "@/components/ui/progress";
 import { QUESTION_BANKS } from "@/data/question-banks.mock";
-import { WALLET_SUMMARY, WALLET_TRANSACTIONS } from "@/data/wallet.mock";
 import { MetricCard } from "@/features/dashboard/metric-card";
 import { QuestionBankGrid } from "@/features/question-banks/question-bank-grid";
 import { PortfolioEditor } from "@/features/portfolio-content/portfolio-editor";
@@ -38,7 +37,6 @@ const sectionTitles: Record<string, string> = {
   profile: "Your profile",
   students: "Student cohorts",
   users: "User management",
-  reports: "Reports",
   settings: "Platform settings",
   portfolio: "Portfolio content",
 };
@@ -62,8 +60,7 @@ export function RoleScreen({
 
   if (section === "portfolio" && role === "admin") return <PortfolioEditor />;
 
-  if (section === "wallet") return <WalletPage />;
-  if (section === "analytics" || section === "reports") return <AnalyticsPage title={title} />;
+  if (section === "analytics") return <AnalyticsPage title={title} />;
   if (section === "settings" || section === "profile") return <SettingsPage title={title} section={section} />;
   if (section === "questions" || section === "exams" || section === "students" || section === "users") {
     return <ManagementPage title={title} section={section} />;
@@ -146,22 +143,6 @@ function DashboardHome({ role }: { readonly role: UserRole }) {
           </div>
         ))}
       </section>
-    </Page>
-  );
-}
-
-function WalletPage() {
-  return (
-    <Page title="Learning wallet" subtitle="Monitor and administer virtual learning credits across the platform.">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <MetricCard label="Current balance" value={WALLET_SUMMARY.balance.toLocaleString()} helper="Available learning credits" icon={CircleDollarSign} />
-        <MetricCard label="Total rewards" value={`+${WALLET_SUMMARY.rewards}`} helper="Credits earned this term" icon={Award} />
-        <MetricCard label="Total losses" value={`-${WALLET_SUMMARY.losses}`} helper="Learning challenge adjustments" icon={TrendingUp} />
-      </div>
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_.85fr]">
-        <section className="rounded-2xl border bg-white p-6 shadow-sm"><h2 className="font-semibold text-slate-950">Balance trend</h2><p className="mt-1 text-xs text-slate-500">Virtual credits over six months</p><div className="mt-5"><PerformanceChart variant="wallet" /></div></section>
-        <section className="rounded-2xl border bg-white p-6 shadow-sm"><h2 className="font-semibold text-slate-950">Recent transactions</h2><div className="mt-5 grid gap-1">{WALLET_TRANSACTIONS.map((item) => <div key={item.id} className="flex items-center gap-3 border-b py-4 last:border-0"><span className="grid size-9 place-items-center rounded-full bg-slate-50"><CircleDollarSign className="size-4 text-teal-700" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-slate-800">{item.description}</p><p className="text-xs text-slate-400">Learning activity</p></div><span className={`text-sm font-semibold ${item.credits > 0 ? "text-emerald-700" : "text-rose-700"}`}>{item.credits > 0 ? "+" : ""}{item.credits}</span></div>)}</div></section>
-      </div>
     </Page>
   );
 }

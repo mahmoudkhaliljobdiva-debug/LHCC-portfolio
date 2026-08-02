@@ -28,7 +28,6 @@ export const ROUTES = {
     users: "/admin/users",
     questionBanks: "/admin/question-banks",
     wallet: "/admin/wallet",
-    reports: "/admin/reports",
     settings: "/admin/settings",
   },
 } as const;

@@ -37,7 +37,6 @@ export const ROLE_NAVIGATION = {
     { label: "Users", href: ROUTES.admin.users, icon: Users },
     { label: "Question Banks", href: ROUTES.admin.questionBanks, icon: BookOpen },
     { label: "Wallet", href: ROUTES.admin.wallet, icon: CircleDollarSign },
-    { label: "Reports", href: ROUTES.admin.reports, icon: BarChart3 },
     { label: "Settings", href: ROUTES.admin.settings, icon: Settings },
   ],
 } as const satisfies Record<UserRole, readonly NavigationItem[]>;
