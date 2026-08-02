@@ -20,6 +20,7 @@ import { QUESTION_BANKS } from "@/data/question-banks.mock";
 import { WALLET_SUMMARY, WALLET_TRANSACTIONS } from "@/data/wallet.mock";
 import { MetricCard } from "@/features/dashboard/metric-card";
 import { QuestionBankGrid } from "@/features/question-banks/question-bank-grid";
+import { PortfolioEditor } from "@/features/portfolio-content/portfolio-editor";
 import type { UserRole } from "@/types/roles";
 
 const roleCopy = {
@@ -39,6 +40,7 @@ const sectionTitles: Record<string, string> = {
   users: "User management",
   reports: "Reports",
   settings: "Platform settings",
+  portfolio: "Portfolio content",
 };
 
 export function RoleScreen({
@@ -57,6 +59,8 @@ export function RoleScreen({
   if (section === "question-banks") {
     return <Page title={title} subtitle="Browse, manage, and monitor structured learning collections."><QuestionBankGrid /></Page>;
   }
+
+  if (section === "portfolio" && role === "admin") return <PortfolioEditor />;
 
   if (section === "wallet") return <WalletPage />;
   if (section === "analytics" || section === "reports") return <AnalyticsPage title={title} />;

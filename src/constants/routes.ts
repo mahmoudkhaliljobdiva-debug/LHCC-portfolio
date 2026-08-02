@@ -24,6 +24,7 @@ export const ROUTES = {
   },
   admin: {
     dashboard: "/admin",
+    portfolio: "/admin/portfolio",
     users: "/admin/users",
     questionBanks: "/admin/question-banks",
     wallet: "/admin/wallet",

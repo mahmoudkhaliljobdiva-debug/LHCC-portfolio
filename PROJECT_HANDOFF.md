@@ -381,6 +381,69 @@ Current Git state:
 - The July 28 changes are currently uncommitted and have not been pushed.
 - The last pushed commit remains `c3eb93a`.
 
+## August 2 portfolio content management
+
+The admin portal now includes `/admin/portfolio`. It provides responsive section
+navigation and editors for About, Services, Platform, and Contact content.
+
+Architecture:
+
+- Shared types: `src/types/portfolio-content.ts`
+- Default content: `src/data/portfolio-content.default.ts`
+- Local persistence: `src/services/portfolio-content.storage.ts`
+- Shared React provider: `src/features/portfolio-content/portfolio-content-provider.tsx`
+- Public renderer: `src/features/portfolio-content/portfolio-page.tsx`
+- Admin editor: `src/features/portfolio-content/portfolio-editor.tsx`
+
+The provider is mounted in the root layout. Saved content is stored under the
+`lhcc-portfolio-content` localStorage key and immediately updates all consumers
+in the current application session. Browser storage events synchronize other
+open tabs. Reset removes saved content and restores the typed defaults.
+
+The editor validates every required field, supports repeatable item addition and
+removal, disables saving when clean or while saving, reports success and errors,
+warns before navigation with unsaved changes, and confirms destructive resets.
+
+The public About, Services, Platform, and Contact route no longer contains its
+own visible content constants. All four pages use the shared content model.
+
+Validation on August 2, 2026:
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
+## August 2 admin question-bank management
+
+The admin portal includes a complete mock QCU management workflow:
+
+- `/admin/question-banks`
+- `/admin/question-banks/[bankId]`
+- `/admin/question-banks/[bankId]/questions/new`
+- `/admin/question-banks/[bankId]/questions/[questionId]/edit`
+
+Admin question-bank and question data is separate from learner-facing progress
+summaries. Shared admin models extend `src/types/question-bank.ts`; defaults live
+in `src/data/default-question-banks.ts` and `src/data/default-questions.ts`.
+
+`AdminQuestionBankProvider` is mounted only inside the admin layout. It owns one
+consistent `{ banks, questions }` store and exposes add, update, delete, and
+bank-scoped selector functions. Data persists under the
+`lhcc-admin-question-banks` localStorage key. Invalid or corrupted stored data
+falls back to typed defaults.
+
+Deleting a bank cascades only to questions whose `bankId` matches that bank.
+Question lists always use `getQuestionsByBankId(bankId)`, preventing questions
+from different banks from being mixed.
+
+QCU forms use native radio inputs and validate at least two non-empty unique
+answers with exactly one correct answer before creating or updating a question.
+
+Validation after implementation:
+
+- `npm run lint` passed.
+- `npm run build` passed, including strict TypeScript validation.
+
 ## Prompt for continuing tomorrow
 
 Use the following prompt in a new session:

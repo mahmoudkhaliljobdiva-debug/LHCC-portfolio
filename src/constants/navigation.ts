@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   FileQuestion,
   Gauge,
+  PanelsTopLeft,
   Settings,
   UserCircle,
   Users,
@@ -32,6 +33,7 @@ export const ROLE_NAVIGATION = {
   ],
   admin: [
     { label: "Dashboard", href: ROUTES.admin.dashboard, icon: Gauge },
+    { label: "Portfolio", href: ROUTES.admin.portfolio, icon: PanelsTopLeft },
     { label: "Users", href: ROUTES.admin.users, icon: Users },
     { label: "Question Banks", href: ROUTES.admin.questionBanks, icon: BookOpen },
     { label: "Wallet", href: ROUTES.admin.wallet, icon: CircleDollarSign },
