@@ -1,23 +1,44 @@
 "use client";
 
 import { ArrowRight, BookOpen, LockKeyhole } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Progress } from "@/components/ui/progress";
 import { QUESTION_BANKS } from "@/data/question-banks.mock";
 import { useUserManagement } from "@/features/users/user-management-provider";
-import { getDemoSession } from "@/services/demo-session";
+import { createClient } from "@/lib/supabase/client";
 
 export function QuestionBankGrid() {
-  const { hasUserBankAccess, isReady } = useUserManagement();
-  const session = isReady ? getDemoSession() : null;
+  const { users, hasUserBankAccess, isReady } = useUserManagement();
+  const [managedUserId, setManagedUserId] = useState<string | null>(null);
 
-  // Frontend bank access is for demo purposes only.
-  // Production bank authorization must be enforced by the backend.
+  useEffect(() => {
+    if (!isReady) return;
+    let cancelled = false;
+
+    async function resolveMockAccessIdentity() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.auth.getUser();
+        const email = data.user?.email?.trim().toLocaleLowerCase();
+        const managedUser = email ? users.find((user) => user.email.trim().toLocaleLowerCase() === email) : undefined;
+        if (!cancelled) setManagedUserId(managedUser?.id ?? null);
+      } catch {
+        if (!cancelled) setManagedUserId(null);
+      }
+    }
+
+    void resolveMockAccessIdentity();
+    return () => { cancelled = true; };
+  }, [isReady, users]);
+
+  // Question-bank access is still mock-backed until its dedicated migration.
+  // Route authorization is server-enforced; this temporary email bridge is UI-only.
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {QUESTION_BANKS.map((bank) => {
         const progress = Math.round((bank.completedCount / bank.questionCount) * 100);
-        const hasAccess = Boolean(session && hasUserBankAccess(session.userId, bank.id));
+        const hasAccess = Boolean(managedUserId && hasUserBankAccess(managedUserId, bank.id));
         return (
           <article key={bank.id} className="group rounded-2xl border bg-white p-5 shadow-sm transition hover:shadow-md">
             <div className="flex items-start justify-between">

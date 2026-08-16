@@ -18,7 +18,7 @@ export default function AuthLayout({
         <blockquote className="max-w-xl text-4xl leading-tight font-medium tracking-tight">
           “Clarity turns practice into progress—and progress into confidence.”
         </blockquote>
-        <p className="text-sm text-sky-100">Frontend demonstration · No authentication is performed</p>
+        <p className="text-sm text-sky-100">Secure learning access for students, educators, and administrators</p>
       </div>
     </main>
   );

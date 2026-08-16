@@ -1,0 +1,3 @@
+-- Phase 1 intentionally creates no Auth users or profiles.
+-- Future demo seed identities must be created through Supabase Auth so every
+-- public.profiles.id continues to reference auth.users.id.

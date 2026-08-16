@@ -1,27 +1,24 @@
 "use client";
 
-import { Bell, Menu, Search, X } from "lucide-react";
+import { Bell, LogOut, Menu, Search, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { logout } from "@/actions/auth";
 import { Brand } from "@/components/ui/brand";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ROLE_NAVIGATION } from "@/constants/navigation";
 import { cn } from "@/lib/cn";
 import type { UserRole } from "@/types/roles";
 
-const roleNames: Record<UserRole, string> = {
-  student: "Maya Carter",
-  teacher: "Dr. Daniel Harris",
-  admin: "Olivia Bennett",
-};
-
 export function DashboardShell({
   role,
+  displayName,
   children,
 }: {
   readonly role: UserRole;
+  readonly displayName: string;
   readonly children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -93,12 +90,17 @@ export function DashboardShell({
               <Bell className="size-[18px]" />
             </button>
             <div className="hidden text-right sm:block">
-              <p className="text-sm font-semibold text-slate-900">{roleNames[role]}</p>
+              <p className="text-sm font-semibold text-slate-900">{displayName}</p>
               <p className="text-xs text-slate-500 capitalize">{role}</p>
             </div>
             <div className="grid size-10 place-items-center rounded-xl bg-teal-700 text-sm font-semibold text-white">
-              {roleNames[role].split(" ").map((part) => part[0]).join("").slice(-2)}
+              {displayName.split(" ").map((part) => part[0]).join("").slice(-2).toUpperCase()}
             </div>
+            <form action={logout}>
+              <button type="submit" aria-label="Sign out" title="Sign out" className="grid size-10 place-items-center rounded-xl border text-slate-600 hover:bg-slate-50">
+                <LogOut className="size-[18px]" />
+              </button>
+            </form>
           </div>
         </header>
         <main className="mx-auto max-w-[1500px] p-4 sm:p-7 lg:p-8">{children}</main>
