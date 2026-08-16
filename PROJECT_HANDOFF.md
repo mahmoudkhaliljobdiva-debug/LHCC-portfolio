@@ -320,11 +320,10 @@ Dependencies are already installed and `package-lock.json` is present.
 
 ## Known environment notes
 
-- The installed Node version is `20.16.0`.
-- Next.js accepts Node `>=20.9.0`.
-- One TypeScript ESLint transitive package recommends Node `20.19.0` or newer.
-  The lint and build commands currently pass, but updating Node to a current LTS
-  patch release is recommended.
+- Node `22.23.2` is installed through `fnm`, is the local default, and is pinned
+  by `.node-version` and `.nvmrc`.
+- The package manifest requires Node `>=22.23.0 <23` to keep development and
+  deployments on the Node 22 LTS line.
 - `npm audit --omit=dev` reported three high-severity advisories in transitive
   Next.js dependencies (`postcss` and `sharp`).
 - The npm suggested forced remediation would incorrectly downgrade Next.js to
@@ -489,6 +488,22 @@ Validation after implementation:
 - `npm run lint` passed.
 - `npm run build` passed, including strict TypeScript validation.
 
+## August 16 Supabase connection
+
+The Supabase plugin is connected to the `LHCCPortfolio` project
+(`lcazjsmmegwwnmuupsko`) in `ap-northeast-1`. Local development uses a
+git-ignored `.env.local` containing the project URL and publishable key. No
+service-role key is stored locally.
+
+The remote project has these applied migrations:
+
+- `create_profiles`
+- `restrict_rls_auto_enable`
+
+The `public.profiles` table has RLS enabled. The security advisor reports no
+remaining findings. The unused-index performance notices are expected while
+the new table contains no rows.
+
 ## Prompt for continuing tomorrow
 
 Use the following prompt in a new session:
@@ -496,8 +511,9 @@ Use the following prompt in a new session:
 > Continue implementing the L.H.C.C Healthcare Learning Platform frontend demo.
 > Read `PROJECT_HANDOFF.md` and inspect the existing repository before making
 > changes. Preserve the current feature-oriented architecture, strict TypeScript,
-> mock-only data boundary, medical visual system, responsiveness, and
-> accessibility requirements. Do not add a backend, API, authentication,
-> Supabase, payment gateway, or real business logic. Start with the next-session
-> checklist in the handoff document, validate changes with typecheck, lint, and
-> production build, and report exactly what was completed.
+> current mock-data migration boundary, medical visual system, responsiveness,
+> and accessibility requirements. Continue using the connected `LHCCPortfolio`
+> Supabase project for the approved backend phases; do not add payment gateway
+> integration. Start with the next-session checklist in the handoff document,
+> validate changes with typecheck, lint, and production build, and report
+> exactly what was completed.

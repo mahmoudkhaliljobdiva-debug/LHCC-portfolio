@@ -23,7 +23,12 @@ and interactive analytics charts.
 
 ## Commands
 
+Node.js `22.23.2` is the supported runtime. Version managers can read the pinned
+version from `.node-version` or `.nvmrc`; run `fnm use` before installing
+dependencies when using Fast Node Manager.
+
 ```bash
+fnm use
 npm install
 npm run typecheck
 npm run lint
