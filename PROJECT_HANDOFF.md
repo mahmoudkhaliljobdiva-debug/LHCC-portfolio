@@ -1,6 +1,6 @@
 # L.H.C.C Healthcare Learning Platform — Project Handoff
 
-Last updated: July 28, 2026
+Last updated: September 5, 2026
 
 ## Project objective
 
@@ -15,6 +15,22 @@ Platform. This is a SaaS-style application containing:
 - Dashboards and analytics
 - A virtual wallet using learning credits only
 - Performance reports
+
+## Current implementation status
+
+The original frontend-only scope below records the project starting point. It
+has been superseded by explicitly approved Supabase phases completed in August
+and September 2026. The application now uses Supabase Auth, server-side role
+guards, `public.profiles`, and Supabase-backed Admin User Management. Unmigrated
+features remain mock/localStorage implementations until separately approved.
+
+Production is hosted at:
+
+`https://lhcc-portfolio.vercel.app`
+
+The Vercel project `lhcc-portfolio` is connected to the GitHub repository
+`mahmoudkhaliljobdiva-debug/LHCC-portfolio`. Pushes to `main` now trigger
+automatic production deployments. Do not manually deploy routine changes.
 
 The current phase is frontend-only. All application information uses reusable
 mock data.
@@ -137,7 +153,8 @@ Architectural rules:
 | `/services` | Healthcare learning services |
 | `/platform` | Platform overview |
 | `/contact` | Mock contact information |
-| `/login` | Presentational demo login |
+| `/login` | Supabase password login with role-based routing |
+| `/signup` | Public Student registration with email confirmation and Admin activation |
 
 ## Implemented student routes
 
@@ -528,8 +545,103 @@ usage and bank controls are labeled disabled/deferred. Bootstrap/test steps are
 in `docs/supabase-phase3-test-accounts.md`.
 
 The connected project still needs `SUPABASE_SECRET_KEY` (or legacy
-`SUPABASE_SERVICE_ROLE_KEY`) in local/deployment environment configuration and
-an initial active Admin Auth user before authenticated integration tests can run.
+`SUPABASE_SERVICE_ROLE_KEY`) in local/deployment environment configuration
+before Admin User Management integration tests can run. The initial active
+Admin Auth user was bootstrapped on September 5 as recorded below.
+
+## September 5 deployment, registration, and Admin bootstrap
+
+### Vercel and GitHub
+
+- Vercel project: `lhcc-portfolio`
+- Production URL: `https://lhcc-portfolio.vercel.app`
+- Framework preset: Next.js
+- Runtime: Node.js 22.x
+- Git repository: `mahmoudkhaliljobdiva-debug/LHCC-portfolio`
+- Production branch: `main`
+- Git integration was verified with an automatic production deployment.
+- `/`, `/login`, and `/signup` returned HTTP 200 after deployment.
+- `/admin`, `/student`, and `/teacher` redirect unauthenticated visitors to
+  `/login?reason=auth-required`.
+
+Configured Vercel variables:
+
+- `NEXT_PUBLIC_SUPABASE_URL` for Production, Preview, and Development
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` for Production, Preview, and Development
+- `NEXT_PUBLIC_SITE_URL` using the production URL for Production/Preview and
+  localhost for Development
+
+`SUPABASE_SECRET_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are still missing from
+local and Vercel configuration. Do not store either in Git. Add one directly in
+Vercel before testing Supabase Admin User Management mutations.
+
+### Public Student registration
+
+The public `/signup` route was added in commit `5197b2c`. Registration:
+
+- Validates full name, email, password, and confirmation server-side with Zod.
+- Accepts no role or activation state from the browser.
+- Calls Supabase Auth `signUp` using the public/server session client.
+- Relies on the database trigger to create an `INACTIVE` `STUDENT` profile.
+- Requires Admin activation before portal access.
+- Uses `/auth/callback` for email confirmation.
+- Keeps Teacher and Admin account creation out of the public form.
+
+The Supabase Auth Site URL still redirected confirmation to localhost during
+the first production registration. The confirmation itself succeeded. In the
+Supabase Auth URL Configuration dashboard, set:
+
+```text
+Site URL:
+https://lhcc-portfolio.vercel.app
+
+Redirect URLs:
+https://lhcc-portfolio.vercel.app/auth/callback
+http://localhost:3000/auth/callback
+```
+
+Configure custom SMTP before relying on confirmation/invitation email delivery
+for arbitrary production users.
+
+### Initial Admin account
+
+The initial administrator is stored in Supabase Auth and `public.profiles`.
+Personal account details remain only in Supabase and are intentionally excluded
+from this repository. Verified state at the end of the session:
+
+- Email confirmed: yes
+- Role: `ADMIN`
+- Status: `ACTIVE`
+- Subscription activation/expiration: not applicable (`null`)
+
+No password, access token, API key, confirmation link, or other secret is stored
+in this repository. Sign in at `https://lhcc-portfolio.vercel.app/login` using
+the password privately selected during registration.
+
+### Browser icon
+
+The L.H.C.C logo is registered as the browser favicon. The final favicon asset
+is `public/images/lhcc-logo-round.png`: a 512x512 circular version of the
+approved logo with verified alpha transparency outside the ring. The primary
+site logo remains `public/images/lhcc-logo.png`.
+
+Relevant commits:
+
+- `fc0b03d` — Supabase-backed Admin User Management
+- `5197b2c` — public Student registration
+- `2ea5ed7` — verified Git-triggered Vercel deployment
+- `192295f` — L.H.C.C browser icon metadata
+- `c493fe7` — transparent circular favicon
+
+### Immediate next steps
+
+1. Save the production Site URL and callback allow-list in Supabase Auth.
+2. Add `SUPABASE_SECRET_KEY` directly to Vercel and local `.env.local` without
+   committing it.
+3. Sign in with the active Admin account and verify `/admin` routing.
+4. Test Admin Users list/create/deactivate/reactivate after the secret is set.
+5. Configure custom SMTP and test registration confirmation end-to-end with a
+   separate Student email.
 
 ## Prompt for continuing tomorrow
 
