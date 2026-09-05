@@ -41,7 +41,7 @@ export function LoginForm({ reason }: { readonly reason?: string | undefined }) 
     <section className="w-full max-w-md">
       <p className="text-sm font-semibold text-teal-700">Welcome back</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Sign in to your workspace</h1>
-      <p className="mt-3 text-sm leading-6 text-slate-500">Use the email and password assigned to your L.H.C.C account.</p>
+      <p className="mt-3 text-sm leading-6 text-slate-500">Use your L.H.C.C account email and password.</p>
 
       {feedback && (
         <div role={feedback.type === "error" ? "alert" : "status"} className={`mt-5 rounded-xl border px-4 py-3 text-sm ${feedback.type === "error" ? "border-rose-200 bg-rose-50 text-rose-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
@@ -67,6 +67,12 @@ export function LoginForm({ reason }: { readonly reason?: string | undefined }) 
           {isSubmitting ? "Signing in…" : "Sign in"}
         </button>
       </form>
+      <p className="mt-6 text-center text-sm text-slate-500">
+        New to L.H.C.C?{" "}
+        <Link href={"/signup" as Route} className="font-semibold text-teal-700 hover:text-teal-800">
+          Create a student account
+        </Link>
+      </p>
     </section>
   );
 }
@@ -75,5 +81,6 @@ function reasonFeedback(reason: string | undefined): LoginFeedback | null {
   if (reason === "auth-required") return { type: "error", message: "Sign in to access that workspace." };
   if (reason === "recovery-error") return { type: "error", message: "The password recovery link is invalid or has expired." };
   if (reason === "password-updated") return { type: "success", message: "Your password was updated successfully. Sign in with your new password." };
+  if (reason === "registration-confirmed") return { type: "success", message: "Your email is confirmed. An administrator must activate your student account before you can sign in." };
   return null;
 }

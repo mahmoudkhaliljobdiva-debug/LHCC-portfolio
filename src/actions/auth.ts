@@ -5,12 +5,23 @@ import { redirect } from "next/navigation";
 
 import { getEffectiveProfileStatus, portalForRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
-import { loginSchema, passwordRecoverySchema, updatePasswordSchema } from "@/lib/validation/auth";
+import { loginSchema, passwordRecoverySchema, studentRegistrationSchema, updatePasswordSchema } from "@/lib/validation/auth";
 import type { ServerErrorCode, ServerResult } from "@/types/server-result";
 
 interface LoginInput {
   readonly email: string;
   readonly password: string;
+}
+
+interface StudentRegistrationInput {
+  readonly fullName: string;
+  readonly email: string;
+  readonly password: string;
+  readonly confirmPassword: string;
+}
+
+interface StudentRegistrationResult {
+  readonly requiresEmailConfirmation: boolean;
 }
 
 interface RecoveryInput {
@@ -66,6 +77,44 @@ export async function login(input: LoginInput): Promise<ServerResult<null>> {
   redirect(destination);
 }
 
+export async function registerStudent(
+  input: StudentRegistrationInput,
+): Promise<ServerResult<StudentRegistrationResult>> {
+  const parsed = studentRegistrationSchema.safeParse(input);
+  if (!parsed.success) return validationFailure(parsed.error.flatten().fieldErrors);
+
+  try {
+    const requestHeaders = await headers();
+    const origin = requestHeaders.get("origin");
+    if (!origin) return failure("INTERNAL_ERROR", "Registration is temporarily unavailable.");
+
+    const callbackUrl = new URL("/auth/callback", origin);
+    callbackUrl.searchParams.set("next", "/login?reason=registration-confirmed");
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.signUp({
+      email: parsed.data.email.toLowerCase(),
+      password: parsed.data.password,
+      options: {
+        emailRedirectTo: callbackUrl.toString(),
+        data: { full_name: parsed.data.fullName },
+      },
+    });
+
+    if (error || !data.user) {
+      return failure("INTERNAL_ERROR", "Unable to create your account. Please try again later.");
+    }
+
+    // The database trigger forces public registrations to inactive students.
+    // Do not retain a session if email confirmation is disabled.
+    if (data.session) await supabase.auth.signOut();
+
+    return { ok: true, data: { requiresEmailConfirmation: !data.session } };
+  } catch {
+    return failure("INTERNAL_ERROR", "Registration is temporarily unavailable. Please try again.");
+  }
+}
+
 export async function logout(): Promise<never> {
   const supabase = await createClient();
   await supabase.auth.signOut();
@@ -117,11 +166,11 @@ export async function updatePassword(input: UpdatePasswordInput): Promise<Server
   redirect("/login?reason=password-updated");
 }
 
-function failure(code: ServerErrorCode, message: string): ServerResult<null> {
+function failure(code: ServerErrorCode, message: string): ServerResult<never> {
   return { ok: false, error: { code, message } };
 }
 
-function validationFailure(fieldErrors: Record<string, string[] | undefined>): ServerResult<null> {
+function validationFailure(fieldErrors: Record<string, string[] | undefined>): ServerResult<never> {
   const normalized = Object.fromEntries(
     Object.entries(fieldErrors).filter((entry): entry is [string, string[]] => Boolean(entry[1])),
   );

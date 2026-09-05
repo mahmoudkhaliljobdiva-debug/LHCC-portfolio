@@ -38,6 +38,9 @@ export function PublicHeader() {
           <Link href="/login" className="px-3 py-2 text-sm font-semibold text-slate-700">
             Sign in
           </Link>
+          <Link href="/signup" className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950">
+            Create account
+          </Link>
           <Link
             href="/student"
             className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
@@ -78,6 +81,9 @@ export function PublicHeader() {
           ))}
           <Link href="/login" className="mt-2 rounded-lg border px-3 py-3 text-center font-semibold">
             Sign in
+          </Link>
+          <Link href="/signup" onClick={() => setOpen(false)} className="rounded-lg bg-teal-700 px-3 py-3 text-center font-semibold text-white hover:bg-teal-800">
+            Create student account
           </Link>
         </nav>
       </div>

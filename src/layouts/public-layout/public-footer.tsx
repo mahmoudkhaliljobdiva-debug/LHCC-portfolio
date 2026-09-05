@@ -25,6 +25,7 @@ export function PublicFooter() {
           <div className="grid gap-3 text-sm">
             <Link href="/about">About</Link>
             <Link href="/contact">Contact</Link>
+            <Link href="/signup">Create account</Link>
             <Link href="/login">Sign in</Link>
           </div>
         </div>

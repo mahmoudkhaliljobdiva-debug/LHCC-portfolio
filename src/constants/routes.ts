@@ -6,6 +6,7 @@ export const ROUTES = {
     platform: "/platform",
     contact: "/contact",
     login: "/login",
+    signup: "/signup",
   },
   student: {
     dashboard: "/student",
