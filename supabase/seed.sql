@@ -1,3 +1,4 @@
--- Phase 1 intentionally creates no Auth users or profiles.
--- Future demo seed identities must be created through Supabase Auth so every
--- public.profiles.id continues to reference auth.users.id.
+-- Auth identities are intentionally not inserted with SQL. Create the initial
+-- Admin through Supabase Auth, then follow docs/supabase-phase3-test-accounts.md.
+-- All later Student and Teacher test identities should be invited through the
+-- Admin Users UI so the production provisioning path is exercised.

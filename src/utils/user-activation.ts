@@ -20,6 +20,7 @@ export function addCalendarMonths(dateValue: string, months: number): string {
 
 export function getEffectiveUserStatus(user: PlatformUser, currentDate = getTodayDate()): EffectiveUserStatus {
   if (user.status === "inactive") return "inactive";
+  if (!user.expirationDate) return "expired";
   if (user.expirationDate <= currentDate) return "expired";
   const remaining = getRemainingDays(user.expirationDate, currentDate);
   return remaining <= 7 ? "expiring-soon" : "active";

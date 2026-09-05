@@ -6,11 +6,15 @@ export interface PlatformUser {
   readonly id: string;
   readonly fullName: string;
   readonly email: string;
+  readonly phone?: string | null;
   readonly role: ManagedUserRole;
   readonly status: UserAccountStatus;
-  readonly activationStartDate: string;
-  readonly activationMonths: number;
-  readonly expirationDate: string;
+  readonly activationStartDate: string | null;
+  readonly activationMonths: number | null;
+  readonly expirationDate: string | null;
+  readonly createdBy?: string | null;
+  readonly deactivatedAt?: string | null;
+  readonly reactivatedAt?: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -33,7 +37,15 @@ export interface UserManagementData {
   readonly walletTransactions: readonly WalletTransaction[];
 }
 
-export type PlatformUserInput = Pick<PlatformUser, "fullName" | "email" | "role" | "status" | "activationStartDate" | "activationMonths">;
+export interface PlatformUserInput {
+  readonly fullName: string;
+  readonly email: string;
+  readonly phone?: string;
+  readonly role: ManagedUserRole;
+  readonly status: Exclude<UserAccountStatus, "expired">;
+  readonly activationStartDate: string;
+  readonly activationMonths: number;
+}
 
 export interface StudentQuestionActivityInput {
   readonly studentId: string;

@@ -1,5 +1,5 @@
-// Temporary Phase 1 type surface matching the initial profiles migration.
-// Replace this file with Supabase CLI-generated types after linking a project.
+// Synchronized with the connected Supabase project after the Phase 3 profile
+// migration. The nullable RPC argument reflects PostgreSQL runtime behavior.
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
@@ -11,11 +11,14 @@ export interface Database {
           activation_start: string | null;
           avatar_url: string | null;
           created_at: string;
+          created_by: string | null;
+          deactivated_at: string | null;
           expiration_date: string | null;
           full_name: string;
           id: string;
           phone: string | null;
           role: Database["public"]["Enums"]["user_role"];
+          reactivated_at: string | null;
           status: Database["public"]["Enums"]["user_status"];
           updated_at: string;
         };
@@ -24,11 +27,14 @@ export interface Database {
           activation_start?: string | null;
           avatar_url?: string | null;
           created_at?: string;
+          created_by?: string | null;
+          deactivated_at?: string | null;
           expiration_date?: string | null;
           full_name: string;
           id: string;
           phone?: string | null;
           role?: Database["public"]["Enums"]["user_role"];
+          reactivated_at?: string | null;
           status?: Database["public"]["Enums"]["user_status"];
           updated_at?: string;
         };
@@ -37,11 +43,14 @@ export interface Database {
           activation_start?: string | null;
           avatar_url?: string | null;
           created_at?: string;
+          created_by?: string | null;
+          deactivated_at?: string | null;
           expiration_date?: string | null;
           full_name?: string;
           id?: string;
           phone?: string | null;
           role?: Database["public"]["Enums"]["user_role"];
+          reactivated_at?: string | null;
           status?: Database["public"]["Enums"]["user_status"];
           updated_at?: string;
         };

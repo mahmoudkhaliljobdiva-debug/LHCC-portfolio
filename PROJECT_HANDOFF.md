@@ -504,6 +504,33 @@ The `public.profiles` table has RLS enabled. The security advisor reports no
 remaining findings. The unused-index performance notices are expected while
 the new table contains no rows.
 
+## August 16 Phase 3 Admin User Management
+
+`/admin/users` now lists and mutates real Supabase Auth identities joined to
+`public.profiles`. Server actions validate all inputs with Zod, verify the
+request cookie belongs to an active `ADMIN`, and only then use the server-only
+administrative client. The browser never receives the secret/service-role key.
+
+New accounts use `inviteUserByEmail`; users set their own passwords through the
+existing callback/update-password flow. Student activation is forced to one
+calendar month. Teacher activation accepts 1–36 months. Server code calculates
+month-end clamping and never trusts a browser-provided expiration date.
+
+The Phase 3 migration adds `created_by`, `deactivated_at`, and `reactivated_at`
+to `public.profiles`, plus the required foreign-key index. Existing self-profile
+RLS remains unchanged. Deactivation retains Auth identities and historical
+records; incomplete invitation provisioning is the sole rollback case that
+removes a newly created Auth identity.
+
+Mock wallet, question-bank access, and student usage remain in
+`UserManagementProvider`. Admin Users no longer reads its mock user collection;
+usage and bank controls are labeled disabled/deferred. Bootstrap/test steps are
+in `docs/supabase-phase3-test-accounts.md`.
+
+The connected project still needs `SUPABASE_SECRET_KEY` (or legacy
+`SUPABASE_SERVICE_ROLE_KEY`) in local/deployment environment configuration and
+an initial active Admin Auth user before authenticated integration tests can run.
+
 ## Prompt for continuing tomorrow
 
 Use the following prompt in a new session:

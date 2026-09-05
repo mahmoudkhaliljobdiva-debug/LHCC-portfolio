@@ -1,56 +1,73 @@
 "use client";
 
-import { Activity, Edit3, Plus, Power, PowerOff, Search, Trash2, UserCheck, Users } from "lucide-react";
+import { Activity, Edit3, Plus, Power, PowerOff, Search, UserCheck, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import {
+  createUser,
+  deactivateUser,
+  reactivateStudent,
+  reactivateTeacher,
+  updateUser,
+} from "@/actions/admin-users";
+import {
+  DeactivateDialog,
+  ReactivateDialog,
+  UserFormDialog,
+  type UserDialogState,
+} from "@/features/users/admin-user-dialogs";
 import { useAdminQuestionBanks } from "@/features/question-banks/admin-question-bank-provider";
-import { useUserManagement } from "@/features/users/user-management-provider";
 import { cn } from "@/lib/cn";
-import type { AdminQuestionBank } from "@/types/question-bank";
-import type { EffectiveUserStatus, ManagedUserRole, PlatformUser, PlatformUserInput, UserAccountStatus } from "@/types/user-management";
-import { addCalendarMonths, getEffectiveUserStatus, getRemainingDays, getTodayDate } from "@/utils/user-activation";
+import type { ServerResult } from "@/types/server-result";
+import type { EffectiveUserStatus, ManagedUserRole, PlatformUser, PlatformUserInput } from "@/types/user-management";
+import { getEffectiveUserStatus, getRemainingDays } from "@/utils/user-activation";
 
-type SortKey = "name" | "role" | "status" | "expiration" | "answered" | "activity";
-type UserDialogState = { readonly mode: "add"; readonly user?: never } | { readonly mode: "edit"; readonly user: PlatformUser };
-type ConfirmState = { readonly action: "deactivate" | "delete"; readonly user: PlatformUser };
-interface BankAccessDraft { readonly bankId: string; readonly selected: boolean; readonly price: number; readonly accessId?: string; readonly grantedAt?: string; readonly revokeMode?: "revoke" | "refund"; }
+type SortKey = "name" | "role" | "status" | "expiration";
 
-export function AdminUsersPage() {
-  const store = useUserManagement();
+interface AdminUsersPageProps {
+  readonly initialUsers: readonly PlatformUser[];
+  readonly initialError?: string | undefined;
+}
+
+export function AdminUsersPage({ initialUsers, initialError }: AdminUsersPageProps) {
   const bankStore = useAdminQuestionBanks();
+  const [users, setUsers] = useState(initialUsers);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | ManagedUserRole>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | EffectiveUserStatus>("all");
   const [sort, setSort] = useState<SortKey>("name");
   const [dialog, setDialog] = useState<UserDialogState | null>(null);
-  const [confirm, setConfirm] = useState<ConfirmState | null>(null);
-  const [reactivateUser, setReactivateUser] = useState<PlatformUser | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<PlatformUser | null>(null);
+  const [reactivateTarget, setReactivateTarget] = useState<PlatformUser | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [pageError, setPageError] = useState(initialError ?? null);
 
-  const rows = useMemo(() => store.users.map((user) => {
-    const usage = store.getStudentUsage(user.id);
-    return { user, effectiveStatus: getEffectiveUserStatus(user), answered: usage.reduce((sum, item) => sum + item.questionsAnswered, 0), banksUsed: usage.filter((item) => item.questionsAnswered > 0).length, accessGranted: store.getUserBankAccess(user.id).filter((item) => item.isActive).length, lastActivity: usage.map((item) => item.lastActivityAt).filter((value): value is string => Boolean(value)).sort().at(-1) ?? null };
-  }).filter((row) => {
+  const rows = useMemo(() => users.map((user) => ({
+    user,
+    effectiveStatus: getEffectiveUserStatus(user),
+  })).filter((row) => {
     const query = search.trim().toLocaleLowerCase();
-    return (!query || row.user.fullName.toLocaleLowerCase().includes(query) || row.user.email.toLocaleLowerCase().includes(query)) && (roleFilter === "all" || row.user.role === roleFilter) && (statusFilter === "all" || row.effectiveStatus === statusFilter);
+    return (!query
+      || row.user.fullName.toLocaleLowerCase().includes(query)
+      || row.user.email.toLocaleLowerCase().includes(query))
+      && (roleFilter === "all" || row.user.role === roleFilter)
+      && (statusFilter === "all" || row.effectiveStatus === statusFilter);
   }).sort((a, b) => {
     if (sort === "name") return a.user.fullName.localeCompare(b.user.fullName);
     if (sort === "role") return a.user.role.localeCompare(b.user.role);
     if (sort === "status") return a.effectiveStatus.localeCompare(b.effectiveStatus);
-    if (sort === "expiration") return a.user.expirationDate.localeCompare(b.user.expirationDate);
-    if (sort === "answered") return b.answered - a.answered;
-    return (b.lastActivity ?? "").localeCompare(a.lastActivity ?? "");
-  }), [roleFilter, search, sort, statusFilter, store]);
+    return (a.user.expirationDate ?? "9999-12-31").localeCompare(b.user.expirationDate ?? "9999-12-31");
+  }), [roleFilter, search, sort, statusFilter, users]);
 
   const stats = useMemo(() => ({
-    total: store.users.length,
-    students: store.users.filter((user) => user.role === "student" && ["active", "expiring-soon"].includes(getEffectiveUserStatus(user))).length,
-    teachers: store.users.filter((user) => user.role === "teacher" && ["active", "expiring-soon"].includes(getEffectiveUserStatus(user))).length,
-    inactive: store.users.filter((user) => ["inactive", "expired"].includes(getEffectiveUserStatus(user))).length,
-    expiring: store.users.filter((user) => getEffectiveUserStatus(user) === "expiring-soon").length,
-  }), [store.users]);
+    total: users.length,
+    students: users.filter((user) => user.role === "student" && isEffectivelyActive(user)).length,
+    teachers: users.filter((user) => user.role === "teacher" && isEffectivelyActive(user)).length,
+    inactive: users.filter((user) => ["inactive", "expired"].includes(getEffectiveUserStatus(user))).length,
+    expiring: users.filter((user) => getEffectiveUserStatus(user) === "expiring-soon").length,
+  }), [users]);
+
   const summaryCards: readonly { readonly label: string; readonly value: number; readonly icon: LucideIcon }[] = [
     { label: "Total users", value: stats.total, icon: Users },
     { label: "Active students", value: stats.students, icon: UserCheck },
@@ -59,72 +76,133 @@ export function AdminUsersPage() {
     { label: "Expiring soon", value: stats.expiring, icon: Activity },
   ];
 
-  if (!store.isReady || !bankStore.isReady) return <div className="h-80 animate-pulse rounded-2xl border bg-white" aria-label="Loading users" />;
-
-  function saveUser(input: PlatformUserInput, accessDraft: readonly BankAccessDraft[]) {
-    const user = dialog?.mode === "edit" ? dialog.user : store.addUser(input);
-    if (dialog?.mode === "edit") store.updateUser(user.id, input);
-    accessDraft.forEach((draft) => {
-      const bank = bankStore.getQuestionBankById(draft.bankId);
-      if (!bank) return;
-      if (draft.selected && draft.accessId) store.updateUserBankPrice(draft.accessId, draft.price, bank.name);
-      else if (draft.selected) store.grantUserBankAccess(user.id, draft.bankId, draft.price, bank.name);
-      else if (draft.accessId && draft.revokeMode === "refund") store.refundUserBankAccess(draft.accessId, bank.name);
-      else if (draft.accessId && draft.revokeMode === "revoke") store.revokeUserBankAccess(draft.accessId);
-    });
-    setSuccess(`${input.fullName} ${dialog?.mode === "edit" ? "updated" : "added"} successfully.`);
-    setDialog(null);
+  function clearFeedback(): void {
+    setSuccess(null);
+    setPageError(null);
   }
 
-  function confirmAction() {
-    if (!confirm) return;
-    if (confirm.action === "deactivate") { store.deactivateUser(confirm.user.id); setSuccess(`${confirm.user.fullName} was deactivated.`); }
-    else { store.deleteUser(confirm.user.id); setSuccess(`${confirm.user.fullName} was deleted.`); }
-    setConfirm(null);
+  function replaceUser(user: PlatformUser): void {
+    setUsers((current) => current.some((item) => item.id === user.id)
+      ? current.map((item) => item.id === user.id ? user : item)
+      : [user, ...current]);
+  }
+
+  async function saveUser(input: PlatformUserInput): Promise<ServerResult<PlatformUser>> {
+    clearFeedback();
+    const result = dialog?.mode === "edit"
+      ? await updateUser({ ...input, userId: dialog.user.id })
+      : await createUser(input);
+
+    if (result.ok) {
+      replaceUser(result.data);
+      setSuccess(`${result.data.fullName} ${dialog?.mode === "edit" ? "updated" : "invited"} successfully.`);
+      setDialog(null);
+    }
+    return result;
+  }
+
+  async function confirmDeactivation(): Promise<ServerResult<PlatformUser>> {
+    if (!deactivateTarget) return unavailableResult();
+    clearFeedback();
+    const result = await deactivateUser({ userId: deactivateTarget.id });
+    if (result.ok) {
+      replaceUser(result.data);
+      setSuccess(`${result.data.fullName} was deactivated.`);
+      setDeactivateTarget(null);
+    }
+    return result;
+  }
+
+  async function confirmReactivation(months: number): Promise<ServerResult<PlatformUser>> {
+    if (!reactivateTarget) return unavailableResult();
+    clearFeedback();
+    const result = reactivateTarget.role === "student"
+      ? await reactivateStudent({ userId: reactivateTarget.id })
+      : await reactivateTeacher({ userId: reactivateTarget.id, activationMonths: months });
+    if (result.ok) {
+      replaceUser(result.data);
+      setSuccess(`${result.data.fullName} was reactivated with a new activation period.`);
+      setReactivateTarget(null);
+    }
+    return result;
   }
 
   return (
     <div>
-      <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-sm font-semibold text-teal-700">Account administration</p><h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Users</h1><p className="mt-2 text-sm text-slate-500">Manage student and teacher access periods and learning activity.</p></div><button type="button" onClick={() => { setDialog({ mode: "add" }); setSuccess(null); }} className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white"><Plus className="size-4" />Add User</button></div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">{summaryCards.map(({ label, value, icon: Icon }) => <article key={label} className="rounded-2xl border bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p></div><span className="grid size-10 place-items-center rounded-xl bg-teal-50 text-teal-700"><Icon className="size-5" /></span></div></article>)}</div>
+      <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-teal-700">Account administration</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Users</h1>
+          <p className="mt-2 text-sm text-slate-500">Manage real student and teacher accounts, invitations, and activation periods.</p>
+        </div>
+        <button type="button" onClick={() => { clearFeedback(); setDialog({ mode: "add" }); }} className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white">
+          <Plus className="size-4" />Add User
+        </button>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {summaryCards.map(({ label, value, icon: Icon }) => (
+          <article key={label} className="rounded-2xl border bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p></div>
+              <span className="grid size-10 place-items-center rounded-xl bg-teal-50 text-teal-700"><Icon className="size-5" /></span>
+            </div>
+          </article>
+        ))}
+      </div>
+
       {success && <div role="status" className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{success}</div>}
+      {pageError && <div role="alert" className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">{pageError}</div>}
+
       <section className="mt-6 overflow-hidden rounded-2xl border bg-white shadow-sm">
-        <div className="grid gap-3 border-b p-5 md:grid-cols-2 xl:grid-cols-[1fr_180px_190px_190px]"><label className="relative"><span className="sr-only">Search by name or email</span><Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name or email" className="h-10 w-full rounded-xl border bg-slate-50 pr-3 pl-9 text-sm" /></label><Filter value={roleFilter} onChange={(value) => setRoleFilter(value as "all" | ManagedUserRole)} options={[["all", "All roles"], ["student", "Students"], ["teacher", "Teachers"]]} label="Role filter" /><Filter value={statusFilter} onChange={(value) => setStatusFilter(value as "all" | EffectiveUserStatus)} options={[["all", "All statuses"], ["active", "Active"], ["inactive", "Inactive"], ["expired", "Expired"], ["expiring-soon", "Expiring soon"]]} label="Status filter" /><Filter value={sort} onChange={(value) => setSort(value as SortKey)} options={[["name", "Sort: Name"], ["role", "Sort: Role"], ["status", "Sort: Status"], ["expiration", "Sort: Expiration"], ["answered", "Sort: Questions"], ["activity", "Sort: Last activity"]]} label="Sort users" /></div>
-        {rows.length === 0 ? <div className="px-6 py-16 text-center"><Users className="mx-auto size-9 text-slate-400" /><h2 className="mt-4 font-semibold text-slate-900">{roleFilter === "student" ? "No students match the selected filters." : "No users found."}</h2></div> : <>
-          <div className="grid gap-4 p-4 lg:hidden">{rows.map((row) => <UserCard key={row.user.id} row={row} totalBanks={bankStore.banks.length} onEdit={() => setDialog({ mode: "edit", user: row.user })} onActivate={() => setReactivateUser(row.user)} onDeactivate={() => setConfirm({ action: "deactivate", user: row.user })} onDelete={() => setConfirm({ action: "delete", user: row.user })} />)}</div>
-          <div className="hidden overflow-x-auto lg:block"><table className="w-full min-w-[1250px] text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["User", "Email", "Role", "Status", "Activation", "Expiration", "Remaining", "Question-bank usage", "Actions"].map((heading) => <th key={heading} className="px-5 py-3 font-medium">{heading}</th>)}</tr></thead><tbody>{rows.map((row) => <UserTableRow key={row.user.id} row={row} totalBanks={bankStore.banks.length} onEdit={() => setDialog({ mode: "edit", user: row.user })} onActivate={() => setReactivateUser(row.user)} onDeactivate={() => setConfirm({ action: "deactivate", user: row.user })} onDelete={() => setConfirm({ action: "delete", user: row.user })} />)}</tbody></table></div>
-        </>}
+        <div className="grid gap-3 border-b p-5 md:grid-cols-2 xl:grid-cols-[1fr_180px_190px_190px]">
+          <label className="relative"><span className="sr-only">Search by name or email</span><Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name or email" className="h-10 w-full rounded-xl border bg-slate-50 pr-3 pl-9 text-sm" /></label>
+          <Filter value={roleFilter} onChange={(value) => setRoleFilter(value as "all" | ManagedUserRole)} options={[["all", "All roles"], ["student", "Students"], ["teacher", "Teachers"]]} label="Role filter" />
+          <Filter value={statusFilter} onChange={(value) => setStatusFilter(value as "all" | EffectiveUserStatus)} options={[["all", "All statuses"], ["active", "Active"], ["inactive", "Inactive"], ["expired", "Expired"], ["expiring-soon", "Expiring soon"]]} label="Status filter" />
+          <Filter value={sort} onChange={(value) => setSort(value as SortKey)} options={[["name", "Sort: Name"], ["role", "Sort: Role"], ["status", "Sort: Status"], ["expiration", "Sort: Expiration"]]} label="Sort users" />
+        </div>
+
+        {rows.length === 0 ? (
+          <div className="px-6 py-16 text-center"><Users className="mx-auto size-9 text-slate-400" /><h2 className="mt-4 font-semibold text-slate-900">{pageError ? "Users could not be loaded." : roleFilter === "student" ? "No students match the selected filters." : "No users found."}</h2></div>
+        ) : (
+          <>
+            <div className="grid gap-4 p-4 lg:hidden">{rows.map((row) => <UserCard key={row.user.id} row={row} onEdit={() => setDialog({ mode: "edit", user: row.user })} onActivate={() => setReactivateTarget(row.user)} onDeactivate={() => setDeactivateTarget(row.user)} />)}</div>
+            <div className="hidden overflow-x-auto lg:block"><table className="w-full min-w-[1120px] text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["User", "Email", "Role", "Status", "Activation", "Expiration", "Remaining", "Usage", "Actions"].map((heading) => <th key={heading} className="px-5 py-3 font-medium">{heading}</th>)}</tr></thead><tbody>{rows.map((row) => <UserTableRow key={row.user.id} row={row} onEdit={() => setDialog({ mode: "edit", user: row.user })} onActivate={() => setReactivateTarget(row.user)} onDeactivate={() => setDeactivateTarget(row.user)} />)}</tbody></table></div>
+          </>
+        )}
       </section>
-      {dialog && <UserFormDialog state={dialog} users={store.users} banks={bankStore.banks} existingAccess={dialog.mode === "edit" ? store.getUserBankAccess(dialog.user.id) : []} onCancel={() => setDialog(null)} onSave={saveUser} />}
-      {confirm && <ConfirmDialog state={confirm} onCancel={() => setConfirm(null)} onConfirm={confirmAction} />}
-      {reactivateUser && <ReactivateDialog user={reactivateUser} onCancel={() => setReactivateUser(null)} onConfirm={(months) => { store.reactivateUser(reactivateUser.id, months); setSuccess(`${reactivateUser.fullName} was reactivated.`); setReactivateUser(null); }} />}
+
+      {dialog && <UserFormDialog state={dialog} users={users} bankNames={bankStore.banks.map((bank) => bank.name)} onCancel={() => setDialog(null)} onSave={saveUser} />}
+      {deactivateTarget && <DeactivateDialog user={deactivateTarget} onCancel={() => setDeactivateTarget(null)} onConfirm={confirmDeactivation} />}
+      {reactivateTarget && <ReactivateDialog user={reactivateTarget} onCancel={() => setReactivateTarget(null)} onConfirm={confirmReactivation} />}
     </div>
   );
 }
 
-interface UserRowData { readonly user: PlatformUser; readonly effectiveStatus: EffectiveUserStatus; readonly answered: number; readonly banksUsed: number; readonly accessGranted: number; readonly lastActivity: string | null; }
-interface RowActions { readonly row: UserRowData; readonly totalBanks: number; readonly onEdit: () => void; readonly onActivate: () => void; readonly onDeactivate: () => void; readonly onDelete: () => void; }
+interface UserRowData { readonly user: PlatformUser; readonly effectiveStatus: EffectiveUserStatus }
+interface RowActions { readonly row: UserRowData; readonly onEdit: () => void; readonly onActivate: () => void; readonly onDeactivate: () => void }
 
-function UserTableRow(props: RowActions) { const { row } = props; return <tr className="border-t"><td className="px-5 py-4 font-semibold text-slate-900">{row.user.fullName}</td><td className="px-5 py-4 text-slate-600">{row.user.email}</td><td className="px-5 py-4"><RoleBadge role={row.user.role} /></td><td className="px-5 py-4"><StatusBadge status={row.effectiveStatus} /></td><td className="px-5 py-4 text-slate-600">{formatDate(row.user.activationStartDate)}</td><td className="px-5 py-4 text-slate-600">{formatDate(row.user.expirationDate)}</td><td className="px-5 py-4 text-slate-600">{remainingLabel(row.user, row.effectiveStatus)}</td><td className="px-5 py-4"><UsageSummary row={row} totalBanks={props.totalBanks} /></td><td className="px-5 py-4"><Actions {...props} /></td></tr>; }
-function UserCard(props: RowActions) { const { row } = props; return <article className="rounded-xl border bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">{row.user.fullName}</h2><p className="mt-1 break-all text-sm text-slate-500">{row.user.email}</p></div><StatusBadge status={row.effectiveStatus} /></div><div className="mt-4 flex gap-2"><RoleBadge role={row.user.role} /></div><dl className="mt-4 grid grid-cols-2 gap-3 text-sm"><div><dt className="text-xs text-slate-500">Activation</dt><dd className="mt-1 text-slate-700">{formatDate(row.user.activationStartDate)}</dd></div><div><dt className="text-xs text-slate-500">Expiration</dt><dd className="mt-1 text-slate-700">{formatDate(row.user.expirationDate)}</dd></div></dl><div className="mt-4"><UsageSummary row={row} totalBanks={props.totalBanks} /></div><div className="mt-4 border-t pt-3"><Actions {...props} /></div></article>; }
-function RoleBadge({ role }: { readonly role: ManagedUserRole }) { return <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold capitalize text-sky-700">{role}</span>; }
-function StatusBadge({ status }: { readonly status: EffectiveUserStatus }) { const labels = { active: "Active", inactive: "Inactive", expired: "Expired", "expiring-soon": "Expires Soon" }; return <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", status === "active" ? "bg-emerald-50 text-emerald-700" : status === "expiring-soon" ? "bg-amber-50 text-amber-800" : "bg-rose-50 text-rose-700")}>{labels[status]}</span>; }
-function UsageSummary({ row, totalBanks }: { readonly row: UserRowData; readonly totalBanks: number }) { return row.user.role === "teacher" ? <div className="text-xs leading-5 text-slate-600"><p>Access granted: {row.accessGranted} of {totalBanks}</p><p>Usage: Not applicable</p></div> : <div className="text-xs leading-5 text-slate-600"><p>Access granted: {row.accessGranted} banks</p><p>Used {row.banksUsed} of {totalBanks} banks</p><p>{row.answered} questions answered</p><p>{row.lastActivity ? `Last active: ${formatDate(row.lastActivity)}` : "No activity"}</p></div>; }
-function Actions(props: RowActions) { const active = props.row.effectiveStatus === "active" || props.row.effectiveStatus === "expiring-soon"; return <div className="flex flex-wrap items-center gap-1.5">{active ? <button type="button" onClick={props.onDeactivate} className="rounded-lg border p-2 text-rose-700" aria-label={`Deactivate ${props.row.user.fullName}`} title="Deactivate"><PowerOff className="size-4" /></button> : <button type="button" onClick={props.onActivate} className="rounded-lg border p-2 text-emerald-700" aria-label={`Activate ${props.row.user.fullName}`} title="Activate"><Power className="size-4" /></button>}<button type="button" onClick={props.onEdit} className="rounded-lg border p-2 text-slate-600" aria-label={`Edit ${props.row.user.fullName}`} title="Edit"><Edit3 className="size-4" /></button>{props.row.user.role === "student" && <Link href={`/admin/users/${props.row.user.id}/activity`} className="rounded-lg border p-2 text-teal-700" aria-label={`View activity for ${props.row.user.fullName}`} title="View Activity"><Activity className="size-4" /></Link>}<button type="button" onClick={props.onDelete} className="rounded-lg border p-2 text-rose-700" aria-label={`Delete ${props.row.user.fullName}`} title="Delete"><Trash2 className="size-4" /></button></div>; }
-
-function UserFormDialog({ state, users, banks, existingAccess, onCancel, onSave }: { readonly state: UserDialogState; readonly users: readonly PlatformUser[]; readonly banks: readonly AdminQuestionBank[]; readonly existingAccess: readonly import("@/types/user-management").UserBankAccess[]; readonly onCancel: () => void; readonly onSave: (input: PlatformUserInput, access: readonly BankAccessDraft[]) => void }) {
-  const editing = state.mode === "edit" ? state.user : undefined;
-  const [fullName, setFullName] = useState(editing?.fullName ?? ""); const [email, setEmail] = useState(editing?.email ?? ""); const [role, setRole] = useState<ManagedUserRole>(editing?.role ?? "student"); const [start, setStart] = useState(editing?.activationStartDate ?? getTodayDate()); const [months, setMonths] = useState(editing?.role === "teacher" ? editing.activationMonths : 1); const [status, setStatus] = useState<UserAccountStatus>(editing?.status === "inactive" ? "inactive" : "active"); const [errors, setErrors] = useState<Record<string, string>>({}); const [isSaving, setIsSaving] = useState(false); const [revokeTarget, setRevokeTarget] = useState<BankAccessDraft | null>(null); const [accessDraft, setAccessDraft] = useState<readonly BankAccessDraft[]>(() => banks.map((bank) => { const access = existingAccess.find((item) => item.bankId === bank.id && item.isActive); return { bankId: bank.id, selected: Boolean(access), price: access?.price ?? 5, ...(access ? { accessId: access.id, grantedAt: access.grantedAt } : {}) }; })); const expiration = safeExpiration(start, role === "student" ? 1 : months);
-  async function submit(event: React.FormEvent) { event.preventDefault(); const next: Record<string, string> = {}; if (!fullName.trim()) next.fullName = "Full name is required."; if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = "Enter a valid email address."; if (users.some((user) => user.id !== editing?.id && user.email.trim().toLocaleLowerCase() === email.trim().toLocaleLowerCase())) next.email = "This email address is already in use."; if (!start) next.start = "Activation start date is required."; if (role === "teacher" && (!Number.isInteger(months) || months < 1 || months > 36)) next.months = "Choose between 1 and 36 months."; accessDraft.filter((item) => item.selected).forEach((item) => { if (!Number.isFinite(item.price) || item.price <= 0) next[`bank.${item.bankId}`] = "Enter a price greater than zero."; }); setErrors(next); if (Object.keys(next).length) return; setIsSaving(true); await new Promise<void>((resolve) => window.setTimeout(resolve, 250)); onSave({ fullName: fullName.trim(), email: email.trim(), role, status, activationStartDate: start, activationMonths: role === "student" ? 1 : months }, accessDraft); }
-  function setAccess(bankId: string, selected: boolean) { const current = accessDraft.find((item) => item.bankId === bankId); if (!current) return; if (!selected && current.accessId) { setRevokeTarget(current); return; } setAccessDraft((items) => items.map((item) => item.bankId === bankId ? { ...item, selected } : item)); }
-  function confirmRevoke(mode: "revoke" | "refund") { if (!revokeTarget) return; setAccessDraft((items) => items.map((item) => item.bankId === revokeTarget.bankId ? { ...item, selected: false, revokeMode: mode } : item)); setRevokeTarget(null); }
-  return <><div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-slate-950/55 p-4"><form onSubmit={submit} role="dialog" aria-modal="true" aria-labelledby="user-form-title" className="my-6 w-full max-w-3xl rounded-2xl border bg-white p-5 shadow-2xl sm:p-7"><h2 id="user-form-title" className="text-xl font-semibold text-slate-950">{editing ? "Edit user" : "Add user"}</h2><div className="mt-6 grid gap-5"><TextField label="Full name" value={fullName} error={errors.fullName} onChange={setFullName} /><TextField label="Email" type="email" value={email} error={errors.email} onChange={setEmail} /><div className="grid gap-5 sm:grid-cols-2"><label className="grid gap-2 text-sm font-medium text-slate-700">Role<select value={role} onChange={(event) => { const next = event.target.value as ManagedUserRole; setRole(next); if (next === "student") setMonths(1); }} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="student">Student</option><option value="teacher">Teacher</option></select></label><label className="grid gap-2 text-sm font-medium text-slate-700">Status<select value={status} onChange={(event) => setStatus(event.target.value as UserAccountStatus)} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="active">Active</option><option value="inactive">Inactive</option></select></label><TextField label="Activation start date" type="date" value={start} error={errors.start} onChange={setStart} />{role === "student" ? <label className="grid gap-2 text-sm font-medium text-slate-700">Activation duration<input value="1 month" readOnly className="h-11 rounded-xl border bg-slate-100 px-3 text-slate-600" /></label> : <TextField label="Activation duration in months" type="number" min={1} max={36} value={String(months)} error={errors.months} onChange={(value) => setMonths(Number(value))} />}</div><div className="rounded-xl border bg-teal-50 p-4 text-sm"><p className="text-xs font-medium text-slate-500">Calculated expiration date</p><p className="mt-1 font-semibold text-slate-900">{expiration ? formatDate(expiration) : "Select a valid date"}</p></div><section className="border-t pt-5"><h3 className="font-semibold text-slate-950">Question Bank Access</h3><p className="mt-1 text-xs text-slate-500">Bank purchase access is separate from learning usage.</p><div className="mt-4 grid gap-3">{banks.map((bank) => { const draft = accessDraft.find((item) => item.bankId === bank.id); if (!draft) return null; return <div key={bank.id} className="grid gap-3 rounded-xl border bg-slate-50 p-4 sm:grid-cols-[1fr_auto_150px] sm:items-center"><label className="flex items-center gap-3 text-sm font-semibold text-slate-800"><input type="checkbox" checked={draft.selected} onChange={(event) => setAccess(bank.id, event.target.checked)} className="size-4 accent-teal-700" />{bank.name}</label><span className="text-xs text-slate-500">{draft.selected ? "Access enabled" : "No access"}{draft.grantedAt ? ` · Granted ${formatDate(draft.grantedAt)}` : ""}</span><label className="grid gap-1 text-xs text-slate-600">User Bank Price (USD)<input type="number" min="0.01" step="0.01" disabled={!draft.selected} value={draft.price} onChange={(event) => setAccessDraft((items) => items.map((item) => item.bankId === bank.id ? { ...item, price: Number(event.target.value) } : item))} className="h-10 rounded-lg border bg-white px-3 text-sm disabled:opacity-50" />{errors[`bank.${bank.id}`] && <span className="text-rose-700">{errors[`bank.${bank.id}`]}</span>}</label></div>; })}</div></section></div><div className="mt-7 flex justify-end gap-3"><button type="button" disabled={isSaving} onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50">Cancel</button><button type="submit" disabled={isSaving} className="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? "Saving…" : "Save User"}</button></div></form></div>{revokeTarget && <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/65 p-4"><div role="alertdialog" aria-modal="true" className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-2xl"><h3 className="text-lg font-semibold text-slate-950">Revoke question-bank access?</h3><p className="mt-2 text-sm leading-6 text-slate-500">Revoking access does not refund the original purchase unless you explicitly choose a refund.</p><div className="mt-6 grid gap-2"><button type="button" onClick={() => confirmRevoke("revoke")} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700">Revoke Access</button><button type="button" onClick={() => confirmRevoke("refund")} className="rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white">Revoke Access and Refund</button><button type="button" onClick={() => setRevokeTarget(null)} className="px-4 py-2 text-sm font-semibold text-slate-500">Cancel</button></div></div></div>}</>;
+function UserTableRow(props: RowActions) {
+  const { row } = props;
+  return <tr className="border-t"><td className="px-5 py-4 font-semibold text-slate-900">{row.user.fullName}</td><td className="px-5 py-4 text-slate-600">{row.user.email}</td><td className="px-5 py-4"><RoleBadge role={row.user.role} /></td><td className="px-5 py-4"><StatusBadge status={row.effectiveStatus} /></td><td className="px-5 py-4 text-slate-600">{formatDate(row.user.activationStartDate)}</td><td className="px-5 py-4 text-slate-600">{formatDate(row.user.expirationDate)}</td><td className="px-5 py-4 text-slate-600">{remainingLabel(row.user, row.effectiveStatus)}</td><td className="px-5 py-4"><UsagePlaceholder /></td><td className="px-5 py-4"><Actions {...props} /></td></tr>;
 }
 
-function ReactivateDialog({ user, onCancel, onConfirm }: { readonly user: PlatformUser; readonly onCancel: () => void; readonly onConfirm: (months: number) => void }) { const [months, setMonths] = useState(user.role === "student" ? 1 : Math.max(1, user.activationMonths)); const expiration = addCalendarMonths(getTodayDate(), user.role === "student" ? 1 : months); return <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4"><div role="dialog" aria-modal="true" aria-labelledby="reactivate-title" className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-2xl"><h2 id="reactivate-title" className="text-lg font-semibold text-slate-950">Reactivate {user.fullName}</h2><p className="mt-2 text-sm text-slate-500">A new activation period begins today.</p>{user.role === "student" ? <p className="mt-5 rounded-xl bg-teal-50 p-4 text-sm text-slate-700">Student duration: <strong>1 month</strong></p> : <label className="mt-5 grid gap-2 text-sm font-medium text-slate-700">Activation months<input type="number" min={1} max={36} value={months} onChange={(event) => setMonths(Math.min(36, Math.max(1, Number(event.target.value))))} className="h-11 rounded-xl border bg-slate-50 px-3" /></label>}<p className="mt-4 text-sm text-slate-600">New expiration: <strong>{formatDate(expiration)}</strong></p><div className="mt-6 flex justify-end gap-3"><button type="button" onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700">Cancel</button><button type="button" onClick={() => onConfirm(user.role === "student" ? 1 : months)} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white">Reactivate</button></div></div></div>; }
-function ConfirmDialog({ state, onCancel, onConfirm }: { readonly state: ConfirmState; readonly onCancel: () => void; readonly onConfirm: () => void }) { return <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4"><div role="alertdialog" aria-modal="true" aria-labelledby="confirm-user-title" className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-2xl"><h2 id="confirm-user-title" className="text-lg font-semibold text-slate-950">{state.action === "delete" ? "Delete" : "Deactivate"} {state.user.fullName}?</h2><p className="mt-3 text-sm leading-6 text-slate-500">{state.action === "delete" ? "This permanently removes the user and all linked usage records." : "This user will immediately lose access to the demo portal."}</p><div className="mt-6 flex justify-end gap-3"><button type="button" autoFocus onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700">Cancel</button><button type="button" onClick={onConfirm} className="rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white">Confirm</button></div></div></div>; }
-function TextField({ label, value, error, type = "text", min, max, onChange }: { readonly label: string; readonly value: string; readonly error?: string | undefined; readonly type?: "text" | "email" | "date" | "number"; readonly min?: number; readonly max?: number; readonly onChange: (value: string) => void }) { return <label className="grid gap-2 text-sm font-medium text-slate-700">{label}<input type={type} min={min} max={max} value={value} onChange={(event) => onChange(event.target.value)} aria-invalid={Boolean(error)} className={cn("h-11 rounded-xl border bg-slate-50 px-3", error && "border-rose-400")} />{error && <span className="text-xs text-rose-700">{error}</span>}</label>; }
+function UserCard(props: RowActions) {
+  const { row } = props;
+  return <article className="rounded-xl border bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">{row.user.fullName}</h2><p className="mt-1 break-all text-sm text-slate-500">{row.user.email}</p></div><StatusBadge status={row.effectiveStatus} /></div><div className="mt-4 flex gap-2"><RoleBadge role={row.user.role} /></div><dl className="mt-4 grid grid-cols-2 gap-3 text-sm"><div><dt className="text-xs text-slate-500">Activation</dt><dd className="mt-1 text-slate-700">{formatDate(row.user.activationStartDate)}</dd></div><div><dt className="text-xs text-slate-500">Expiration</dt><dd className="mt-1 text-slate-700">{formatDate(row.user.expirationDate)}</dd></div></dl><div className="mt-4"><UsagePlaceholder /></div><div className="mt-4 border-t pt-3"><Actions {...props} /></div></article>;
+}
+
+function RoleBadge({ role }: { readonly role: ManagedUserRole }) { return <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold capitalize text-sky-700">{role}</span>; }
+function StatusBadge({ status }: { readonly status: EffectiveUserStatus }) { const labels = { active: "Active", inactive: "Inactive", expired: "Expired", "expiring-soon": "Expires Soon" }; return <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", status === "active" ? "bg-emerald-50 text-emerald-700" : status === "expiring-soon" ? "bg-amber-50 text-amber-800" : "bg-rose-50 text-rose-700")}>{labels[status]}</span>; }
+function UsagePlaceholder() { return <div className="text-xs leading-5 text-slate-500"><p className="font-medium text-slate-600">Usage deferred</p><p>Mock usage is not joined to real accounts.</p></div>; }
+
+function Actions(props: RowActions) {
+  const active = props.row.effectiveStatus === "active" || props.row.effectiveStatus === "expiring-soon";
+  return <div className="flex flex-wrap items-center gap-1.5">{active ? <button type="button" onClick={props.onDeactivate} className="rounded-lg border p-2 text-rose-700" aria-label={`Deactivate ${props.row.user.fullName}`} title="Deactivate"><PowerOff className="size-4" /></button> : <button type="button" onClick={props.onActivate} className="rounded-lg border p-2 text-emerald-700" aria-label={`Reactivate ${props.row.user.fullName}`} title="Reactivate"><Power className="size-4" /></button>}<button type="button" onClick={props.onEdit} className="rounded-lg border p-2 text-slate-600" aria-label={`Edit ${props.row.user.fullName}`} title="Edit"><Edit3 className="size-4" /></button>{props.row.user.role === "student" && <button type="button" disabled className="rounded-lg border p-2 text-slate-400 opacity-60" aria-label={`Activity migration pending for ${props.row.user.fullName}`} title="Activity migration pending"><Activity className="size-4" /></button>}</div>;
+}
+
 function Filter({ value, options, label, onChange }: { readonly value: string; readonly options: readonly (readonly [string, string])[]; readonly label: string; readonly onChange: (value: string) => void }) { return <label><span className="sr-only">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-xl border bg-slate-50 px-3 text-sm">{options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}</select></label>; }
-function remainingLabel(user: PlatformUser, status: EffectiveUserStatus): string { if (status === "expired") return "Expired"; if (status === "inactive") return "Inactive"; const days = getRemainingDays(user.expirationDate); return `${days} ${days === 1 ? "day" : "days"}`; }
-function formatDate(value: string): string { return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value.includes("T") ? value : `${value}T00:00:00`)); }
-function safeExpiration(start: string, months: number): string { try { return start ? addCalendarMonths(start, months) : ""; } catch { return ""; } }
+function isEffectivelyActive(user: PlatformUser): boolean { return ["active", "expiring-soon"].includes(getEffectiveUserStatus(user)); }
+function remainingLabel(user: PlatformUser, status: EffectiveUserStatus): string { if (status === "expired") return "Expired"; if (status === "inactive") return "Inactive"; if (!user.expirationDate) return "Not configured"; const days = getRemainingDays(user.expirationDate); return `${days} ${days === 1 ? "day" : "days"}`; }
+function formatDate(value: string | null): string { if (!value) return "Not configured"; return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value.includes("T") ? value : `${value}T00:00:00`)); }
+function unavailableResult(): ServerResult<never> { return { ok: false, error: { code: "NOT_FOUND", message: "The selected user is no longer available." } }; }
