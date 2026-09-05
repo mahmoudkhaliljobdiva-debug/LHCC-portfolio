@@ -12,9 +12,9 @@ export const metadata: Metadata = {
   description:
     "Lebanese Health & Competence Center — healthcare learning for students, educators, and institutions.",
   icons: {
-    icon: [{ url: "/images/lhcc-logo.png", type: "image/png" }],
-    shortcut: "/images/lhcc-logo.png",
-    apple: "/images/lhcc-logo.png",
+    icon: [{ url: "/images/lhcc-logo-round.png", type: "image/png", sizes: "512x512" }],
+    shortcut: "/images/lhcc-logo-round.png",
+    apple: "/images/lhcc-logo-round.png",
   },
 };
 
