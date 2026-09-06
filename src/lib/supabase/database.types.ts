@@ -1,5 +1,5 @@
-// Synchronized with the connected Supabase project after the Phase 3 profile
-// migration. The nullable RPC argument reflects PostgreSQL runtime behavior.
+// Synchronized with the connected Supabase project after the profile
+// demographics migration. The nullable RPC argument reflects PostgreSQL runtime behavior.
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
@@ -9,12 +9,15 @@ export interface Database {
         Row: {
           activation_months: number | null;
           activation_start: string | null;
+          age: number | null;
           avatar_url: string | null;
           created_at: string;
           created_by: string | null;
           deactivated_at: string | null;
           expiration_date: string | null;
           full_name: string;
+          gender: Database["public"]["Enums"]["profile_gender"] | null;
+          home_address: string | null;
           id: string;
           phone: string | null;
           role: Database["public"]["Enums"]["user_role"];
@@ -25,12 +28,15 @@ export interface Database {
         Insert: {
           activation_months?: number | null;
           activation_start?: string | null;
+          age?: number | null;
           avatar_url?: string | null;
           created_at?: string;
           created_by?: string | null;
           deactivated_at?: string | null;
           expiration_date?: string | null;
           full_name: string;
+          gender?: Database["public"]["Enums"]["profile_gender"] | null;
+          home_address?: string | null;
           id: string;
           phone?: string | null;
           role?: Database["public"]["Enums"]["user_role"];
@@ -41,12 +47,15 @@ export interface Database {
         Update: {
           activation_months?: number | null;
           activation_start?: string | null;
+          age?: number | null;
           avatar_url?: string | null;
           created_at?: string;
           created_by?: string | null;
           deactivated_at?: string | null;
           expiration_date?: string | null;
           full_name?: string;
+          gender?: Database["public"]["Enums"]["profile_gender"] | null;
+          home_address?: string | null;
           id?: string;
           phone?: string | null;
           role?: Database["public"]["Enums"]["user_role"];
@@ -69,6 +78,7 @@ export interface Database {
       };
     };
     Enums: {
+      profile_gender: "MALE" | "FEMALE";
       user_role: "ADMIN" | "TEACHER" | "STUDENT";
       user_status: "ACTIVE" | "INACTIVE" | "EXPIRED";
     };

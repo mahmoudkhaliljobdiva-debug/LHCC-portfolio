@@ -12,13 +12,14 @@ export function createDefaultUsers(): readonly PlatformUser[] {
   sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 5);
   const expiringSoon = getTodayDate(sevenDaysFromNow);
   const now = new Date().toISOString();
+  const demographics = { age: null, gender: null, homeAddress: null } as const;
 
   return [
-    { id: "student-maya", fullName: "Maya Carter", email: "maya@example.edu", role: "student", status: "active", activationStartDate: today, activationMonths: 1, expirationDate: inOneMonth, createdAt: now, updatedAt: now },
-    { id: "student-sarah", fullName: "Sarah Ahmad", email: "sarah@example.com", role: "student", status: "active", activationStartDate: today, activationMonths: 1, expirationDate: inOneMonth, createdAt: now, updatedAt: now },
-    { id: "student-noah", fullName: "Noah Williams", email: "noah@example.edu", role: "student", status: "active", activationStartDate: oneMonthAgo, activationMonths: 1, expirationDate: expiringSoon, createdAt: now, updatedAt: now },
-    { id: "student-amelia", fullName: "Amelia Clark", email: "amelia@example.edu", role: "student", status: "inactive", activationStartDate: oneMonthAgo, activationMonths: 1, expirationDate: today, createdAt: now, updatedAt: now },
-    { id: "teacher-daniel", fullName: "Dr. Daniel Harris", email: "daniel@example.edu", role: "teacher", status: "active", activationStartDate: today, activationMonths: 12, expirationDate: inTwelveMonths, createdAt: now, updatedAt: now },
-    { id: "teacher-sophia", fullName: "Dr. Sophia Lee", email: "sophia@example.edu", role: "teacher", status: "active", activationStartDate: sixMonthsAgo, activationMonths: 12, expirationDate: inSixMonths, createdAt: now, updatedAt: now },
+    { ...demographics, id: "student-maya", fullName: "Maya Carter", email: "maya@example.edu", role: "student", status: "active", activationStartDate: today, activationMonths: 1, expirationDate: inOneMonth, createdAt: now, updatedAt: now },
+    { ...demographics, id: "student-sarah", fullName: "Sarah Ahmad", email: "sarah@example.com", role: "student", status: "active", activationStartDate: today, activationMonths: 1, expirationDate: inOneMonth, createdAt: now, updatedAt: now },
+    { ...demographics, id: "student-noah", fullName: "Noah Williams", email: "noah@example.edu", role: "student", status: "active", activationStartDate: oneMonthAgo, activationMonths: 1, expirationDate: expiringSoon, createdAt: now, updatedAt: now },
+    { ...demographics, id: "student-amelia", fullName: "Amelia Clark", email: "amelia@example.edu", role: "student", status: "inactive", activationStartDate: oneMonthAgo, activationMonths: 1, expirationDate: today, createdAt: now, updatedAt: now },
+    { ...demographics, id: "teacher-daniel", fullName: "Dr. Daniel Harris", email: "daniel@example.edu", role: "teacher", status: "active", activationStartDate: today, activationMonths: 12, expirationDate: inTwelveMonths, createdAt: now, updatedAt: now },
+    { ...demographics, id: "teacher-sophia", fullName: "Dr. Sophia Lee", email: "sophia@example.edu", role: "teacher", status: "active", activationStartDate: sixMonthsAgo, activationMonths: 12, expirationDate: inSixMonths, createdAt: now, updatedAt: now },
   ];
 }

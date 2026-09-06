@@ -1,15 +1,26 @@
 import { z } from "zod";
 
+import { MAX_HOME_ADDRESS_LENGTH, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/constants/profile";
+
 export const loginSchema = z.object({
   email: z.email("Enter a valid email address."),
   password: z.string().min(1, "Password is required."),
 });
 
-export const studentRegistrationSchema = z.object({
+export const accountRegistrationSchema = z.object({
   fullName: z.string().trim().min(2, "Enter your full name.").max(200, "Full name must be 200 characters or fewer."),
   email: z.email("Enter a valid email address."),
   password: z.string().min(8, "Password must contain at least 8 characters.").max(72, "Password must contain 72 characters or fewer."),
   confirmPassword: z.string().min(1, "Confirm your password."),
+  age: z.number({ error: "Age is required." })
+    .int("Age must be a whole number.")
+    .min(MIN_PROFILE_AGE, "Age must be greater than 0.")
+    .max(MAX_PROFILE_AGE, `Age must be ${MAX_PROFILE_AGE} or younger.`),
+  gender: z.enum(["male", "female"], { error: "Select a gender." }),
+  homeAddress: z.string().trim().min(1, "Home address is required.").max(
+    MAX_HOME_ADDRESS_LENGTH,
+    `Home address must be ${MAX_HOME_ADDRESS_LENGTH} characters or fewer.`,
+  ),
 }).refine((value) => value.password === value.confirmPassword, {
   message: "Passwords do not match.",
   path: ["confirmPassword"],

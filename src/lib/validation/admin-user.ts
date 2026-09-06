@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { MAX_HOME_ADDRESS_LENGTH, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/constants/profile";
 import { MAX_TEACHER_ACTIVATION_MONTHS } from "@/lib/users/activation";
 
 const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a valid activation date.").refine((value) => {
@@ -16,6 +17,9 @@ export const managedUserSchema = z.object({
   fullName: z.string().trim().min(1, "Full name is required.").max(200, "Full name is too long."),
   email: z.string().trim().toLowerCase().email("Enter a valid email address."),
   phone: z.string().trim().max(50, "Phone number is too long.").optional().default(""),
+  age: z.number().int("Age must be a whole number.").min(MIN_PROFILE_AGE).max(MAX_PROFILE_AGE).nullable(),
+  gender: z.enum(["male", "female"]).nullable(),
+  homeAddress: z.string().trim().max(MAX_HOME_ADDRESS_LENGTH, "Home address is too long."),
   role: z.enum(["student", "teacher"]),
   status: z.enum(["active", "inactive"]),
   activationStartDate: dateOnlySchema,

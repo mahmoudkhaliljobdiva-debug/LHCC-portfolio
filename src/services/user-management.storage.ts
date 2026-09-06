@@ -1,6 +1,7 @@
 import { DEFAULT_STUDENT_BANK_USAGE } from "@/data/default-student-usage";
 import { createDefaultUsers } from "@/data/default-users";
 import { DEFAULT_USER_BANK_ACCESS, DEFAULT_WALLET_TRANSACTIONS } from "@/data/default-wallet-data";
+import { MAX_HOME_ADDRESS_LENGTH, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/constants/profile";
 import type { PlatformUser, StudentBankUsage, UserBankAccess, UserManagementData, WalletTransaction } from "@/types/user-management";
 import { getEffectiveUserStatus } from "@/utils/user-activation";
 
@@ -23,7 +24,17 @@ function isBankAccess(value: unknown): value is UserBankAccess { if (!value || t
 function isWalletTransaction(value: unknown): value is WalletTransaction { if (!value || typeof value !== "object") return false; const item = value as Record<string, unknown>; return isText(item.id) && ["bank_sale", "bank_price_adjustment", "refund", "manual_income", "manual_expense"].includes(String(item.type)) && isText(item.name) && typeof item.amount === "number" && Number.isFinite(item.amount) && item.amount !== 0 && isText(item.transactionDate) && isText(item.createdAt); }
 
 function normalizeExpiredUsers(data: UserManagementData): UserManagementData {
-  const users = data.users.map((user) => getEffectiveUserStatus(user) === "expired" && user.status !== "expired" ? { ...user, status: "expired" as const, updatedAt: new Date().toISOString() } : user);
+  const users = data.users.map((user) => {
+    const normalized = {
+      ...user,
+      age: Number.isInteger(user.age) && user.age !== null && user.age >= MIN_PROFILE_AGE && user.age <= MAX_PROFILE_AGE ? user.age : null,
+      gender: user.gender === "male" || user.gender === "female" ? user.gender : null,
+      homeAddress: typeof user.homeAddress === "string" && user.homeAddress.trim().length <= MAX_HOME_ADDRESS_LENGTH ? user.homeAddress : null,
+    };
+    return getEffectiveUserStatus(normalized) === "expired" && normalized.status !== "expired"
+      ? { ...normalized, status: "expired" as const, updatedAt: new Date().toISOString() }
+      : normalized;
+  });
   return { ...data, users };
 }
 

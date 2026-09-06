@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 
 import { getEffectiveProfileStatus, portalForRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
-import { loginSchema, passwordRecoverySchema, studentRegistrationSchema, updatePasswordSchema } from "@/lib/validation/auth";
+import { accountRegistrationSchema, loginSchema, passwordRecoverySchema, updatePasswordSchema } from "@/lib/validation/auth";
+import type { AccountRegistrationInput } from "@/types/account";
 import type { ServerErrorCode, ServerResult } from "@/types/server-result";
 
 interface LoginInput {
@@ -13,14 +14,7 @@ interface LoginInput {
   readonly password: string;
 }
 
-interface StudentRegistrationInput {
-  readonly fullName: string;
-  readonly email: string;
-  readonly password: string;
-  readonly confirmPassword: string;
-}
-
-interface StudentRegistrationResult {
+interface AccountRegistrationResult {
   readonly requiresEmailConfirmation: boolean;
 }
 
@@ -77,10 +71,10 @@ export async function login(input: LoginInput): Promise<ServerResult<null>> {
   redirect(destination);
 }
 
-export async function registerStudent(
-  input: StudentRegistrationInput,
-): Promise<ServerResult<StudentRegistrationResult>> {
-  const parsed = studentRegistrationSchema.safeParse(input);
+export async function registerAccount(
+  input: AccountRegistrationInput,
+): Promise<ServerResult<AccountRegistrationResult>> {
+  const parsed = accountRegistrationSchema.safeParse(input);
   if (!parsed.success) return validationFailure(parsed.error.flatten().fieldErrors);
 
   try {
@@ -97,7 +91,12 @@ export async function registerStudent(
       password: parsed.data.password,
       options: {
         emailRedirectTo: callbackUrl.toString(),
-        data: { full_name: parsed.data.fullName },
+        data: {
+          full_name: parsed.data.fullName,
+          age: parsed.data.age,
+          gender: parsed.data.gender.toUpperCase(),
+          home_address: parsed.data.homeAddress,
+        },
       },
     });
 

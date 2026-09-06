@@ -5,9 +5,11 @@ import type { Route } from "next";
 import Link from "next/link";
 import { useState } from "react";
 
-import { registerStudent } from "@/actions/auth";
+import { registerAccount } from "@/actions/auth";
+import { MAX_HOME_ADDRESS_LENGTH, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/constants/profile";
+import type { ProfileGender } from "@/types/account";
 
-type RegistrationField = "fullName" | "email" | "password" | "confirmPassword";
+type RegistrationField = "fullName" | "email" | "password" | "confirmPassword" | "age" | "gender" | "homeAddress";
 
 const inputClassName = "h-12 rounded-xl border bg-white px-4 text-slate-900 placeholder:text-slate-400";
 
@@ -16,6 +18,9 @@ export function SignupForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState<ProfileGender | "">("");
+  const [homeAddress, setHomeAddress] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Readonly<Record<string, readonly string[]>>>({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -26,6 +31,9 @@ export function SignupForm() {
     if (field === "email") setEmail(value);
     if (field === "password") setPassword(value);
     if (field === "confirmPassword") setConfirmPassword(value);
+    if (field === "age") setAge(value);
+    if (field === "gender") setGender(value as ProfileGender | "");
+    if (field === "homeAddress") setHomeAddress(value);
     setFieldErrors((current) => {
       const remaining = { ...current };
       delete remaining[field];
@@ -42,7 +50,15 @@ export function SignupForm() {
     setIsSubmitting(true);
 
     try {
-      const result = await registerStudent({ fullName, email, password, confirmPassword });
+      const result = await registerAccount({
+        fullName,
+        email,
+        password,
+        confirmPassword,
+        age: age === "" ? 0 : Number(age),
+        gender,
+        homeAddress,
+      });
       if (!result.ok) {
         setError(result.error.message);
         setFieldErrors(result.error.fieldErrors ?? {});
@@ -52,7 +68,7 @@ export function SignupForm() {
       setSuccess(
         result.data.requiresEmailConfirmation
           ? "Account created. Check your email to confirm your address, then wait for administrator activation."
-          : "Account created. An administrator must activate your student access before you can sign in.",
+          : "Account created. An administrator must activate your account before you can sign in.",
       );
       setPassword("");
       setConfirmPassword("");
@@ -69,10 +85,10 @@ export function SignupForm() {
         <ArrowLeft className="size-4" aria-hidden="true" />
         Back to sign in
       </Link>
-      <p className="mt-8 text-sm font-semibold text-teal-700">Student registration</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Create your L.H.C.C account</h1>
+      <p className="mt-8 text-sm font-semibold text-teal-700">Account registration</p>
+      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Create Account</h1>
       <p className="mt-3 text-sm leading-6 text-slate-500">
-        Register as a student. An administrator will review and activate your learning access.
+        Enter your details to request access. An administrator will review and activate your account.
       </p>
 
       {error && <div role="alert" className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</div>}
@@ -85,6 +101,21 @@ export function SignupForm() {
         <Field label="Email address" error={fieldErrors.email?.[0]}>
           <input type="email" required autoComplete="email" value={email} onChange={(event) => updateField("email", event.target.value)} placeholder="you@institution.edu" aria-invalid={Boolean(fieldErrors.email?.length)} className={inputClassName} />
         </Field>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Age" error={fieldErrors.age?.[0]}>
+            <input type="number" required inputMode="numeric" min={MIN_PROFILE_AGE} max={MAX_PROFILE_AGE} step={1} value={age} onChange={(event) => updateField("age", event.target.value)} placeholder="Your age" aria-invalid={Boolean(fieldErrors.age?.length)} className={inputClassName} />
+          </Field>
+          <Field label="Gender" error={fieldErrors.gender?.[0]}>
+            <select required value={gender} onChange={(event) => updateField("gender", event.target.value)} aria-invalid={Boolean(fieldErrors.gender?.length)} className={inputClassName}>
+              <option value="" disabled hidden>Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </Field>
+        </div>
+        <Field label="Home Address" error={fieldErrors.homeAddress?.[0]}>
+          <textarea required autoComplete="street-address" maxLength={MAX_HOME_ADDRESS_LENGTH} rows={3} value={homeAddress} onChange={(event) => updateField("homeAddress", event.target.value)} placeholder="Your home address" aria-invalid={Boolean(fieldErrors.homeAddress?.length)} className="rounded-xl border bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400" />
+        </Field>
         <Field label="Password" error={fieldErrors.password?.[0]} hint="Use 8 or more characters.">
           <input type="password" required minLength={8} maxLength={72} autoComplete="new-password" value={password} onChange={(event) => updateField("password", event.target.value)} placeholder="Create a password" aria-invalid={Boolean(fieldErrors.password?.length)} className={inputClassName} />
         </Field>
@@ -92,11 +123,11 @@ export function SignupForm() {
           <input type="password" required minLength={8} maxLength={72} autoComplete="new-password" value={confirmPassword} onChange={(event) => updateField("confirmPassword", event.target.value)} placeholder="Repeat your password" aria-invalid={Boolean(fieldErrors.confirmPassword?.length)} className={inputClassName} />
         </Field>
         <button type="submit" disabled={isSubmitting || Boolean(success)} className="mt-1 rounded-xl bg-teal-700 px-5 py-3.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50">
-          {isSubmitting ? "Creating account…" : "Create student account"}
+          {isSubmitting ? "Creating account…" : "Create Account"}
         </button>
       </form>
       <p className="mt-5 text-center text-xs leading-5 text-slate-500">
-        Teacher and administrator accounts are created by an L.H.C.C administrator.
+        Account roles and access are assigned securely by an L.H.C.C administrator.
       </p>
     </section>
   );

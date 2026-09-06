@@ -70,7 +70,7 @@ export function LoginForm({ reason }: { readonly reason?: string | undefined }) 
       <p className="mt-6 text-center text-sm text-slate-500">
         New to L.H.C.C?{" "}
         <Link href={"/signup" as Route} className="font-semibold text-teal-700 hover:text-teal-800">
-          Create a student account
+          Create an account
         </Link>
       </p>
     </section>
@@ -81,6 +81,6 @@ function reasonFeedback(reason: string | undefined): LoginFeedback | null {
   if (reason === "auth-required") return { type: "error", message: "Sign in to access that workspace." };
   if (reason === "recovery-error") return { type: "error", message: "The password recovery link is invalid or has expired." };
   if (reason === "password-updated") return { type: "success", message: "Your password was updated successfully. Sign in with your new password." };
-  if (reason === "registration-confirmed") return { type: "success", message: "Your email is confirmed. An administrator must activate your student account before you can sign in." };
+  if (reason === "registration-confirmed") return { type: "success", message: "Your email is confirmed. An administrator must activate your account before you can sign in." };
   return null;
 }

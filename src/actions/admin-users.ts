@@ -71,7 +71,12 @@ export async function createUser(input: PlatformUserInput): Promise<ServerResult
     const { data: invitation, error: invitationError } = await admin.auth.admin.inviteUserByEmail(
       parsed.data.email,
       {
-        data: { full_name: parsed.data.fullName },
+        data: {
+          full_name: parsed.data.fullName,
+          age: parsed.data.age,
+          gender: parsed.data.gender?.toUpperCase() ?? null,
+          home_address: parsed.data.homeAddress || null,
+        },
         redirectTo: invitationRedirectUrl(),
       },
     );
@@ -86,6 +91,9 @@ export async function createUser(input: PlatformUserInput): Promise<ServerResult
         id: invitation.user.id,
         full_name: parsed.data.fullName,
         phone: parsed.data.phone || null,
+        age: parsed.data.age,
+        gender: toDatabaseGender(parsed.data.gender),
+        home_address: parsed.data.homeAddress || null,
         role: toDatabaseRole(parsed.data.role),
         status: toDatabaseStatus(parsed.data.status),
         activation_start: period.activationStart,
@@ -154,6 +162,9 @@ export async function updateUser(input: UpdateManagedUserInput): Promise<ServerR
       .update({
         full_name: parsed.data.fullName,
         phone: parsed.data.phone || null,
+        age: parsed.data.age,
+        gender: toDatabaseGender(parsed.data.gender),
+        home_address: parsed.data.homeAddress || null,
         role: toDatabaseRole(parsed.data.role),
         status: toDatabaseStatus(parsed.data.status),
         activation_start: period.activationStart,
@@ -298,6 +309,9 @@ function mapPlatformUser(profile: ProfileRow, email: string): PlatformUser {
     fullName: profile.full_name,
     email,
     phone: profile.phone,
+    age: profile.age,
+    gender: profile.gender === "MALE" ? "male" : profile.gender === "FEMALE" ? "female" : null,
+    homeAddress: profile.home_address,
     role: toManagedRole(profile.role),
     status: profile.status === "INACTIVE" ? "inactive" : profile.status === "EXPIRED" ? "expired" : "active",
     activationStartDate: toDateOnly(profile.activation_start),
@@ -326,6 +340,11 @@ function toManagedRole(role: ProfileRow["role"]): "student" | "teacher" {
 
 function toDatabaseStatus(status: "active" | "inactive"): "ACTIVE" | "INACTIVE" {
   return status === "active" ? "ACTIVE" : "INACTIVE";
+}
+
+function toDatabaseGender(gender: PlatformUserInput["gender"]): ProfileRow["gender"] {
+  if (gender === null) return null;
+  return gender === "male" ? "MALE" : "FEMALE";
 }
 
 function invitationRedirectUrl(): string {

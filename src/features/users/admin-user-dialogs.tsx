@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 
+import { MAX_HOME_ADDRESS_LENGTH, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/constants/profile";
 import { cn } from "@/lib/cn";
+import type { ProfileGender } from "@/types/account";
 import type { ServerResult } from "@/types/server-result";
 import type { ManagedUserRole, PlatformUser, PlatformUserInput, UserAccountStatus } from "@/types/user-management";
 import { addCalendarMonths, getTodayDate } from "@/utils/user-activation";
@@ -24,6 +26,9 @@ export function UserFormDialog({ state, users, bankNames, onCancel, onSave }: Us
   const [fullName, setFullName] = useState(editing?.fullName ?? "");
   const [email, setEmail] = useState(editing?.email ?? "");
   const [phone, setPhone] = useState(editing?.phone ?? "");
+  const [age, setAge] = useState(editing?.age === null || editing?.age === undefined ? "" : String(editing.age));
+  const [gender, setGender] = useState<ProfileGender | "">(editing?.gender ?? "");
+  const [homeAddress, setHomeAddress] = useState(editing?.homeAddress ?? "");
   const [role, setRole] = useState<ManagedUserRole>(editing?.role ?? "student");
   const [start, setStart] = useState(editing?.activationStartDate ?? getTodayDate());
   const [months, setMonths] = useState(editing?.role === "teacher" ? (editing.activationMonths ?? 1) : 1);
@@ -42,6 +47,8 @@ export function UserFormDialog({ state, users, bankNames, onCancel, onSave }: Us
     if (!start) next.activationStartDate = "Activation start date is required.";
     if (role === "teacher" && (!Number.isInteger(months) || months < 1 || months > 36)) next.activationMonths = "Choose between 1 and 36 months.";
     if (phone.trim().length > 50) next.phone = "Phone number is too long.";
+    if (age !== "" && (!Number.isInteger(Number(age)) || Number(age) < MIN_PROFILE_AGE || Number(age) > MAX_PROFILE_AGE)) next.age = `Age must be a whole number between ${MIN_PROFILE_AGE} and ${MAX_PROFILE_AGE}.`;
+    if (homeAddress.trim().length > MAX_HOME_ADDRESS_LENGTH) next.homeAddress = `Home address must be ${MAX_HOME_ADDRESS_LENGTH} characters or fewer.`;
     setErrors(next);
     setGeneralError("");
     if (Object.keys(next).length) return;
@@ -52,6 +59,9 @@ export function UserFormDialog({ state, users, bankNames, onCancel, onSave }: Us
         fullName: fullName.trim(),
         email: email.trim(),
         phone: phone.trim(),
+        age: age === "" ? null : Number(age),
+        gender: gender || null,
+        homeAddress: homeAddress.trim(),
         role,
         status,
         activationStartDate: start,
@@ -81,6 +91,18 @@ export function UserFormDialog({ state, users, bankNames, onCancel, onSave }: Us
           <TextField label="Full name" value={fullName} error={errors.fullName} onChange={setFullName} />
           <TextField label="Email" type="email" value={email} error={errors.email} onChange={setEmail} />
           <TextField label="Phone (optional)" type="tel" value={phone} error={errors.phone} onChange={setPhone} />
+          <div className="grid gap-5 sm:grid-cols-2">
+            <TextField label="Age (optional)" type="number" min={MIN_PROFILE_AGE} max={MAX_PROFILE_AGE} value={age} error={errors.age} onChange={setAge} />
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              Gender (optional)
+              <select value={gender} onChange={(event) => setGender(event.target.value as ProfileGender | "")} className="h-11 rounded-xl border bg-slate-50 px-3">
+                <option value="">Not specified</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </label>
+          </div>
+          <TextAreaField label="Home address (optional)" value={homeAddress} error={errors.homeAddress} maxLength={MAX_HOME_ADDRESS_LENGTH} onChange={setHomeAddress} />
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="grid gap-2 text-sm font-medium text-slate-700">Role<select value={role} onChange={(event) => { const next = event.target.value as ManagedUserRole; setRole(next); if (next === "student") setMonths(1); }} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="student">Student</option><option value="teacher">Teacher</option></select></label>
             <label className="grid gap-2 text-sm font-medium text-slate-700">Status<select value={status} onChange={(event) => setStatus(event.target.value as "active" | "inactive")} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
@@ -117,5 +139,6 @@ export function DeactivateDialog({ user, onCancel, onConfirm }: { readonly user:
 }
 
 function TextField({ label, value, error, type = "text", min, max, onChange }: { readonly label: string; readonly value: string; readonly error?: string | undefined; readonly type?: "text" | "email" | "tel" | "date" | "number"; readonly min?: number; readonly max?: number; readonly onChange: (value: string) => void }) { return <label className="grid gap-2 text-sm font-medium text-slate-700">{label}<input type={type} min={min} max={max} value={value} onChange={(event) => onChange(event.target.value)} aria-invalid={Boolean(error)} className={cn("h-11 rounded-xl border bg-slate-50 px-3", error && "border-rose-400")} />{error && <span className="text-xs text-rose-700">{error}</span>}</label>; }
+function TextAreaField({ label, value, error, maxLength, onChange }: { readonly label: string; readonly value: string; readonly error?: string | undefined; readonly maxLength: number; readonly onChange: (value: string) => void }) { return <label className="grid gap-2 text-sm font-medium text-slate-700">{label}<textarea rows={3} maxLength={maxLength} value={value} onChange={(event) => onChange(event.target.value)} aria-invalid={Boolean(error)} className={cn("rounded-xl border bg-slate-50 px-3 py-2.5", error && "border-rose-400")} />{error && <span className="text-xs text-rose-700">{error}</span>}</label>; }
 function safeExpiration(start: string, months: number): string { try { return start ? addCalendarMonths(start, months) : ""; } catch { return ""; } }
 function formatDate(value: string): string { return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(`${value}T00:00:00`)); }

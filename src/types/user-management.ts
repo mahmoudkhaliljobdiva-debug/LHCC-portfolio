@@ -1,3 +1,5 @@
+import type { ProfileGender } from "@/types/account";
+
 export type ManagedUserRole = "student" | "teacher";
 export type UserAccountStatus = "active" | "inactive" | "expired";
 export type EffectiveUserStatus = UserAccountStatus | "expiring-soon";
@@ -7,6 +9,9 @@ export interface PlatformUser {
   readonly fullName: string;
   readonly email: string;
   readonly phone?: string | null;
+  readonly age: number | null;
+  readonly gender: ProfileGender | null;
+  readonly homeAddress: string | null;
   readonly role: ManagedUserRole;
   readonly status: UserAccountStatus;
   readonly activationStartDate: string | null;
@@ -41,6 +46,9 @@ export interface PlatformUserInput {
   readonly fullName: string;
   readonly email: string;
   readonly phone?: string;
+  readonly age: number | null;
+  readonly gender: ProfileGender | null;
+  readonly homeAddress: string;
   readonly role: ManagedUserRole;
   readonly status: Exclude<UserAccountStatus, "expired">;
   readonly activationStartDate: string;

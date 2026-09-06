@@ -83,7 +83,7 @@ export function PublicHeader() {
             Sign in
           </Link>
           <Link href="/signup" onClick={() => setOpen(false)} className="rounded-lg bg-teal-700 px-3 py-3 text-center font-semibold text-white hover:bg-teal-800">
-            Create student account
+            Create account
           </Link>
         </nav>
       </div>
