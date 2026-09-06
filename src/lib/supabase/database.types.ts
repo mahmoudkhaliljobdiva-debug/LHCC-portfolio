@@ -13,6 +13,7 @@ export interface Database {
           avatar_url: string | null;
           created_at: string;
           created_by: string | null;
+          country_code: string | null;
           deactivated_at: string | null;
           expiration_date: string | null;
           full_name: string;
@@ -32,6 +33,7 @@ export interface Database {
           avatar_url?: string | null;
           created_at?: string;
           created_by?: string | null;
+          country_code?: string | null;
           deactivated_at?: string | null;
           expiration_date?: string | null;
           full_name: string;
@@ -51,6 +53,7 @@ export interface Database {
           avatar_url?: string | null;
           created_at?: string;
           created_by?: string | null;
+          country_code?: string | null;
           deactivated_at?: string | null;
           expiration_date?: string | null;
           full_name?: string;

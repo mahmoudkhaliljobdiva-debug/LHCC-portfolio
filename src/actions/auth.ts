@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { getEffectiveProfileStatus, portalForRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
+import { isCountryCode, normalizePhoneNumber } from "@/lib/phone";
 import { accountRegistrationSchema, loginSchema, passwordRecoverySchema, updatePasswordSchema } from "@/lib/validation/auth";
 import type { AccountRegistrationInput } from "@/types/account";
 import type { ServerErrorCode, ServerResult } from "@/types/server-result";
@@ -12,10 +13,6 @@ import type { ServerErrorCode, ServerResult } from "@/types/server-result";
 interface LoginInput {
   readonly email: string;
   readonly password: string;
-}
-
-interface AccountRegistrationResult {
-  readonly requiresEmailConfirmation: boolean;
 }
 
 interface RecoveryInput {
@@ -73,29 +70,29 @@ export async function login(input: LoginInput): Promise<ServerResult<null>> {
 
 export async function registerAccount(
   input: AccountRegistrationInput,
-): Promise<ServerResult<AccountRegistrationResult>> {
+): Promise<ServerResult<null>> {
   const parsed = accountRegistrationSchema.safeParse(input);
   if (!parsed.success) return validationFailure(parsed.error.flatten().fieldErrors);
 
   try {
-    const requestHeaders = await headers();
-    const origin = requestHeaders.get("origin");
-    if (!origin) return failure("INTERNAL_ERROR", "Registration is temporarily unavailable.");
-
-    const callbackUrl = new URL("/auth/callback", origin);
-    callbackUrl.searchParams.set("next", "/login?reason=registration-confirmed");
+    if (!isCountryCode(parsed.data.countryCode)) {
+      return validationFailure({ countryCode: ["Select a valid country."] });
+    }
+    const phone = normalizePhoneNumber(parsed.data.phone, parsed.data.countryCode);
+    if (!phone) return validationFailure({ phone: ["Enter a valid phone number for the selected country."] });
 
     const supabase = await createClient();
     const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email.toLowerCase(),
       password: parsed.data.password,
       options: {
-        emailRedirectTo: callbackUrl.toString(),
         data: {
           full_name: parsed.data.fullName,
           age: parsed.data.age,
           gender: parsed.data.gender.toUpperCase(),
           home_address: parsed.data.homeAddress,
+          phone,
+          country_code: parsed.data.countryCode,
         },
       },
     });
@@ -104,11 +101,17 @@ export async function registerAccount(
       return failure("INTERNAL_ERROR", "Unable to create your account. Please try again later.");
     }
 
-    // The database trigger forces public registrations to inactive students.
-    // Do not retain a session if email confirmation is disabled.
-    if (data.session) await supabase.auth.signOut();
+    if (!data.session) {
+      return failure(
+        "INTERNAL_ERROR",
+        "Account created, but Supabase email confirmation is still enabled. Please contact the administrator.",
+      );
+    }
 
-    return { ok: true, data: { requiresEmailConfirmation: !data.session } };
+    // The database trigger forces public registrations to inactive students.
+    await supabase.auth.signOut();
+
+    return { ok: true, data: null };
   } catch {
     return failure("INTERNAL_ERROR", "Registration is temporarily unavailable. Please try again.");
   }

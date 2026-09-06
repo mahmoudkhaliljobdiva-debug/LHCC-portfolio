@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { MAX_HOME_ADDRESS_LENGTH, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/constants/profile";
+import { isCountryCode, normalizePhoneNumber } from "@/lib/phone";
 
 export const loginSchema = z.object({
   email: z.email("Enter a valid email address."),
@@ -21,9 +22,16 @@ export const accountRegistrationSchema = z.object({
     MAX_HOME_ADDRESS_LENGTH,
     `Home address must be ${MAX_HOME_ADDRESS_LENGTH} characters or fewer.`,
   ),
-}).refine((value) => value.password === value.confirmPassword, {
-  message: "Passwords do not match.",
-  path: ["confirmPassword"],
+  countryCode: z.string().trim().refine(isCountryCode, "Select a valid country."),
+  phone: z.string().trim().min(1, "Phone number is required.").max(30, "Phone number is too long."),
+}).superRefine((value, context) => {
+  if (value.password !== value.confirmPassword) {
+    context.addIssue({ code: "custom", message: "Passwords do not match.", path: ["confirmPassword"] });
+  }
+
+  if (isCountryCode(value.countryCode) && !normalizePhoneNumber(value.phone, value.countryCode)) {
+    context.addIssue({ code: "custom", message: "Enter a valid phone number for the selected country.", path: ["phone"] });
+  }
 });
 
 export const passwordRecoverySchema = z.object({

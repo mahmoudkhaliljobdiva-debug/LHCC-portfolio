@@ -8,4 +8,6 @@ export interface AccountRegistrationInput {
   readonly age: number;
   readonly gender: ProfileGender | "";
   readonly homeAddress: string;
+  readonly countryCode: string;
+  readonly phone: string;
 }

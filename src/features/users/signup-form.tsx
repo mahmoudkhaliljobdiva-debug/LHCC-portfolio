@@ -7,9 +7,10 @@ import { useState } from "react";
 
 import { registerAccount } from "@/actions/auth";
 import { MAX_HOME_ADDRESS_LENGTH, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/constants/profile";
+import { countryOptions, DEFAULT_COUNTRY_CODE } from "@/data/countries";
 import type { ProfileGender } from "@/types/account";
 
-type RegistrationField = "fullName" | "email" | "password" | "confirmPassword" | "age" | "gender" | "homeAddress";
+type RegistrationField = "fullName" | "email" | "password" | "confirmPassword" | "age" | "gender" | "homeAddress" | "countryCode" | "phone";
 
 const inputClassName = "h-12 rounded-xl border bg-white px-4 text-slate-900 placeholder:text-slate-400";
 
@@ -21,6 +22,8 @@ export function SignupForm() {
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<ProfileGender | "">("");
   const [homeAddress, setHomeAddress] = useState("");
+  const [countryCode, setCountryCode] = useState<string>(DEFAULT_COUNTRY_CODE);
+  const [phone, setPhone] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Readonly<Record<string, readonly string[]>>>({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -34,6 +37,8 @@ export function SignupForm() {
     if (field === "age") setAge(value);
     if (field === "gender") setGender(value as ProfileGender | "");
     if (field === "homeAddress") setHomeAddress(value);
+    if (field === "countryCode") setCountryCode(value);
+    if (field === "phone") setPhone(value);
     setFieldErrors((current) => {
       const remaining = { ...current };
       delete remaining[field];
@@ -58,6 +63,8 @@ export function SignupForm() {
         age: age === "" ? 0 : Number(age),
         gender,
         homeAddress,
+        countryCode,
+        phone,
       });
       if (!result.ok) {
         setError(result.error.message);
@@ -65,11 +72,7 @@ export function SignupForm() {
         return;
       }
 
-      setSuccess(
-        result.data.requiresEmailConfirmation
-          ? "Account created. Check your email to confirm your address, then wait for administrator activation."
-          : "Account created. An administrator must activate your account before you can sign in.",
-      );
+      setSuccess("Account created. An administrator must activate your account before you can sign in.");
       setPassword("");
       setConfirmPassword("");
     } catch {
@@ -101,6 +104,20 @@ export function SignupForm() {
         <Field label="Email address" error={fieldErrors.email?.[0]}>
           <input type="email" required autoComplete="email" value={email} onChange={(event) => updateField("email", event.target.value)} placeholder="you@institution.edu" aria-invalid={Boolean(fieldErrors.email?.length)} className={inputClassName} />
         </Field>
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+          <Field label="Country" error={fieldErrors.countryCode?.[0]}>
+            <select required value={countryCode} onChange={(event) => updateField("countryCode", event.target.value)} aria-invalid={Boolean(fieldErrors.countryCode?.length)} autoComplete="country" className={inputClassName}>
+              {countryOptions.map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.flag} {country.name} ({country.callingCode})
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Phone number" error={fieldErrors.phone?.[0]}>
+            <input type="tel" required autoComplete="tel-national" inputMode="tel" maxLength={30} value={phone} onChange={(event) => updateField("phone", event.target.value)} placeholder="71 056 331" aria-invalid={Boolean(fieldErrors.phone?.length)} className={inputClassName} />
+          </Field>
+        </div>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Age" error={fieldErrors.age?.[0]}>
             <input type="number" required inputMode="numeric" min={MIN_PROFILE_AGE} max={MAX_PROFILE_AGE} step={1} value={age} onChange={(event) => updateField("age", event.target.value)} placeholder="Your age" aria-invalid={Boolean(fieldErrors.age?.length)} className={inputClassName} />
