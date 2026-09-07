@@ -68,12 +68,15 @@ function ReadyAdminQuestionForm({ bank, existingQuestion }: { readonly bank: Adm
     if (Object.keys(validationErrors).length > 0) return;
 
     setIsSaving(true);
-    await new Promise<void>((resolve) => window.setTimeout(resolve, 300));
     const normalizedAnswers = answers.filter((answer) => answer.text.trim()).map((answer) => ({ ...answer, text: answer.text.trim() }));
     const input: QuestionInput = { text: text.trim(), status, answers: normalizedAnswers };
-    if (existingQuestion) store.updateQuestion(existingQuestion.id, input);
-    else store.addQuestion(bankId, input);
-    router.push(`/admin/question-banks/${bankId}?saved=${existingQuestion ? "updated" : "created"}`);
+    try {
+      if (existingQuestion) await store.updateQuestion(existingQuestion.id, input);
+      else await store.addQuestion(bankId, input);
+      router.push(`/admin/question-banks/${bankId}?saved=${existingQuestion ? "updated" : "created"}`);
+    } catch (error) {
+      setErrors({ text: error instanceof Error ? error.message : "Unable to save question." });
+    } finally { setIsSaving(false); }
   }
 
   return (

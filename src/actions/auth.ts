@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { getEffectiveProfileStatus, portalForRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
+import { passwordSignupReady } from "@/lib/supabase/auth-settings";
 import { isCountryCode, normalizePhoneNumber } from "@/lib/phone";
 import { accountRegistrationSchema, loginSchema, passwordRecoverySchema, updatePasswordSchema } from "@/lib/validation/auth";
 import type { AccountRegistrationInput } from "@/types/account";
@@ -35,7 +36,7 @@ export async function login(input: LoginInput): Promise<ServerResult<null>> {
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword(parsed.data);
 
     if (authError || !authData.user) {
-      return failure("AUTHENTICATION_FAILED", "The email or password is incorrect.");
+      return failure("AUTHENTICATION_FAILED", "Incorrect email or password.");
     }
 
     const { data: profile, error: profileError } = await supabase
@@ -70,7 +71,7 @@ export async function login(input: LoginInput): Promise<ServerResult<null>> {
 
 export async function registerAccount(
   input: AccountRegistrationInput,
-): Promise<ServerResult<null>> {
+): Promise<ServerResult<{ message: string }>> {
   const parsed = accountRegistrationSchema.safeParse(input);
   if (!parsed.success) return validationFailure(parsed.error.flatten().fieldErrors);
 
@@ -80,6 +81,10 @@ export async function registerAccount(
     }
     const phone = normalizePhoneNumber(parsed.data.phone, parsed.data.countryCode);
     if (!phone) return validationFailure({ phone: ["Enter a valid phone number for the selected country."] });
+
+    if (!await passwordSignupReady()) {
+      return failure("INTERNAL_ERROR", "Account registration is temporarily unavailable. Please try again later.");
+    }
 
     const supabase = await createClient();
     const { data, error } = await supabase.auth.signUp({
@@ -102,16 +107,14 @@ export async function registerAccount(
     }
 
     if (!data.session) {
-      return failure(
-        "INTERNAL_ERROR",
-        "Account created, but Supabase email confirmation is still enabled. Please contact the administrator.",
-      );
+      // Configuration drift must not report a committed registration as failure.
+      return { ok: true, data: { message: "Registration received. If email verification is requested, check your inbox before signing in." } };
     }
 
-    // The database trigger forces public registrations to inactive students.
+    // Account creation is separate from course approval. Return to normal sign in.
     await supabase.auth.signOut();
 
-    return { ok: true, data: null };
+    return { ok: true, data: { message: "Account created successfully. You can now sign in and request access to courses." } };
   } catch {
     return failure("INTERNAL_ERROR", "Registration is temporarily unavailable. Please try again.");
   }

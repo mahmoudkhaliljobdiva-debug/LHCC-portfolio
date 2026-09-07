@@ -21,22 +21,24 @@ export function AdminQuestionBankList() {
 
   if (!store.isReady) return <div className="h-80 animate-pulse rounded-2xl border bg-white" aria-label="Loading question banks" />;
 
-  function handleSave(input: QuestionBankInput) {
+  async function handleSave(input: QuestionBankInput) {
     if (dialog?.mode === "edit") {
-      store.updateQuestionBank(dialog.bank.id, input);
+      await store.updateQuestionBank(dialog.bank.id, input);
       setSuccess(`${input.name} updated successfully.`);
     } else {
-      store.addQuestionBank(input);
+      await store.addQuestionBank(input);
       setSuccess(`${input.name} added successfully.`);
     }
     setDialog(null);
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteBank) return;
-    store.deleteQuestionBank(deleteBank.id);
+    try {
+    await store.deleteQuestionBank(deleteBank.id);
     setSuccess(`${deleteBank.name} and all linked questions were deleted.`);
     setDeleteBank(null);
+    } catch (error) { setSuccess(error instanceof Error ? error.message : "Unable to delete bank."); setDeleteBank(null); }
   }
 
   return (
@@ -78,14 +80,15 @@ export function AdminQuestionBankList() {
   );
 }
 
-function BankFormDialog({ state, existingBanks, onCancel, onSave }: { readonly state: BankDialogState; readonly existingBanks: readonly AdminQuestionBank[]; readonly onCancel: () => void; readonly onSave: (input: QuestionBankInput) => void }) {
+function BankFormDialog({ state, existingBanks, onCancel, onSave }: { readonly state: BankDialogState; readonly existingBanks: readonly AdminQuestionBank[]; readonly onCancel: () => void; readonly onSave: (input: QuestionBankInput) => Promise<void> }) {
   const [name, setName] = useState(state.mode === "edit" ? state.bank.name : "");
   const [description, setDescription] = useState(state.mode === "edit" ? state.bank.description : "");
   const [status, setStatus] = useState<QuestionBankStatus>(state.mode === "edit" ? state.bank.status : "active");
   const [displayOrder, setDisplayOrder] = useState(state.mode === "edit" && state.bank.displayOrder !== undefined ? String(state.bank.displayOrder) : "");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  function submit(event: React.FormEvent) {
+  const [isSaving, setIsSaving] = useState(false);
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
     const nextErrors: Record<string, string> = {};
     if (!name.trim()) nextErrors.name = "Bank name is required.";
@@ -96,14 +99,18 @@ function BankFormDialog({ state, existingBanks, onCancel, onSave }: { readonly s
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
     const base = { name: name.trim(), description: description.trim(), status };
-    onSave(displayOrder ? { ...base, displayOrder: Number(displayOrder) } : base);
+    setIsSaving(true);
+    try { await onSave(displayOrder ? { ...base, displayOrder: Number(displayOrder) } : base); }
+    catch (error) { setErrors({ form: error instanceof Error ? error.message : "Unable to save bank." }); }
+    finally { setIsSaving(false); }
   }
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-slate-950/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
       <form onSubmit={submit} role="dialog" aria-modal="true" aria-labelledby="bank-form-title" className="w-full max-w-xl rounded-2xl border bg-white p-5 shadow-2xl sm:p-7">
         <h2 id="bank-form-title" className="text-xl font-semibold text-slate-950">{state.mode === "edit" ? "Edit question bank" : "Add question bank"}</h2>
-        <p className="mt-1 text-sm text-slate-500">Configure the bank shown in the admin question library.</p>
+        <p className="mt-1 text-sm text-slate-500">Configure the bank shown in the course catalog.</p>
+        {errors.form && <p role="alert" className="mt-4 text-sm text-rose-700">{errors.form}</p>}
         <div className="mt-6 grid gap-5">
           <Field label="Bank name" value={name} error={errors.name} autoFocus onChange={(value) => { setName(value); setErrors((current) => ({ ...current, name: "" })); }} />
           <Field label="Description" value={description} error={errors.description} multiline onChange={(value) => { setDescription(value); setErrors((current) => ({ ...current, description: "" })); }} />
@@ -112,7 +119,7 @@ function BankFormDialog({ state, existingBanks, onCancel, onSave }: { readonly s
             <Field label="Display order (optional)" value={displayOrder} error={errors.displayOrder} inputMode="numeric" onChange={setDisplayOrder} />
           </div>
         </div>
-        <div className="mt-7 flex justify-end gap-3"><button type="button" onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700">Cancel</button><button type="submit" className="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white">Save Question Bank</button></div>
+        <div className="mt-7 flex justify-end gap-3"><button type="button" onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700">Cancel</button><button type="submit" disabled={isSaving} className="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{isSaving ? "Saving…" : "Save Question Bank"}</button></div>
       </form>
     </div>
   );

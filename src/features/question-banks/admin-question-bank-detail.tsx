@@ -21,11 +21,13 @@ export function AdminQuestionBankDetail({ bankId, saved }: { readonly bankId: st
   if (!store.isReady) return <div className="h-80 animate-pulse rounded-2xl border bg-white" aria-label="Loading bank" />;
   if (!bank) return <div className="rounded-2xl border bg-white p-8 text-center"><FileQuestion className="mx-auto size-9 text-slate-400" /><h1 className="mt-4 text-xl font-semibold text-slate-950">Question bank not found</h1><Link href="/admin/question-banks" className="mt-5 inline-flex rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white">Back to Question Banks</Link></div>;
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteQuestion) return;
-    store.deleteQuestion(deleteQuestion.id);
+    try {
+    await store.deleteQuestion(deleteQuestion.id);
     setSuccess("Question deleted successfully.");
     setDeleteQuestion(null);
+    } catch (error) { setSuccess(error instanceof Error ? error.message : "Unable to delete question."); setDeleteQuestion(null); }
   }
 
   return (

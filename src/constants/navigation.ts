@@ -32,6 +32,7 @@ export const ROLE_NAVIGATION = {
     { label: "Analytics", href: ROUTES.teacher.analytics, icon: BarChart3 },
   ],
   admin: [
+    { label: "Access Requests", href: "/admin/access-requests", icon: ClipboardCheck },
     { label: "Dashboard", href: ROUTES.admin.dashboard, icon: Gauge },
     { label: "Portfolio", href: ROUTES.admin.portfolio, icon: PanelsTopLeft },
     { label: "Users", href: ROUTES.admin.users, icon: Users },

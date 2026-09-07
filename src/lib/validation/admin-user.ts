@@ -24,14 +24,6 @@ export const managedUserSchema = z.object({
   status: z.enum(["active", "inactive"]),
   activationStartDate: dateOnlySchema,
   activationMonths: z.number().int().min(1).max(MAX_TEACHER_ACTIVATION_MONTHS),
-}).superRefine((input, context) => {
-  if (input.role === "student" && input.activationMonths !== 1) {
-    context.addIssue({
-      code: "custom",
-      path: ["activationMonths"],
-      message: "Student activation is always one calendar month.",
-    });
-  }
 });
 
 export const updateManagedUserSchema = managedUserSchema.and(z.object({ userId: z.string().uuid() }));

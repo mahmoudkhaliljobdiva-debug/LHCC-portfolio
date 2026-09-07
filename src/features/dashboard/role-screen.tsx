@@ -18,7 +18,7 @@ import { PerformanceChart } from "@/components/charts/performance-chart";
 import { Progress } from "@/components/ui/progress";
 import { QUESTION_BANKS } from "@/data/question-banks.mock";
 import { MetricCard } from "@/features/dashboard/metric-card";
-import { QuestionBankGrid } from "@/features/question-banks/question-bank-grid";
+import { TeacherQuestionBankGrid } from "@/features/question-banks/teacher-question-bank-grid";
 import { PortfolioEditor } from "@/features/portfolio-content/portfolio-editor";
 import type { UserRole } from "@/types/roles";
 
@@ -55,7 +55,7 @@ export function RoleScreen({
   }
 
   if (section === "question-banks") {
-    return <Page title={title} subtitle="Browse, manage, and monitor structured learning collections."><QuestionBankGrid /></Page>;
+    return <Page title={title} subtitle="Browse, manage, and monitor structured learning collections."><TeacherQuestionBankGrid /></Page>;
   }
 
   if (section === "portfolio" && role === "admin") return <PortfolioEditor />;

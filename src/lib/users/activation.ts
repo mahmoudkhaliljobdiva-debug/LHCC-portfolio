@@ -6,9 +6,9 @@ import { addCalendarMonths } from "@/utils/user-activation";
 export const MAX_TEACHER_ACTIVATION_MONTHS = 36;
 
 interface ActivationPeriod {
-  readonly activationStart: string;
-  readonly activationMonths: number;
-  readonly expirationDate: string;
+  readonly activationStart: string | null;
+  readonly activationMonths: number | null;
+  readonly expirationDate: string | null;
 }
 
 export function getServerDate(date = new Date()): string {
@@ -20,8 +20,9 @@ export function calculateActivationPeriod(
   role: ManagedUserRole,
   requestedMonths: number,
 ): ActivationPeriod {
+  if (role === "student") return { activationStart: null, activationMonths: null, expirationDate: null };
   const source = parseDateOnly(startDate);
-  const months = role === "student" ? 1 : requestedMonths;
+  const months = requestedMonths;
 
   if (!Number.isInteger(months) || months < 1 || months > MAX_TEACHER_ACTIVATION_MONTHS) {
     throw new Error("Invalid activation duration.");

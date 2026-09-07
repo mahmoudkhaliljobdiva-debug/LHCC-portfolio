@@ -7,14 +7,14 @@ import { useState } from "react";
 
 import { registerAccount } from "@/actions/auth";
 import { MAX_HOME_ADDRESS_LENGTH, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/constants/profile";
-import { countryOptions, DEFAULT_COUNTRY_CODE } from "@/data/countries";
+import { DEFAULT_COUNTRY_CODE, type CountryOption } from "@/data/countries";
 import type { ProfileGender } from "@/types/account";
 
 type RegistrationField = "fullName" | "email" | "password" | "confirmPassword" | "age" | "gender" | "homeAddress" | "countryCode" | "phone";
 
 const inputClassName = "h-12 rounded-xl border bg-white px-4 text-slate-900 placeholder:text-slate-400";
 
-export function SignupForm() {
+export function SignupForm({ countryOptions }: { readonly countryOptions: readonly CountryOption[] }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -72,7 +72,7 @@ export function SignupForm() {
         return;
       }
 
-      setSuccess("Account created. An administrator must activate your account before you can sign in.");
+      setSuccess(result.data.message);
       setPassword("");
       setConfirmPassword("");
     } catch {
@@ -91,7 +91,7 @@ export function SignupForm() {
       <p className="mt-8 text-sm font-semibold text-teal-700">Account registration</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Create Account</h1>
       <p className="mt-3 text-sm leading-6 text-slate-500">
-        Enter your details to request access. An administrator will review and activate your account.
+        Create your student account, then sign in to browse courses and request access.
       </p>
 
       {error && <div role="alert" className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</div>}

@@ -1,6 +1,55 @@
 # L.H.C.C Healthcare Learning Platform — Project Handoff
 
-Last updated: September 5, 2026
+Last updated: September 7, 2026
+
+## Current checkpoint — authentication and course-access separation
+
+This checkpoint supersedes older frontend-only, signup-activation, and mock-bank
+notes below. The full request is saved in `docs/course-access-request.md`; the
+architecture, migrations, security boundaries, and verification are documented in
+`docs/student-course-access.md`.
+
+- Public signup now creates ACTIVE STUDENT accounts with no course grants.
+- Students sign in normally; course approval is independent. Explicit INACTIVE
+  or EXPIRED status still denies account access. Teacher/admin guards remain.
+- The Supabase Email confirmation switch was turned OFF by the owner and verified
+  through Auth settings (`mailer_autoconfirm: true`, signup enabled).
+- Student catalog, requests, grants, admin bank editor, questions, and answer
+  evaluation now use Supabase. Legacy localStorage is not student authorization.
+- `/admin/access-requests` supports approval/rejection and preserved request history.
+- `/student/banks/[bankId]` checks enabled accounts and active course grants; RLS
+  independently blocks locked questions. Answer keys are private.
+- Applied migrations: `20260906161352_student_course_access` and
+  `20260907175002_isolate_course_privileged_functions`. Local filenames match
+  the hosted migration history. Never edit or reapply those migrations.
+- SQL permission/provisioning tests passed before and after migration. Browser
+  tests passed through signup, login, requests, approval/rejection, retry, and
+  submitted-answer feedback. The country dropdown hydration mismatch was fixed
+  by passing one server-resolved list to the signup client.
+- Browser tests used a temporary admin approved explicitly by the owner. All
+  temporary test identities, sessions, requests and grants were removed. The
+  original active administrator remains unchanged.
+- Next.js development server-function argument logging is disabled so passwords
+  are not printed during signup/login debugging.
+- Advisor results: no newly introduced security warnings; existing leaked-password
+  protection remains disabled. Performance findings are unused-index information.
+- Use Node 22.23.2 through fnm. In PowerShell tool sessions, prepend
+  `C:/Users/mahmo/AppData/Roaming/fnm/node-versions/v22.23.2/installation` to PATH
+  and call `npm.cmd` (the default system Node is older; npm.ps1 may be blocked).
+- Browser fallback: `scripts/course-browser-test.mjs` uses isolated headless Edge,
+  no additional packages. Auth fixture creation requires `LHCC_RUN_AUTH_TESTS=1`;
+  temporary admin promotion requires explicit owner authorization. Do not reuse
+  deleted test accounts. Screenshots are ignored under `.test-artifacts/`.
+- Release checklist: final typecheck/lint/build/diff review, commit/push `main`,
+  let Git-connected Vercel deploy automatically. Never manually redeploy routine
+  changes. Record the final commit in the turn handoff; do not store credentials.
+
+Current baseline before this feature: `44f6ca6` on `main`.
+Existing Admin User Management still needs a server-only Supabase secret in the
+runtime environment; course approval/content operations use guarded session RPCs
+and do not need that secret. Wallet/analytics and teacher preview remain demos.
+
+## Historical project notes
 
 ## Project objective
 

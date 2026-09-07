@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 import { MAX_HOME_ADDRESS_LENGTH, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/constants/profile";
 import { cn } from "@/lib/cn";
@@ -21,7 +22,7 @@ interface UserFormDialogProps {
   readonly onSave: (input: PlatformUserInput) => Promise<ServerResult<PlatformUser>>;
 }
 
-export function UserFormDialog({ state, users, bankNames, onCancel, onSave }: UserFormDialogProps) {
+export function UserFormDialog({ state, users, onCancel, onSave }: UserFormDialogProps) {
   const editing = state.mode === "edit" ? state.user : undefined;
   const [fullName, setFullName] = useState(editing?.fullName ?? "");
   const [email, setEmail] = useState(editing?.email ?? "");
@@ -44,7 +45,7 @@ export function UserFormDialog({ state, users, bankNames, onCancel, onSave }: Us
     if (!fullName.trim()) next.fullName = "Full name is required.";
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = "Enter a valid email address.";
     if (users.some((user) => user.id !== editing?.id && user.email.trim().toLocaleLowerCase() === email.trim().toLocaleLowerCase())) next.email = "This email address is already in use.";
-    if (!start) next.activationStartDate = "Activation start date is required.";
+    if (role === "teacher" && !start) next.activationStartDate = "Activation start date is required.";
     if (role === "teacher" && (!Number.isInteger(months) || months < 1 || months > 36)) next.activationMonths = "Choose between 1 and 36 months.";
     if (phone.trim().length > 50) next.phone = "Phone number is too long.";
     if (age !== "" && (!Number.isInteger(Number(age)) || Number(age) < MIN_PROFILE_AGE || Number(age) > MAX_PROFILE_AGE)) next.age = `Age must be a whole number between ${MIN_PROFILE_AGE} and ${MAX_PROFILE_AGE}.`;
@@ -106,15 +107,11 @@ export function UserFormDialog({ state, users, bankNames, onCancel, onSave }: Us
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="grid gap-2 text-sm font-medium text-slate-700">Role<select value={role} onChange={(event) => { const next = event.target.value as ManagedUserRole; setRole(next); if (next === "student") setMonths(1); }} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="student">Student</option><option value="teacher">Teacher</option></select></label>
             <label className="grid gap-2 text-sm font-medium text-slate-700">Status<select value={status} onChange={(event) => setStatus(event.target.value as "active" | "inactive")} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
-            <TextField label="Activation start date" type="date" value={start} error={errors.activationStartDate} onChange={setStart} />
-            {role === "student" ? <label className="grid gap-2 text-sm font-medium text-slate-700">Activation duration<input value="1 calendar month" readOnly className="h-11 rounded-xl border bg-slate-100 px-3 text-slate-600" /></label> : <TextField label="Activation duration in months" type="number" min={1} max={36} value={String(months)} error={errors.activationMonths} onChange={(value) => setMonths(Number(value))} />}
+            {role === "teacher" && <TextField label="Activation start date" type="date" value={start} error={errors.activationStartDate} onChange={setStart} />}
+            {role === "student" ? <p className="text-sm text-slate-600">Enabled students can sign in. Course approval is managed separately.</p> : <TextField label="Activation duration in months" type="number" min={1} max={36} value={String(months)} error={errors.activationMonths} onChange={(value) => setMonths(Number(value))} />}
           </div>
-          <div className="rounded-xl border bg-teal-50 p-4 text-sm"><p className="text-xs font-medium text-slate-500">Preview only — server recalculates expiration</p><p className="mt-1 font-semibold text-slate-900">{expiration ? formatDate(expiration) : "Select a valid date"}</p></div>
-          <section className="border-t pt-5 opacity-70">
-            <h3 className="font-semibold text-slate-950">Question Bank Access</h3>
-            <p className="mt-1 text-xs text-slate-500">Deferred to a later Supabase phase. These mock controls are intentionally disabled.</p>
-            <div className="mt-4 grid gap-3">{bankNames.map((name) => <label key={name} className="flex items-center gap-3 rounded-xl border bg-slate-50 p-4 text-sm font-semibold text-slate-600"><input type="checkbox" disabled className="size-4" />{name}<span className="ml-auto text-xs font-normal">Not migrated</span></label>)}</div>
-          </section>
+          {role === "teacher" && <div className="rounded-xl border bg-teal-50 p-4 text-sm"><p className="text-xs font-medium text-slate-500">Preview only — server recalculates expiration</p><p className="mt-1 font-semibold text-slate-900">{expiration ? formatDate(expiration) : "Select a valid date"}</p></div>}
+          <section className="border-t pt-5"><h3 className="font-semibold text-slate-950">Question Bank Access</h3><p className="mt-2 text-sm text-slate-500">Account changes do not grant courses.</p><Link href="/admin/access-requests" className="mt-3 inline-block text-sm font-semibold text-teal-700">Review course access requests</Link></section>
         </div>
         <div className="mt-7 flex justify-end gap-3"><button type="button" disabled={isSaving} onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50">Cancel</button><button type="submit" disabled={isSaving} className="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? "Saving…" : editing ? "Save Changes" : "Send Invitation"}</button></div>
       </form>
@@ -128,7 +125,7 @@ export function ReactivateDialog({ user, onCancel, onConfirm }: { readonly user:
   const [error, setError] = useState("");
   const expiration = addCalendarMonths(getTodayDate(), user.role === "student" ? 1 : months);
   async function confirm() { setIsPending(true); setError(""); const result = await onConfirm(user.role === "student" ? 1 : months); if (!result.ok) { setError(result.error.message); setIsPending(false); } }
-  return <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4"><div role="dialog" aria-modal="true" aria-labelledby="reactivate-title" className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-2xl"><h2 id="reactivate-title" className="text-lg font-semibold text-slate-950">Reactivate {user.fullName}</h2><p className="mt-2 text-sm text-slate-500">A new activation period begins on the server today.</p>{error && <div role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</div>}{user.role === "student" ? <p className="mt-5 rounded-xl bg-teal-50 p-4 text-sm text-slate-700">Student duration: <strong>1 calendar month</strong></p> : <label className="mt-5 grid gap-2 text-sm font-medium text-slate-700">Activation months<input type="number" min={1} max={36} value={months} onChange={(event) => setMonths(Math.min(36, Math.max(1, Number(event.target.value))))} className="h-11 rounded-xl border bg-slate-50 px-3" /></label>}<p className="mt-4 text-sm text-slate-600">Preview expiration: <strong>{formatDate(expiration)}</strong></p><div className="mt-6 flex justify-end gap-3"><button type="button" disabled={isPending} onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50">Cancel</button><button type="button" disabled={isPending} onClick={confirm} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{isPending ? "Reactivating…" : "Reactivate"}</button></div></div></div>;
+  return <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4"><div role="dialog" aria-modal="true" aria-labelledby="reactivate-title" className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-2xl"><h2 id="reactivate-title" className="text-lg font-semibold text-slate-950">Reactivate {user.fullName}</h2><p className="mt-2 text-sm text-slate-500">{user.role === "student" ? "Enable this account without changing course approvals." : "A new activation period begins on the server today."}</p>{error && <div role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</div>}{user.role === "student" ? <p className="mt-5 rounded-xl bg-teal-50 p-4 text-sm text-slate-700">Student account: <strong>No account expiration</strong></p> : <label className="mt-5 grid gap-2 text-sm font-medium text-slate-700">Activation months<input type="number" min={1} max={36} value={months} onChange={(event) => setMonths(Math.min(36, Math.max(1, Number(event.target.value))))} className="h-11 rounded-xl border bg-slate-50 px-3" /></label>}{user.role === "teacher" && <p className="mt-4 text-sm text-slate-600">Preview expiration: <strong>{formatDate(expiration)}</strong></p>}<div className="mt-6 flex justify-end gap-3"><button type="button" disabled={isPending} onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50">Cancel</button><button type="button" disabled={isPending} onClick={confirm} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{isPending ? "Reactivating…" : "Reactivate"}</button></div></div></div>;
 }
 
 export function DeactivateDialog({ user, onCancel, onConfirm }: { readonly user: PlatformUser; readonly onCancel: () => void; readonly onConfirm: () => Promise<ServerResult<PlatformUser>> }) {
