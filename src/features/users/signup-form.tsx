@@ -12,7 +12,7 @@ import type { ProfileGender } from "@/types/account";
 
 type RegistrationField = "fullName" | "email" | "password" | "confirmPassword" | "age" | "gender" | "homeAddress" | "countryCode" | "phone";
 
-const inputClassName = "h-12 rounded-xl border bg-white px-4 text-slate-900 placeholder:text-slate-400";
+const inputClassName = "h-12 w-full min-w-0 rounded-xl border bg-white px-4 text-base text-slate-900 placeholder:text-slate-400 sm:text-sm";
 
 export function SignupForm({ countryOptions }: { readonly countryOptions: readonly CountryOption[] }) {
   const [fullName, setFullName] = useState("");
@@ -131,7 +131,7 @@ export function SignupForm({ countryOptions }: { readonly countryOptions: readon
           </Field>
         </div>
         <Field label="Home Address" error={fieldErrors.homeAddress?.[0]}>
-          <textarea required autoComplete="street-address" maxLength={MAX_HOME_ADDRESS_LENGTH} rows={3} value={homeAddress} onChange={(event) => updateField("homeAddress", event.target.value)} placeholder="Your home address" aria-invalid={Boolean(fieldErrors.homeAddress?.length)} className="rounded-xl border bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400" />
+          <textarea required autoComplete="street-address" maxLength={MAX_HOME_ADDRESS_LENGTH} rows={3} value={homeAddress} onChange={(event) => updateField("homeAddress", event.target.value)} placeholder="Your home address" aria-invalid={Boolean(fieldErrors.homeAddress?.length)} className="w-full min-w-0 rounded-xl border bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 sm:text-sm" />
         </Field>
         <Field label="Password" error={fieldErrors.password?.[0]} hint="Use 8 or more characters.">
           <input type="password" required minLength={8} maxLength={72} autoComplete="new-password" value={password} onChange={(event) => updateField("password", event.target.value)} placeholder="Create a password" aria-invalid={Boolean(fieldErrors.password?.length)} className={inputClassName} />
@@ -162,7 +162,7 @@ function Field({
   readonly children: React.ReactNode;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-medium text-slate-700">
+    <label className="grid min-w-0 gap-2 text-sm font-medium text-slate-700">
       {label}
       {children}
       {error ? <span className="text-xs text-rose-700">{error}</span> : hint ? <span className="text-xs font-normal text-slate-500">{hint}</span> : null}

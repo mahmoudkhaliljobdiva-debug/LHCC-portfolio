@@ -46,6 +46,10 @@ async function page() {
   };
   return {
     sessionId, evaluate,
+    async resize(width, height = 900) {
+      await command("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: width < 600 }, sessionId);
+      await pause(150);
+    },
     async goto(path) {
       await command("Page.navigate", { url: base + path }, sessionId);
       await waitFor(() => evaluate("document.readyState === 'complete' && document.body.innerText.length > 40"), path);
@@ -59,14 +63,25 @@ async function page() {
       await evaluate(`(() => {const el=[...${scope}.querySelectorAll('button,a')].find(el=>el.textContent.trim().startsWith(${JSON.stringify(text)})); if(!el || el.disabled) throw Error('Missing/disabled control'); el.click();})()`);
     },
     async screenshot(name, width = 1280) {
-      await command("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: width < 600 }, sessionId);
-      await pause(250);
+      await this.resize(width);
       const { data } = await command("Page.captureScreenshot", { format: "png" }, sessionId);
       await mkdir(".test-artifacts", { recursive: true });
       await writeFile(`.test-artifacts/${name}.png`, Buffer.from(data, "base64"));
       assert(await evaluate("document.documentElement.scrollWidth <= innerWidth"), `No horizontal overflow: ${name}`);
     },
   };
+}
+
+async function auditResponsive(p, path, widths) {
+  for (const width of widths) {
+    await p.resize(width, width <= 430 ? 844 : 900);
+    await p.goto(path);
+    assert(await p.evaluate("document.documentElement.scrollWidth <= innerWidth"), `${path} fits at ${width}px`);
+    assert.equal(await p.evaluate("Boolean(document.querySelector('[data-nextjs-dialog]'))"), false, `${path} has no framework error overlay`);
+    assert(await p.evaluate("document.body.innerText.trim().length > 40"), `${path} renders content at ${width}px`);
+    assert(await p.evaluate("[...document.querySelectorAll('button')].filter(el=>el.getClientRects().length && !el.closest('[hidden]')).every(el=>el.getBoundingClientRect().height >= 43.5)"), `${path} button targets are at least 44px at ${width}px`);
+    if (width < 640) assert(await p.evaluate("[...document.querySelectorAll('input:not([type=radio]):not([type=checkbox]),select,textarea')].every(el=>parseFloat(getComputedStyle(el).fontSize) >= 16)"), `${path} prevents iOS form zoom at ${width}px`);
+  }
 }
 async function auth(path, payload) {
   const response = await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL + "/auth/v1/" + path, { method: "POST", headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -112,13 +127,19 @@ try {
     if (message.error) request.reject(new Error(message.error.message)); else request.resolve(message.result);
   });
   const student = await page();
+  const viewportWidths = [320, 375, 390, 430, 768, 1024, 1366, 1536, 1920];
+  for (const path of ["/", "/about", "/services", "/platform", "/contact", "/login", "/signup"]) {
+    await auditResponsive(student, path, viewportWidths);
+  }
   await student.goto("/signup");
   assert((await student.text()).includes("Create Account"));
   assert.equal(await student.evaluate("Boolean(document.querySelector('[data-nextjs-dialog]'))"), false);
-  for (const width of [390, 768, 1280]) await student.screenshot(`signup-${width}`, width);
-  await student.goto("/student/banks/anatomy");
-  await waitFor(() => student.evaluate("location.pathname === '/login'"), "anonymous guard");
-  console.log("PASS: signup renders, phone/tablet/laptop have no overflow, anonymous course guard.");
+  for (const width of [320, 390, 768, 1280]) await student.screenshot(`signup-${width}`, width);
+  for (const path of ["/admin", "/admin/users", "/teacher", "/student", "/student/banks/anatomy"]) {
+    await student.goto(path);
+    await waitFor(() => student.evaluate("location.pathname === '/login'"), `anonymous guard ${path}`);
+  }
+  console.log(`PASS: public/auth routes at ${viewportWidths.join(", ")}px, touch targets, iOS form text, and protected-route guards.`);
   if (process.env.LHCC_RUN_AUTH_TESTS !== "1") process.exitCode = 0;
   else {
     const suffix = Date.now().toString(36);

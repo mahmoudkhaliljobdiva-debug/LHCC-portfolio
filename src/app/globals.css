@@ -42,6 +42,7 @@
 
 html {
   scroll-behavior: smooth;
+  min-width: 320px;
 }
 
 body {
@@ -58,6 +59,54 @@ body {
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+input:not([type="radio"]):not([type="checkbox"]),
+select {
+  height: 48px;
+  min-height: 44px;
+  max-width: 100%;
+}
+
+textarea {
+  max-width: 100%;
+  resize: vertical;
+}
+
+input:not([type="radio"]):not([type="checkbox"]),
+select,
+textarea {
+  border-radius: 0.75rem;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled,
+button:disabled {
+  cursor: not-allowed;
 }
 
 button:focus-visible,
@@ -66,6 +115,66 @@ input:focus-visible,
 textarea:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
   outline-offset: 3px;
+}
+
+select:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  outline-offset: 3px;
+}
+
+[role="dialog"],
+[role="alertdialog"] {
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.table-scroll-region {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+}
+
+.overflow-x-auto {
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+}
+
+.table-scroll-region:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  outline-offset: -3px;
+}
+
+h1,
+h2,
+h3,
+p,
+td,
+th {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 639px) {
+  input:not([type="radio"]):not([type="checkbox"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 ::selection {
@@ -118,9 +227,70 @@ textarea:focus-visible {
 }
 
 .dark input,
-.dark textarea {
+.dark textarea,
+.dark select {
   background-color: #132a35;
   color: #edf2f3;
+}
+
+.dark .bg-emerald-50 {
+  background-color: #123d34;
+}
+
+.dark .bg-rose-50 {
+  background-color: #48262b;
+}
+
+.dark .bg-amber-50 {
+  background-color: #49371e;
+}
+
+.dark .bg-sky-50 {
+  background-color: #183a4b;
+}
+
+.dark .bg-teal-50,
+.dark .bg-teal-100 {
+  background-color: #213e49;
+}
+
+.dark .text-teal-600,
+.dark .text-teal-700,
+.dark .text-teal-800 {
+  color: #b7d9e2;
+}
+
+.dark .text-emerald-700,
+.dark .text-emerald-800 {
+  color: #86efac;
+}
+
+.dark .text-rose-700,
+.dark .text-rose-800 {
+  color: #fda4af;
+}
+
+.dark .text-amber-700,
+.dark .text-amber-800 {
+  color: #fcd34d;
+}
+
+.dark .text-sky-700,
+.dark .text-sky-800 {
+  color: #7dd3fc;
+}
+
+.dark .border-emerald-200 {
+  border-color: #2f6a58;
+}
+
+.dark .border-rose-200,
+.dark .border-rose-400 {
+  border-color: #91505a;
+}
+
+.dark .border-amber-200 {
+  border-color: #80612d;
 }
 
 .dark .shadow-sm,

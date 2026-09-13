@@ -23,7 +23,7 @@ export function Brand({ inverse = false }: { readonly inverse?: boolean }) {
       />
       <span className="leading-tight">
         <span className="block text-xl">L.H.C.C</span>
-        <span className={cn("hidden text-[9px] font-medium tracking-wide sm:block", inverse ? "text-slate-300" : "text-slate-500 dark:text-slate-400")}>
+        <span className={cn("hidden text-xs font-medium tracking-wide sm:block", inverse ? "text-slate-300" : "text-slate-500 dark:text-slate-400")}>
           Lebanese Health &amp; Competence Center
         </span>
       </span>

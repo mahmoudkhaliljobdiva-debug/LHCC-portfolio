@@ -40,13 +40,13 @@ export default function HomePage() {
     <>
       <section className="relative overflow-hidden bg-white">
         <div className="absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_70%_20%,#f5ddd6_0,transparent_42%)]" />
-        <div className="relative mx-auto grid min-h-[690px] max-w-7xl items-center gap-14 px-5 py-20 lg:grid-cols-[1.04fr_.96fr] lg:px-8">
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-14 sm:py-20 lg:min-h-[690px] lg:grid-cols-[1.04fr_.96fr] lg:gap-14 lg:px-8">
           <div>
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-teal-800">
               <Sparkles className="size-3.5" />
               Healthcare learning, connected
             </div>
-            <h1 className="max-w-3xl text-5xl leading-[1.04] font-semibold tracking-[-0.045em] text-slate-950 sm:text-6xl lg:text-7xl">
+            <h1 className="max-w-3xl text-4xl leading-[1.08] font-semibold tracking-[-0.04em] text-slate-950 sm:text-6xl lg:text-7xl">
               Learn medicine with clarity and confidence.
             </h1>
             <p className="mt-7 max-w-xl text-lg leading-8 text-slate-600">
@@ -77,8 +77,8 @@ export default function HomePage() {
           </div>
 
           <div className="relative mx-auto w-full max-w-xl">
-            <div className="absolute -inset-5 rounded-[36px] bg-coral-100/70" />
-            <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_-30px_rgba(15,52,75,.35)] sm:p-7">
+            <div className="absolute -inset-3 rounded-3xl bg-coral-100/70 sm:-inset-5 sm:rounded-[36px]" />
+            <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_30px_80px_-30px_rgba(15,52,75,.35)] sm:rounded-[28px] sm:p-7">
               <div className="flex items-center justify-between border-b border-slate-100 pb-5">
                 <div>
                   <p className="text-xs font-semibold tracking-wide text-teal-700 uppercase">Today&apos;s focus</p>
@@ -103,8 +103,8 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="mt-4 rounded-2xl border border-slate-200 p-5">
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-900">Continue learning</p>
                     <p className="mt-1 text-sm text-slate-500">Cardiovascular pathology · 18 questions</p>
                   </div>
@@ -118,7 +118,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-y border-slate-200 bg-slate-50 py-20">
+      <section className="border-y border-slate-200 bg-slate-50 py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <p className="text-center text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
             One connected learning system
@@ -140,12 +140,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white py-24">
+      <section className="bg-white py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[.8fr_1.2fr] lg:items-end">
             <div>
               <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">Built for every role</p>
-              <h2 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
                 A better view for everyone.
               </h2>
             </div>
@@ -166,9 +166,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#f5e7e1] px-5 py-20 dark:bg-[#263f4b]">
+      <section className="bg-[#f5e7e1] px-5 py-16 dark:bg-[#263f4b] sm:py-20">
         <div className="mx-auto max-w-5xl text-center">
-          <h2 className="text-4xl font-semibold tracking-tight text-slate-950">
+          <h2 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
             See the whole learning journey.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-slate-600">

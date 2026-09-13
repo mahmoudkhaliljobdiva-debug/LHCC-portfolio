@@ -22,7 +22,7 @@ export function PublicHeader() {
     <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
       <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 lg:px-8">
         <Brand />
-        <nav aria-label="Primary navigation" className="hidden items-center gap-8 md:flex">
+        <nav aria-label="Primary navigation" className="hidden items-center gap-6 lg:flex xl:gap-8">
           {links.map((link) => (
             <Link
               key={link.href}
@@ -33,7 +33,7 @@ export function PublicHeader() {
             </Link>
           ))}
         </nav>
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-2 lg:flex xl:gap-3">
           <ThemeToggle />
           <Link href="/login" className="px-3 py-2 text-sm font-semibold text-slate-700">
             Sign in
@@ -50,7 +50,7 @@ export function PublicHeader() {
         </div>
         <button
           type="button"
-          className="rounded-lg p-2 text-slate-700 md:hidden"
+          className="grid size-11 place-items-center rounded-xl text-slate-700 hover:bg-slate-50 lg:hidden"
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
           onClick={() => setOpen((current) => !current)}
@@ -60,7 +60,7 @@ export function PublicHeader() {
       </div>
       <div
         className={cn(
-          "border-t border-slate-100 bg-white px-5 py-5 md:hidden",
+          "border-t border-slate-100 bg-white px-5 py-5 lg:hidden",
           !open && "hidden",
         )}
       >
@@ -79,11 +79,14 @@ export function PublicHeader() {
               {link.label}
             </Link>
           ))}
-          <Link href="/login" className="mt-2 rounded-lg border px-3 py-3 text-center font-semibold">
+          <Link href="/login" onClick={() => setOpen(false)} className="mt-2 rounded-xl border px-3 py-3 text-center font-semibold">
             Sign in
           </Link>
           <Link href="/signup" onClick={() => setOpen(false)} className="rounded-lg bg-teal-700 px-3 py-3 text-center font-semibold text-white hover:bg-teal-800">
             Create account
+          </Link>
+          <Link href="/student" onClick={() => setOpen(false)} className="rounded-xl bg-slate-950 px-3 py-3 text-center font-semibold text-white hover:bg-slate-800">
+            Explore demo
           </Link>
         </nav>
       </div>

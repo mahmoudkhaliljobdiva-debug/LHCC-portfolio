@@ -23,7 +23,7 @@ export function PortfolioPage({ section }: { readonly section: PortfolioSectionK
           {details.map(({ id, icon: Icon, value }) => (
             <div key={id} className="flex items-center gap-4 rounded-xl border bg-white p-4 text-sm font-medium text-slate-700">
               <Icon className="size-5 shrink-0 text-teal-700" />
-              <span className="break-all">{value}</span>
+              <span className="min-w-0 break-words">{value}</span>
             </div>
           ))}
           <a href={`mailto:${page.email}`} className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-800">
@@ -58,10 +58,10 @@ export function PortfolioPage({ section }: { readonly section: PortfolioSectionK
 function PortfolioPageLayout({ subtitle, title, description, children }: { readonly subtitle: string; readonly title: string; readonly description: string; readonly children: React.ReactNode }) {
   return (
     <section className="bg-white">
-      <div className="mx-auto grid min-h-[620px] max-w-7xl items-center gap-12 px-5 py-16 md:px-8 md:py-20 lg:grid-cols-[1.05fr_.95fr] lg:gap-16">
+      <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 py-14 md:px-8 md:py-20 lg:min-h-[620px] lg:grid-cols-[1.05fr_.95fr] lg:gap-16">
         <div>
           <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">{subtitle}</p>
-          <h1 className="mt-5 max-w-2xl text-4xl leading-tight font-semibold tracking-[-0.04em] text-slate-950 sm:text-5xl">{title}</h1>
+          <h1 className="mt-5 max-w-2xl text-3xl leading-tight font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl">{title}</h1>
           <p className="mt-6 max-w-xl text-base leading-8 text-slate-600 sm:text-lg">{description}</p>
         </div>
         {children}
@@ -78,4 +78,3 @@ function PortfolioPanel({ heading, children }: { readonly heading: string; reado
     </div>
   );
 }
-

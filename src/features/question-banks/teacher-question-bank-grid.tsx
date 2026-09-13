@@ -43,7 +43,7 @@ export function TeacherQuestionBankGrid() {
           <article key={bank.id} className="group rounded-2xl border bg-white p-5 shadow-sm transition hover:shadow-md">
             <div className="flex items-start justify-between">
               <span className="grid size-11 place-items-center rounded-xl bg-teal-50 text-teal-700"><BookOpen className="size-5" /></span>
-              <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${hasAccess ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{hasAccess ? "Access granted" : "Locked"}</span>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${hasAccess ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{hasAccess ? "Access granted" : "Locked"}</span>
             </div>
             <h3 className="mt-5 font-semibold text-slate-950">{bank.title}</h3>
             <p className="mt-2 min-h-10 text-sm leading-5 text-slate-500">{bank.description}</p>

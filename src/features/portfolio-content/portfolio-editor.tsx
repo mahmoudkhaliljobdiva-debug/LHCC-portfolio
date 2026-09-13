@@ -194,7 +194,7 @@ function ReadyPortfolioEditor({ initialContent }: { readonly initialContent: Por
       )}
 
       <div className="grid gap-6 lg:grid-cols-[230px_minmax(0,1fr)]">
-        <nav aria-label="Portfolio content sections" className="flex gap-2 overflow-x-auto rounded-2xl border bg-white p-2 lg:block lg:h-fit lg:space-y-1">
+        <nav aria-label="Portfolio content sections" className="table-scroll-region flex gap-2 rounded-2xl border bg-white p-2 lg:block lg:h-fit lg:space-y-1">
           {(Object.keys(sectionLabels) as PortfolioSectionKey[]).map((section) => (
             <button key={section} type="button" onClick={() => setActiveSection(section)} aria-current={activeSection === section ? "page" : undefined} className={cn("shrink-0 rounded-xl px-4 py-3 text-left text-sm font-medium transition lg:w-full", activeSection === section ? "bg-teal-50 text-teal-800" : "text-slate-600 hover:bg-slate-50")}>
               {sectionLabels[section]}
@@ -217,10 +217,10 @@ function ReadyPortfolioEditor({ initialContent }: { readonly initialContent: Por
 
       {resetOpen && (
         <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-5" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setResetOpen(false); }}>
-          <div role="alertdialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description" className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-2xl">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description" className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-2xl sm:p-6">
             <h2 id="reset-title" className="text-lg font-semibold text-slate-950">Reset portfolio content?</h2>
             <p id="reset-description" className="mt-2 text-sm leading-6 text-slate-500">This replaces all saved portfolio edits with the original default content. This action cannot be undone.</p>
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button type="button" autoFocus onClick={() => setResetOpen(false)} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700">Cancel</button>
               <button type="button" onClick={handleReset} className="rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-800">Reset content</button>
             </div>
@@ -254,7 +254,7 @@ function StandardPageFields({ section, content, errors, onFieldChange, onItemCha
         <FormField label="Button label" value={content.buttonLabel} error={errors[`${section}.buttonLabel`]} onChange={(value) => onFieldChange(section, "buttonLabel", value)} />
       </div>
       <div className="border-t pt-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-4 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
           <div><h3 className="font-semibold text-slate-950">Content items</h3><p className="mt-1 text-xs text-slate-500">Add, edit, or remove repeatable page highlights.</p></div>
           <button type="button" onClick={() => onAddItem(section)} className="inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"><Plus className="size-4" />Add item</button>
         </div>
@@ -297,9 +297,9 @@ function ContactFields({ content, errors, onChange }: { readonly content: Portfo
 function FormField({ label, value, error, multiline = false, type = "text", onChange }: { readonly label: string; readonly value: string; readonly error?: string | undefined; readonly multiline?: boolean; readonly type?: "text" | "email" | "tel"; readonly onChange: (value: string) => void }) {
   const generatedId = useId();
   const id = `portfolio-${generatedId.replaceAll(":", "")}`;
-  const classes = cn("w-full rounded-xl border bg-slate-50 px-3.5 py-3 text-sm text-slate-800 transition focus:bg-white", error && "border-rose-400");
+  const classes = cn("w-full min-w-0 rounded-xl border bg-slate-50 px-3.5 py-3 text-base text-slate-800 transition focus:bg-white sm:text-sm", error && "border-rose-400");
   return (
-    <label htmlFor={id} className="grid gap-2 text-sm font-medium text-slate-700">
+    <label htmlFor={id} className="grid min-w-0 gap-2 text-sm font-medium text-slate-700">
       <span>{label} <span className="text-rose-600" aria-hidden="true">*</span></span>
       {multiline ? <textarea id={id} rows={4} value={value} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={(event) => onChange(event.target.value)} className={classes} /> : <input id={id} type={type} value={value} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={(event) => onChange(event.target.value)} className={classes} />}
       {error && <span id={`${id}-error`} className="text-xs font-medium text-rose-700">{error}</span>}
