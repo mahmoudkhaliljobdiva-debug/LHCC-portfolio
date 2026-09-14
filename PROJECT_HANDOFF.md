@@ -1,6 +1,32 @@
 # L.H.C.C Healthcare Learning Platform — Project Handoff
 
-Last updated: September 7, 2026
+Last updated: September 14, 2026
+
+## Current checkpoint — backend source of truth
+
+The authoritative architecture and audit are in [docs/backend-map.md](docs/backend-map.md).
+This checkpoint supersedes all earlier demo/mock descriptions below.
+
+- Baseline `c294ca7` migrated attempts, answers, wallet, portfolio and reporting.
+- Hosted Supabase project: `lcazjsmmegwwnmuupsko`. All ten local migrations
+  through `20260913175259` are applied. Do not reapply or edit them.
+- Follow-up audit uses RLS session queries for student/teacher reporting;
+  only verified administrators read the protected Auth/profile directory.
+- Database queries exhaust ordered pages; totals do not silently stop at API caps.
+- Completed course answer feedback survives refresh; progress counts unique
+  current questions; recent activity includes real requests/reviews and admin events.
+- Production business localStorage and mock files are removed. Only `lhcc-theme`
+  remains. The question-bank provider adapts real server data and actions.
+- SQL persistence/permission tests run in BEGIN/ROLLBACK; no lasting test accounts,
+  grants, attempts or ledger entries were created. Existing content checksums match.
+- Supabase types match production. No new schema or permission changes in the follow-up.
+- Run Node 22.23.2 typecheck/lint/build and the reporting regression suite.
+- Verify Vercel's Git-triggered deployment against the pushed commit. Production:
+  https://lhcc-lb.com. Do not manually duplicate deployment.
+- Exams and teacher cohort management are unconfigured, with honest empty states.
+  Signed-in browser flows require test sessions; SQL tests are not browser tests.
+
+## Historical checkpoints (superseded)
 
 ## Current checkpoint — authentication and course-access separation
 

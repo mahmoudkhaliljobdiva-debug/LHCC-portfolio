@@ -24,5 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function MarketingPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   if (!isPortfolioSection(slug)) notFound();
-  return <PortfolioPage section={slug} content={await getPortfolioContent()} />;
+  const content = await getPortfolioContent();
+  if (!content) return <section className="mx-auto max-w-7xl px-5 py-24"><h1 className="text-3xl font-semibold text-slate-950">Content coming soon</h1><p className="mt-4 text-slate-600">This page has not been published yet. Please check back later.</p></section>;
+  return <PortfolioPage section={slug} content={content} />;
 }

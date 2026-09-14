@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { authorizeActiveAdmin } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { readAllRows } from "@/lib/supabase/pagination";
 import type { Database } from "@/lib/supabase/database.types";
 import { calculateActivationPeriod, getServerDate } from "@/lib/users/activation";
 import {
@@ -26,18 +27,17 @@ export async function listUsers(): Promise<ServerResult<readonly PlatformUser[]>
 
   try {
     const admin = createAdminClient();
-    const [authUsers, profilesResult] = await Promise.all([
+    const [authUsers, profiles] = await Promise.all([
       listAllAuthUsers(admin),
-      admin
+      readAllRows((from, to) => admin
         .from("profiles")
         .select("*")
         .in("role", ["STUDENT", "TEACHER"])
-        .order("created_at", { ascending: false }),
+        .order("created_at", { ascending: false }).order("id").range(from, to)),
     ]);
 
-    if (profilesResult.error) return failure("INTERNAL_ERROR", "Unable to load user profiles.");
     const authById = new Map(authUsers.map((user) => [user.id, user]));
-    const users = profilesResult.data.flatMap((profile) => {
+    const users = profiles.flatMap((profile) => {
       const authUser = authById.get(profile.id);
       return authUser?.email ? [mapPlatformUser(profile, authUser.email)] : [];
     });

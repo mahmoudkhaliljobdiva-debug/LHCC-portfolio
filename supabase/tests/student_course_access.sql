@@ -73,6 +73,14 @@ select pg_temp.check_test(
   'admin sees test requests'
 );
 select public.review_bank_access(current_setting('lhcc.request_one')::uuid,'APPROVED');
+do $$ begin
+  begin
+    perform public.review_bank_access(current_setting('lhcc.request_one')::uuid,'APPROVED');
+  exception when raise_exception then return;
+  end;
+  raise exception 'Retry incorrectly accepted an already approved request';
+end; $$;
+select pg_temp.check_test((select count(*)=1 from jsonb_array_elements(public.admin_wallet_data()) item where item->>'userId'=current_setting('lhcc.test_student') and item->>'type'='bank_sale'), 'approval retry cannot duplicate a sale');
 select public.review_bank_access(current_setting('lhcc.request_two')::uuid,'REJECTED','Complete the prerequisite first.');
 select pg_temp.check_test((select count(*)=1 from public.user_bank_access where user_id=current_setting('lhcc.test_student')::uuid), 'approval grants exactly one access');
 select pg_temp.check_test(exists(select 1 from jsonb_array_elements(public.admin_wallet_data()) item where item->>'type'='bank_sale' and (item->>'amount')::numeric=25), 'paid approval records one sale atomically');
@@ -98,9 +106,19 @@ select pg_temp.check_test((select count(*)=1 from public.user_bank_access), 'stu
 select pg_temp.expect_denied('select * from private.question_solutions');
 select pg_temp.check_test((select bool_and(not o ? 'isCorrect' and not o ? 'is_correct') from public.bank_questions q cross join lateral jsonb_array_elements(q.options) o), 'options contain no answer keys');
 select pg_temp.check_test((public.submit_bank_answer('question-anatomy-heart','answer-heart-heart')->>'correct')::boolean, 'correct answer evaluated after submission');
+select pg_temp.check_test((public.submit_bank_answer('question-anatomy-heart','answer-heart-heart')->>'correct')::boolean, 'retry returns the recorded answer');
+select pg_temp.check_test((select count(*)=1 from public.question_attempt_answers), 'answer retry cannot duplicate an answer');
 select pg_temp.check_test(not (public.submit_bank_answer('question-anatomy-bones','answer-bones-186')->>'correct')::boolean, 'wrong answer evaluated after submission');
 select pg_temp.check_test((select status='COMPLETED' and correct_answers=1 and incorrect_answers=1 and score_percentage=50 from public.question_attempts where student_id=auth.uid()), 'attempt completion and score persisted');
 select pg_temp.check_test((select count(*)=2 from public.question_attempt_answers), 'individual answers persisted once');
+select set_config('request.jwt.claim.sub',current_setting('lhcc.test_other'),true);
+select set_config('request.jwt.claims',json_build_object('sub',current_setting('lhcc.test_other'),'role','authenticated')::text,true);
+select pg_temp.check_test((select count(*)=0 from public.question_attempts), 'other student cannot read attempts');
+select pg_temp.check_test((select count(*)=0 from public.question_attempt_answers), 'other student cannot read answers');
+select pg_temp.expect_denied('update public.question_attempt_answers set is_correct=true');
+select pg_temp.expect_denied('update public.profiles set role=''ADMIN'' where id=auth.uid()');
+select set_config('request.jwt.claim.sub',current_setting('lhcc.test_student'),true);
+select set_config('request.jwt.claims',json_build_object('sub',current_setting('lhcc.test_student'),'role','authenticated')::text,true);
 select public.request_bank_access('physiology');
 select pg_temp.check_test((select count(*)=2 from public.user_bank_access_requests where question_bank_id='physiology'), 're-request preserves rejection history');
 select pg_temp.expect_denied('select public.request_bank_access(''anatomy'')');
@@ -123,5 +141,17 @@ select pg_temp.check_test((select count(*)=3 from public.bank_questions), 'activ
 select pg_temp.check_test((select count(*)=1 from public.question_attempts where student_id=current_setting('lhcc.test_student')::uuid), 'teacher reporting can read persisted attempts');
 select pg_temp.expect_denied('select * from private.question_solutions');
 reset role;
-select 'PASS: provisioning, role enforcement, catalog, locks, requests, atomic paid approval, wallet ledger, portfolio CMS, attempts, analytics visibility, suspension and answer isolation' as result;
+set local role authenticated;
+select set_config('request.jwt.claim.sub',current_setting('lhcc.test_admin'),true);
+select set_config('request.jwt.claims',json_build_object('sub',current_setting('lhcc.test_admin'),'role','authenticated')::text,true);
+select set_config('lhcc.new_bank',gen_random_uuid()::text,true);
+select set_config('lhcc.new_question',gen_random_uuid()::text,true);
+select public.manage_bank_content('save_bank',current_setting('lhcc.new_bank'),'{"name":"Transaction test bank","description":"Rollback-only integration test","status":"active","price":15}'::jsonb);
+select public.manage_bank_content('save_question',current_setting('lhcc.new_question'),jsonb_build_object('bankId',current_setting('lhcc.new_bank'),'text','Test question','status','active','answers','[{"id":"yes","text":"Yes","isCorrect":true},{"id":"no","text":"No","isCorrect":false}]'::jsonb));
+select pg_temp.check_test((select price=15 from public.question_banks where id=current_setting('lhcc.new_bank')), 'created bank persists on independent read');
+select pg_temp.check_test((select jsonb_array_length(options)=2 and not options->0 ? 'isCorrect' from public.bank_questions where id=current_setting('lhcc.new_question')), 'created question persists with safe options');
+select public.manage_bank_content('save_bank',current_setting('lhcc.new_bank'),'{"name":"Updated test bank","description":"Rollback-only integration test","status":"inactive","price":20}'::jsonb);
+select pg_temp.check_test((select price=20 and status='inactive' from public.question_banks where id=current_setting('lhcc.new_bank')), 'updated bank persists on independent read');
+reset role;
+select 'PASS: provisioning, authorization, bank/question writes, request and answer retries, paid approval, wallet, portfolio, persisted attempts, cross-student isolation and teacher reporting' as result;
 rollback;

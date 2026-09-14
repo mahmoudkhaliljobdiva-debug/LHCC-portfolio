@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { requireRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
+import { readAllRows } from "@/lib/supabase/pagination";
 import type { AdminAccessRequest, RecordedAnswer, StudentBank, StudentQuestion } from "@/types/bank-access";
 import type { QuestionBankStoreData } from "@/types/question-bank";
 
@@ -15,14 +16,13 @@ export async function getStudentBanks(): Promise<StudentBank[]> {
   const profile = await requireRole("STUDENT");
   const db = await createClient();
   const [banks, requests, grants] = await Promise.all([
-    db.from("question_banks").select("*").eq("status", "active").order("display_order"),
-    db.from("user_bank_access_requests").select("*").eq("user_id", profile.id).order("requested_at", { ascending: false }),
-    db.from("user_bank_access").select("*").eq("user_id", profile.id).eq("status", "ACTIVE"),
+    readAllRows((from, to) => db.from("question_banks").select("*").eq("status", "active").order("display_order").order("id").range(from, to)),
+    readAllRows((from, to) => db.from("user_bank_access_requests").select("*").eq("user_id", profile.id).order("requested_at", { ascending: false }).order("id").range(from, to)),
+    readAllRows((from, to) => db.from("user_bank_access").select("*").eq("user_id", profile.id).eq("status", "ACTIVE").order("id").range(from, to)),
   ]);
-  if (banks.error || requests.error || grants.error) throw new Error("Unable to load courses. Please try again.");
-  return (banks.data ?? []).map((bank) => {
-    const request = requests.data?.find((item) => item.question_bank_id === bank.id);
-    const approved = grants.data?.some((item) => item.question_bank_id === bank.id);
+  return banks.map((bank) => {
+    const request = requests.find((item) => item.question_bank_id === bank.id);
+    const approved = grants.some((item) => item.question_bank_id === bank.id);
     return { ...bank, status: "active", accessState: approved ? "APPROVED" : request?.status === "PENDING" || request?.status === "REJECTED" ? request.status : "LOCKED", rejectionReason: request?.rejection_reason ?? null };
   });
 }
@@ -38,17 +38,16 @@ export async function getStudentCourse(bankId: string) {
   if (!bank) return null;
   // RLS independently checks enabled student, active grant, active bank and question.
   const [questionsResult, attemptResult] = await Promise.all([
-    db.from("bank_questions").select("id,question_bank_id,text,status,options").eq("question_bank_id", bankId).eq("status", "active").order("created_at"),
-    db.from("question_attempts").select("id").eq("student_id", profile.id).eq("question_bank_id", bankId).eq("status", "IN_PROGRESS").maybeSingle(),
+    readAllRows((from, to) => db.from("bank_questions").select("id,question_bank_id,text,status,options").eq("question_bank_id", bankId).eq("status", "active").order("created_at").order("id").range(from, to)),
+    db.from("question_attempts").select("id").eq("student_id", profile.id).eq("question_bank_id", bankId).in("status", ["IN_PROGRESS", "COMPLETED"]).order("started_at", { ascending: false }).order("id").limit(1).maybeSingle(),
   ]);
-  if (questionsResult.error || attemptResult.error) throw new Error("Unable to load course progress.");
+  if (attemptResult.error) throw new Error("Unable to load course progress.");
   const answerResult = attemptResult.data
-    ? await db.from("question_attempt_answers").select("question_id,selected_option_id,is_correct").eq("attempt_id", attemptResult.data.id)
-    : { data: [], error: null };
-  if (answerResult.error) throw new Error("Unable to load recorded answers.");
+    ? await readAllRows((from, to) => db.from("question_attempt_answers").select("question_id,selected_option_id,is_correct").eq("attempt_id", attemptResult.data!.id).order("id").range(from, to))
+    : [];
   // Parse an explicit allowlist: never serialize extra option/solution properties.
-  const safeQuestions: StudentQuestion[] = z.array(studentQuestionSchema).parse(questionsResult.data ?? []);
-  const recordedAnswers: RecordedAnswer[] = (answerResult.data ?? []).map((answer) => ({
+  const safeQuestions: StudentQuestion[] = z.array(studentQuestionSchema).parse(questionsResult);
+  const recordedAnswers: RecordedAnswer[] = answerResult.map((answer) => ({
     questionId: answer.question_id,
     selectedOptionId: answer.selected_option_id,
     isCorrect: answer.is_correct,

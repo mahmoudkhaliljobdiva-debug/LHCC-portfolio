@@ -10,7 +10,9 @@ import { createInterface } from "node:readline";
 import { randomBytes } from "node:crypto";
 
 const base = process.env.LHCC_TEST_URL ?? "http://localhost:3000";
-assert(new URL(base).hostname === "localhost", "Run against the local application only.");
+const allowedHosts = ["localhost", "lhcc-lb.com", "lhcc-portfolio.vercel.app"];
+assert(allowedHosts.includes(new URL(base).hostname), "Use the local or established production application.");
+if (process.env.LHCC_RUN_AUTH_TESTS === "1") assert(new URL(base).hostname === "localhost", "Mutating auth tests run against the local application only.");
 const port = 9337;
 const profile = await mkdtemp(join(tmpdir(), "lhcc-course-browser-"));
 const browser = spawn("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "about:blank"], { windowsHide: true, stdio: "ignore" });
@@ -127,7 +129,10 @@ try {
     if (message.error) request.reject(new Error(message.error.message)); else request.resolve(message.result);
   });
   const student = await page();
-  const viewportWidths = [320, 375, 390, 430, 768, 1024, 1366, 1536, 1920];
+  const viewportWidths = process.env.LHCC_TEST_WIDTHS
+    ? process.env.LHCC_TEST_WIDTHS.split(",").map(Number)
+    : [320, 375, 390, 430, 768, 1024, 1366, 1536, 1920];
+  assert(viewportWidths.every((width) => Number.isInteger(width) && width >= 320 && width <= 3840));
   for (const path of ["/", "/about", "/services", "/platform", "/contact", "/login", "/signup"]) {
     await auditResponsive(student, path, viewportWidths);
   }
@@ -135,11 +140,12 @@ try {
   assert((await student.text()).includes("Create Account"));
   assert.equal(await student.evaluate("Boolean(document.querySelector('[data-nextjs-dialog]'))"), false);
   for (const width of [320, 390, 768, 1280]) await student.screenshot(`signup-${width}`, width);
-  for (const path of ["/admin", "/admin/users", "/teacher", "/student", "/student/banks/anatomy"]) {
+  for (const path of ["/admin", "/admin/users", "/admin/question-banks", "/admin/access-requests", "/admin/wallet", "/admin/portfolio", "/teacher", "/student", "/student/analytics", "/student/question-banks", "/student/banks/anatomy"]) {
     await student.goto(path);
     await waitFor(() => student.evaluate("location.pathname === '/login'"), `anonymous guard ${path}`);
   }
   console.log(`PASS: public/auth routes at ${viewportWidths.join(", ")}px, touch targets, iOS form text, and protected-route guards.`);
+  assert.equal(exceptions.length, 0, "No browser runtime exceptions");
   if (process.env.LHCC_RUN_AUTH_TESTS !== "1") process.exitCode = 0;
   else {
     const suffix = Date.now().toString(36);

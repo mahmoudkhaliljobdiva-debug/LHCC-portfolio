@@ -1,73 +1,74 @@
 # L.H.C.C — Lebanese Health & Competence Center
 
-Frontend-only SaaS demonstration built with Next.js App Router, strict TypeScript,
-Tailwind CSS, Recharts, and Lucide React.
+Healthcare learning application built with Next.js App Router, strict TypeScript,
+Tailwind CSS, Recharts, and Lucide React. Supabase Auth/PostgreSQL is the source
+of truth for production business data.
 
-## Current phase
+## Architecture
 
-The repository contains a responsive frontend demonstration with a public
-healthcare portfolio, role-based portals, typed mock data, local mock services,
-and interactive analytics charts.
+- Public portfolio CMS; student, teacher, and admin portals.
+- Server Components read Supabase; Server Actions validate and authorize writes.
+- RLS and guarded database functions enforce course access and protect answer keys.
+- Attempts, progress, dashboard metrics and activity use real saved records.
+- Admin wallet totals come from the signed transaction ledger.
+- No mock business fallback or browser-persisted business state. Empty data stays empty.
+- Phone, tablet, laptop layouts and light/dark themes are supported.
+- localStorage stores only `lhcc-theme`.
 
-## Boundaries
+See [the backend map](docs/backend-map.md) for every route, table, action, RPC,
+permission boundary, remaining feature limits, and the demo-removal audit.
 
-- No database, authentication, API, backend, payment gateway, or Supabase.
-- Responsive phone, tablet, and laptop layouts are required for every route.
-- Light and dark themes are user-selectable and persisted locally.
-- Routes stay thin and compose modules from `features` and `layouts`.
-- Shared visual primitives live in `components`.
-- Feature modules must not import another feature's internal files.
-- Components read demo data through `services`, not directly from `data`.
-- Server Components are the default; use Client Components only for interaction
-  or browser-only libraries such as Recharts.
+## Local development
 
-## Commands
-
-Node.js `22.23.2` is the supported runtime. Version managers can read the pinned
-version from `.node-version` or `.nvmrc`; run `fnm use` before installing
-dependencies when using Fast Node Manager.
+Use Node.js `22.23.2` from `.node-version` / `.nvmrc`.
 
 ```bash
 fnm use
-npm install
-npm run typecheck
-npm run lint
+npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000` after starting the development server. Demo portals
-are available at `/student`, `/teacher`, and `/admin`.
+Open http://localhost:3000. Protected portals require a real Supabase account
+and the appropriate database profile role/status. Student course access requires
+an admin-approved bank grant, independently of account activation.
 
-## Supabase Development Setup
+Copy `.env.example` to `.env.local` and supply the existing project's URL,
+publishable/anon key, and server-only administrative secret. Never commit secrets.
 
-Supabase Auth and Admin User Management are connected. Question banks, wallet,
-portfolio CMS, analytics, and usage remain on their existing demo boundaries
-until their dedicated migration phases.
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`: public client configuration.
+- `SUPABASE_SECRET_KEY` or legacy `SUPABASE_SERVICE_ROLE_KEY`: server only, for
+  authorized administrative Auth/profile operations. Never prefix with NEXT_PUBLIC.
+- Configure Auth Site URL and allowed callback URLs for the intended environment.
 
-1. Create a Supabase project.
-2. In the project dashboard, copy the Project URL, publishable key, and a
-   server-only secret key.
-3. Copy `.env.example` to `.env.local`.
-4. Add the three project values to `.env.local` without committing that file.
-5. Apply every SQL file in `supabase/migrations` in filename order. Until the
-   Supabase CLI is configured, each migration can be pasted into the dashboard
-   SQL editor.
-6. Follow `docs/supabase-phase3-test-accounts.md` to bootstrap the first Admin
-   and prepare the test matrix without committing passwords.
-7. In Supabase Auth URL Configuration, set the application Site URL and allow
-   `http://localhost:3000/auth/callback` as a local redirect URL. Add the
-   deployed callback URL before production deployment.
+For the existing project, compare local and remote migration history before
+applying anything; never reset production or reapply/edit an applied migration.
+All current migration versions are applied to `lcazjsmmegwwnmuupsko`.
 
-`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` may be used by
-browser code; database Row Level Security still controls access.
-`SUPABASE_SECRET_KEY` (or the legacy `SUPABASE_SERVICE_ROLE_KEY`) bypasses RLS,
-is server-only, and must never be exposed through a `NEXT_PUBLIC_` variable or
-imported by a Client Component.
+## Validation
 
-Never commit `.env.local` or real Supabase credentials.
+```bash
+npm run typecheck
+npm run lint
+npm run build
+git diff --check
+node --experimental-strip-types --test scripts/backend-reporting.test.mjs
+```
 
-### Authentication test accounts
+`supabase/tests/student_course_access.sql` exercises backend authorization and
+persistence in a transaction that always rolls back. The isolated headless Edge
+fallback is `scripts/course-browser-test.mjs`; public checks create no accounts.
+Authenticated test mode requires explicit opt-in and cleanup.
 
-Only the first Admin is bootstrapped manually. That Admin invites Student and
-Teacher accounts from `/admin/users`; the browser never receives the server-only
-administrative key. See `docs/supabase-phase3-test-accounts.md`.
+## Deployment
+
+Production: https://lhcc-lb.com and https://lhcc-portfolio.vercel.app.
+
+Normal pushes to `main` in `mahmoudkhaliljobdiva-debug/LHCC-portfolio` trigger
+the connected Vercel project's production build. Verify the deployment result
+for the pushed commit; do not create a duplicate manual deployment.
+
+## Current feature boundaries
+
+Exams and teacher cohort management are not yet configured; their UI does not
+pretend to contain real records. Teacher analytics use the existing permitted
+learning data. See the backend map for the remaining workflow limitations.

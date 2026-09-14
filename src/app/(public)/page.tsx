@@ -15,7 +15,7 @@ const capabilities = [
   {
     icon: BookOpenCheck,
     title: "Focused question banks",
-    text: "Build clinical reasoning through carefully organized practice across six essential medical disciplines.",
+    text: "Build clinical reasoning through carefully organized practice across medical disciplines.",
   },
   {
     icon: BarChart3,
@@ -25,7 +25,7 @@ const capabilities = [
   {
     icon: GraduationCap,
     title: "Teaching that scales",
-    text: "Create assessments, organize cohorts, and identify where learners need support from one calm workspace.",
+    text: "Review question-bank performance and identify where learners need support from one calm workspace.",
   },
 ] as const;
 
@@ -50,7 +50,7 @@ export default function HomePage() {
               Learn medicine with clarity and confidence.
             </h1>
             <p className="mt-7 max-w-xl text-lg leading-8 text-slate-600">
-              A focused learning platform that brings question banks, assessments,
+              A focused learning platform that brings question banks, practice,
               progress analytics, and educator tools into one thoughtfully designed experience.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
@@ -68,7 +68,7 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-600">
-              {["Six medical Qbanks", "Role-based portals", "Progress analytics"].map((item) => (
+              {["Medical question banks", "Role-based portals", "Progress analytics"].map((item) => (
                 <span key={item} className="flex items-center gap-2">
                   <CheckCircle2 className="size-4 text-teal-600" /> {item}
                 </span>

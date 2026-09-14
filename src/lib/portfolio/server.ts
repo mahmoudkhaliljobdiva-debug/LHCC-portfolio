@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { portfolioContentSchema } from "@/lib/validation/portfolio";
 import type { PortfolioContent, PortfolioSectionKey } from "@/types/portfolio-content";
 
-export const getPortfolioContent = cache(async (): Promise<PortfolioContent> => {
+export const getPortfolioContent = cache(async (): Promise<PortfolioContent | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("portfolio_content")
@@ -13,6 +13,7 @@ export const getPortfolioContent = cache(async (): Promise<PortfolioContent> => 
     .eq("published", true);
 
   if (error) throw new Error("Unable to load published portfolio content.");
+  if (data.length === 0) return null;
   const content = Object.fromEntries(
     data.map((row) => [row.section_key as PortfolioSectionKey, row.content]),
   );

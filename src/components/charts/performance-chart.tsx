@@ -35,7 +35,7 @@ export function PerformanceChart({
             <XAxis dataKey={xKey} axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
             <Tooltip cursor={{ fill: "#f1f5f9" }} />
-            <Bar dataKey={dataKey} fill="#e59a88" radius={[6, 6, 0, 0]} />
+            <Bar dataKey={dataKey} name="Attempts" fill="#e59a88" radius={[6, 6, 0, 0]} />
           </BarChart>
         ) : (
           <AreaChart data={chartData} margin={{ top: 10, right: 4, bottom: 0, left: -24 }}>

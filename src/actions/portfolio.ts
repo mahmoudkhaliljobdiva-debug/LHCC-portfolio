@@ -21,7 +21,8 @@ export async function savePortfolioContent(input: PortfolioContent): Promise<Ser
     const { error } = await supabase.rpc("save_portfolio_content", { payload: parsed.data as Json });
     if (error) return failure("Portfolio content could not be saved.");
     revalidatePortfolio();
-    return { ok: true, data: await getPortfolioContent() };
+    const content = await getPortfolioContent();
+    return content ? { ok: true, data: content } : failure("No published portfolio content is available.");
   } catch {
     return failure("Portfolio content could not be saved.");
   }
@@ -35,7 +36,8 @@ export async function resetPortfolioContent(): Promise<ServerResult<PortfolioCon
     const { error } = await supabase.rpc("reset_portfolio_content");
     if (error) return failure("Default portfolio content could not be restored.");
     revalidatePortfolio();
-    return { ok: true, data: await getPortfolioContent() };
+    const content = await getPortfolioContent();
+    return content ? { ok: true, data: content } : failure("No default portfolio content is configured.");
   } catch {
     return failure("Default portfolio content could not be restored.");
   }
