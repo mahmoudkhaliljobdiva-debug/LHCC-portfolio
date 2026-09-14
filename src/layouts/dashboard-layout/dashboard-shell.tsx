@@ -70,7 +70,7 @@ export function DashboardShell({
         </nav>
         <div className="mt-auto rounded-2xl bg-[#304f60] p-4 text-white">
           <p className="text-sm font-semibold">Need a quick tour?</p>
-          <p className="mt-1 text-xs leading-5 text-sky-100">Explore the demo navigation to see every workspace.</p>
+          <p className="mt-1 text-xs leading-5 text-sky-100">Use the navigation to move between your workspaces.</p>
           <Link href="/" className="mt-3 inline-block text-xs font-semibold text-teal-200">Back to website →</Link>
         </div>
       </aside>

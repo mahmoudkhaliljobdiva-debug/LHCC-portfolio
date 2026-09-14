@@ -27,19 +27,11 @@ export interface PlatformUser {
 export interface StudentBankUsage {
   readonly studentId: string;
   readonly bankId: string;
-  readonly questionsViewed: number;
   readonly questionsAnswered: number;
   readonly correctAnswers: number;
   readonly incorrectAnswers: number;
   readonly attemptsCount: number;
   readonly lastActivityAt: string | null;
-}
-
-export interface UserManagementData {
-  readonly users: readonly PlatformUser[];
-  readonly usage: readonly StudentBankUsage[];
-  readonly bankAccess: readonly UserBankAccess[];
-  readonly walletTransactions: readonly WalletTransaction[];
 }
 
 export interface PlatformUserInput {
@@ -55,29 +47,6 @@ export interface PlatformUserInput {
   readonly activationMonths: number;
 }
 
-export interface StudentQuestionActivityInput {
-  readonly studentId: string;
-  readonly bankId: string;
-  readonly viewed?: number;
-  readonly answered?: number;
-  readonly correct?: number;
-  readonly incorrect?: number;
-  readonly attempts?: number;
-  readonly occurredAt?: string;
-}
-
-export interface UserBankAccess {
-  readonly id: string;
-  readonly userId: string;
-  readonly bankId: string;
-  readonly price: number;
-  readonly isActive: boolean;
-  readonly grantedAt: string;
-  readonly revokedAt?: string | null;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-}
-
 export type WalletTransactionType = "bank_sale" | "bank_price_adjustment" | "refund" | "manual_income" | "manual_expense";
 
 export interface WalletTransaction {
@@ -88,10 +57,20 @@ export interface WalletTransaction {
   readonly amount: number;
   readonly transactionDate: string;
   readonly userId?: string;
+  readonly userName?: string | null;
   readonly bankId?: string;
+  readonly bankName?: string | null;
   readonly userBankAccessId?: string;
   readonly category?: string;
   readonly createdAt: string;
+}
+
+export interface UserUsageSummary {
+  readonly studentId: string;
+  readonly questionsAnswered: number;
+  readonly attemptsCount: number;
+  readonly accuracy: number;
+  readonly lastActivityAt: string | null;
 }
 
 export interface WalletTicketInput {

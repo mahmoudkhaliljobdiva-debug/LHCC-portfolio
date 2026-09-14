@@ -6,6 +6,9 @@ export interface CourseBank {
   description: string;
   status: "active" | "inactive";
   display_order: number;
+  image_url: string | null;
+  price: number;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,12 +27,17 @@ export interface BankAccessRequest {
 }
 
 export interface BankAccess {
+  id: string;
   user_id: string;
   question_bank_id: string;
   status: "ACTIVE" | "REVOKED";
   granted_at: string;
   granted_by: string;
   request_id: string | null;
+  price: number;
+  revoked_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface StudentBank extends CourseBank {
@@ -48,4 +56,17 @@ export interface StudentQuestion {
   text: string;
   status: string;
   options: { id: string; text: string }[];
+}
+
+export interface AnswerSubmission {
+  correct: boolean;
+  attemptId: string;
+  completed: boolean;
+  scorePercentage: number;
+}
+
+export interface RecordedAnswer {
+  questionId: string;
+  selectedOptionId: string;
+  isCorrect: boolean;
 }

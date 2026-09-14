@@ -1,62 +1,8 @@
-"use client";
+import { BookOpen } from "lucide-react";
 
-import { ArrowRight, BookOpen, LockKeyhole } from "lucide-react";
-import { useEffect, useState } from "react";
+import type { TeacherBankSummary } from "@/lib/data/server";
 
-import { Progress } from "@/components/ui/progress";
-import { QUESTION_BANKS } from "@/data/question-banks.mock";
-import { useUserManagement } from "@/features/users/user-management-provider";
-import { createClient } from "@/lib/supabase/client";
-
-export function TeacherQuestionBankGrid() {
-  const { users, hasUserBankAccess, isReady } = useUserManagement();
-  const [managedUserId, setManagedUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isReady) return;
-    let cancelled = false;
-
-    async function resolveMockAccessIdentity() {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase.auth.getUser();
-        const email = data.user?.email?.trim().toLocaleLowerCase();
-        const managedUser = email ? users.find((user) => user.email.trim().toLocaleLowerCase() === email) : undefined;
-        if (!cancelled) setManagedUserId(managedUser?.id ?? null);
-      } catch {
-        if (!cancelled) setManagedUserId(null);
-      }
-    }
-
-    void resolveMockAccessIdentity();
-    return () => { cancelled = true; };
-  }, [isReady, users]);
-
-  // Question-bank access is still mock-backed until its dedicated migration.
-  // Route authorization is server-enforced; this temporary email bridge is UI-only.
-  return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {QUESTION_BANKS.map((bank) => {
-        const progress = Math.round((bank.completedCount / bank.questionCount) * 100);
-        const hasAccess = Boolean(managedUserId && hasUserBankAccess(managedUserId, bank.id));
-        return (
-          <article key={bank.id} className="group rounded-2xl border bg-white p-5 shadow-sm transition hover:shadow-md">
-            <div className="flex items-start justify-between">
-              <span className="grid size-11 place-items-center rounded-xl bg-teal-50 text-teal-700"><BookOpen className="size-5" /></span>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${hasAccess ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{hasAccess ? "Access granted" : "Locked"}</span>
-            </div>
-            <h3 className="mt-5 font-semibold text-slate-950">{bank.title}</h3>
-            <p className="mt-2 min-h-10 text-sm leading-5 text-slate-500">{bank.description}</p>
-            <div className="mt-6"><Progress value={progress} label={`${bank.completedCount} of ${bank.questionCount} completed`} /></div>
-            <div className="mt-5 flex items-center justify-between border-t pt-4 text-sm">
-              <span className="text-slate-500">Average <strong className="text-slate-900">{bank.averageScore}%</strong></span>
-              <button type="button" disabled={!hasAccess} className="text-teal-700 disabled:cursor-not-allowed disabled:text-slate-300" aria-label={hasAccess ? `Open ${bank.title}` : `${bank.title} is locked`}>
-                {hasAccess ? <ArrowRight className="size-4" /> : <LockKeyhole className="size-4" />}
-              </button>
-            </div>
-          </article>
-        );
-      })}
-    </div>
-  );
+export function TeacherQuestionBankGrid({ banks }: { readonly banks: readonly TeacherBankSummary[] }) {
+  if (!banks.length) return <div className="rounded-2xl border border-dashed bg-white px-6 py-16 text-center"><BookOpen className="mx-auto size-9 text-slate-400" /><h2 className="mt-4 font-semibold text-slate-900">No active question banks are available.</h2></div>;
+  return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{banks.map((bank) => <article key={bank.id} className="rounded-2xl border bg-white p-5 shadow-sm"><div className="flex items-start justify-between"><span className="grid size-11 place-items-center rounded-xl bg-teal-50 text-teal-700"><BookOpen className="size-5" /></span><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Published</span></div><h2 className="mt-5 font-semibold text-slate-950">{bank.name}</h2><p className="mt-2 min-h-10 text-sm leading-5 text-slate-500">{bank.description}</p><dl className="mt-5 grid grid-cols-3 gap-3 border-t pt-4 text-sm"><div><dt className="text-xs text-slate-500">Questions</dt><dd className="mt-1 font-semibold text-slate-900">{bank.questionCount}</dd></div><div><dt className="text-xs text-slate-500">Attempts</dt><dd className="mt-1 font-semibold text-slate-900">{bank.attempts}</dd></div><div><dt className="text-xs text-slate-500">Average</dt><dd className="mt-1 font-semibold text-slate-900">{bank.averageScore}%</dd></div></dl></article>)}</div>;
 }

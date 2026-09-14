@@ -58,7 +58,7 @@ export default function HomePage() {
                 href="/student"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
               >
-                Open student demo <ArrowRight className="size-4" />
+                Open student portal <ArrowRight className="size-4" />
               </Link>
               <Link
                 href="/platform"
@@ -90,23 +90,21 @@ export default function HomePage() {
               </div>
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-2xl bg-[#0d3852] p-5 text-white">
-                  <p className="text-sm text-sky-100">Weekly accuracy</p>
-                  <p className="mt-2 text-4xl font-semibold">84%</p>
-                  <p className="mt-6 text-xs text-sky-100">↑ 6% from last week</p>
+                  <p className="text-sm text-sky-100">Performance analytics</p>
+                  <p className="mt-2 text-4xl font-semibold">Live</p>
+                  <p className="mt-6 text-xs text-sky-100">Calculated from completed attempts</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 p-5">
-                  <p className="text-sm text-slate-500">Questions completed</p>
-                  <p className="mt-2 text-4xl font-semibold text-slate-950">1,441</p>
-                  <div className="mt-7 h-2 rounded-full bg-slate-100">
-                    <div className="h-2 w-[72%] rounded-full bg-teal-600" />
-                  </div>
+                  <p className="text-sm text-slate-500">Learning progress</p>
+                  <p className="mt-2 text-4xl font-semibold text-slate-950">Saved</p>
+                  <p className="mt-6 text-xs text-slate-500">Available after every sign-in</p>
                 </div>
               </div>
               <div className="mt-4 rounded-2xl border border-slate-200 p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-900">Continue learning</p>
-                    <p className="mt-1 text-sm text-slate-500">Cardiovascular pathology · 18 questions</p>
+                    <p className="mt-1 text-sm text-slate-500">Resume an approved question bank on any device</p>
                   </div>
                   <span className="grid size-10 place-items-center rounded-full bg-teal-600 text-white">
                     <ArrowRight className="size-4" />
@@ -172,7 +170,7 @@ export default function HomePage() {
             See the whole learning journey.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-slate-600">
-            Explore the interactive demo from the perspective of a student, educator, or administrator.
+            Explore the platform from the perspective of a student, educator, or administrator.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             {[

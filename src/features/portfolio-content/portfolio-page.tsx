@@ -1,14 +1,9 @@
-"use client";
-
 import { ArrowRight, CheckCircle2, Mail, MapPin, Phone } from "lucide-react";
 import Link from "next/link";
 
-import { usePortfolioContent } from "@/features/portfolio-content/portfolio-content-provider";
-import type { PortfolioSectionKey } from "@/types/portfolio-content";
+import type { PortfolioContent, PortfolioSectionKey } from "@/types/portfolio-content";
 
-export function PortfolioPage({ section }: { readonly section: PortfolioSectionKey }) {
-  const { content } = usePortfolioContent();
-
+export function PortfolioPage({ section, content }: { readonly section: PortfolioSectionKey; readonly content: PortfolioContent }) {
   if (section === "contact") {
     const page = content.contact;
     const details = [

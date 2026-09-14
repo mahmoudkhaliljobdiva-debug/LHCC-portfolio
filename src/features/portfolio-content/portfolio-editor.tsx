@@ -3,8 +3,7 @@
 import { AlertCircle, CheckCircle2, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
 import { useEffect, useId, useMemo, useState } from "react";
 
-import { DEFAULT_PORTFOLIO_CONTENT } from "@/data/portfolio-content.default";
-import { usePortfolioContent } from "@/features/portfolio-content/portfolio-content-provider";
+import { resetPortfolioContent, savePortfolioContent } from "@/actions/portfolio";
 import { cn } from "@/lib/cn";
 import type {
   PortfolioContent,
@@ -23,18 +22,8 @@ type StandardSectionKey = Exclude<PortfolioSectionKey, "contact">;
 type StandardFieldKey = Exclude<keyof PortfolioPageContent, "items">;
 type Feedback = { readonly type: "success" | "error"; readonly message: string };
 
-export function PortfolioEditor() {
-  const store = usePortfolioContent();
-
-  if (!store.isReady) {
-    return <div className="h-80 animate-pulse rounded-2xl border bg-white" aria-label="Loading portfolio editor" />;
-  }
-
-  return <ReadyPortfolioEditor initialContent={store.content} />;
-}
-
-function ReadyPortfolioEditor({ initialContent }: { readonly initialContent: PortfolioContent }) {
-  const { savePortfolioContent, resetPortfolioContent } = usePortfolioContent();
+export function PortfolioEditor({ initialContent }: { readonly initialContent: PortfolioContent }) {
+  const [baseline, setBaseline] = useState(initialContent);
   const [draft, setDraft] = useState<PortfolioContent>(() => structuredClone(initialContent));
   const [activeSection, setActiveSection] = useState<PortfolioSectionKey>("about");
   const [isSaving, setIsSaving] = useState(false);
@@ -43,8 +32,8 @@ function ReadyPortfolioEditor({ initialContent }: { readonly initialContent: Por
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const isDirty = useMemo(
-    () => JSON.stringify(draft) !== JSON.stringify(initialContent),
-    [draft, initialContent],
+    () => JSON.stringify(draft) !== JSON.stringify(baseline),
+    [baseline, draft],
   );
 
   useEffect(() => {
@@ -149,7 +138,10 @@ function ReadyPortfolioEditor({ initialContent }: { readonly initialContent: Por
     setIsSaving(true);
     setFeedback(null);
     try {
-      await savePortfolioContent(draft);
+      const result = await savePortfolioContent(draft);
+      if (!result.ok) throw new Error(result.error.message);
+      setBaseline(result.data);
+      setDraft(structuredClone(result.data));
       setFeedback({ type: "success", message: "Portfolio content updated successfully." });
     } catch {
       setFeedback({ type: "error", message: "Portfolio content could not be saved. Please try again." });
@@ -158,12 +150,24 @@ function ReadyPortfolioEditor({ initialContent }: { readonly initialContent: Por
     }
   }
 
-  function handleReset() {
-    resetPortfolioContent();
-    setDraft(structuredClone(DEFAULT_PORTFOLIO_CONTENT));
-    setResetOpen(false);
-    setErrors({});
-    setFeedback({ type: "success", message: "Default portfolio content restored." });
+  async function handleReset() {
+    setIsSaving(true);
+    try {
+      const result = await resetPortfolioContent();
+      if (result.ok) {
+        setBaseline(result.data);
+        setDraft(structuredClone(result.data));
+        setErrors({});
+        setFeedback({ type: "success", message: "Default portfolio content restored." });
+      } else {
+        setFeedback({ type: "error", message: result.error.message });
+      }
+    } catch {
+      setFeedback({ type: "error", message: "Default portfolio content could not be restored." });
+    } finally {
+      setResetOpen(false);
+      setIsSaving(false);
+    }
   }
 
   return (

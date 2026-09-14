@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 
 import "@/app/globals.css";
-import { PortfolioContentProvider } from "@/features/portfolio-content/portfolio-content-provider";
-import { UserManagementProvider } from "@/features/users/user-management-provider";
 
 export const metadata: Metadata = {
   title: {
@@ -37,7 +35,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body><UserManagementProvider><PortfolioContentProvider>{children}</PortfolioContentProvider></UserManagementProvider></body>
+      <body>{children}</body>
     </html>
   );
 }

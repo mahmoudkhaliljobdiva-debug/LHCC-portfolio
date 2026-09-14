@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { DEFAULT_PORTFOLIO_CONTENT } from "@/data/portfolio-content.default";
 import { PortfolioPage } from "@/features/portfolio-content/portfolio-page";
+import { getPortfolioContent } from "@/lib/portfolio/server";
 import { PORTFOLIO_SECTIONS, type PortfolioSectionKey } from "@/types/portfolio-content";
 
 function isPortfolioSection(value: string): value is PortfolioSectionKey {
@@ -15,13 +15,14 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
+  const content = isPortfolioSection(slug) ? await getPortfolioContent() : null;
   return {
-    title: isPortfolioSection(slug) ? DEFAULT_PORTFOLIO_CONTENT[slug].title : "Page",
+    title: content && isPortfolioSection(slug) ? content[slug].title : "Page",
   };
 }
 
 export default async function MarketingPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   if (!isPortfolioSection(slug)) notFound();
-  return <PortfolioPage section={slug} />;
+  return <PortfolioPage section={slug} content={await getPortfolioContent()} />;
 }

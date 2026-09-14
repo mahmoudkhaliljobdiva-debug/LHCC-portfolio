@@ -31,7 +31,7 @@ export function PublicFooter() {
         </div>
       </div>
       <div className="border-t border-white/10 px-5 py-5 text-center text-xs text-slate-500">
-        © 2026 Lebanese Health &amp; Competence Center. Frontend demonstration only.
+        © 2026 Lebanese Health &amp; Competence Center. All rights reserved.
       </div>
     </footer>
   );

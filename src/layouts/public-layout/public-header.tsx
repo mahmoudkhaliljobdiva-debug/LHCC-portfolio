@@ -45,7 +45,7 @@ export function PublicHeader() {
             href="/student"
             className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
-            Explore demo
+            Explore platform
           </Link>
         </div>
         <button
@@ -86,7 +86,7 @@ export function PublicHeader() {
             Create account
           </Link>
           <Link href="/student" onClick={() => setOpen(false)} className="rounded-xl bg-slate-950 px-3 py-3 text-center font-semibold text-white hover:bg-slate-800">
-            Explore demo
+            Explore platform
           </Link>
         </nav>
       </div>

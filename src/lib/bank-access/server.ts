@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { requireRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
-import type { AdminAccessRequest, StudentBank, StudentQuestion } from "@/types/bank-access";
+import type { AdminAccessRequest, RecordedAnswer, StudentBank, StudentQuestion } from "@/types/bank-access";
 import type { QuestionBankStoreData } from "@/types/question-bank";
 
 const studentQuestionSchema = z.object({
@@ -23,7 +23,7 @@ export async function getStudentBanks(): Promise<StudentBank[]> {
   return (banks.data ?? []).map((bank) => {
     const request = requests.data?.find((item) => item.question_bank_id === bank.id);
     const approved = grants.data?.some((item) => item.question_bank_id === bank.id);
-    return { ...bank, accessState: approved ? "APPROVED" : request?.status === "PENDING" || request?.status === "REJECTED" ? request.status : "LOCKED", rejectionReason: request?.rejection_reason ?? null };
+    return { ...bank, status: "active", accessState: approved ? "APPROVED" : request?.status === "PENDING" || request?.status === "REJECTED" ? request.status : "LOCKED", rejectionReason: request?.rejection_reason ?? null };
   });
 }
 
@@ -37,11 +37,23 @@ export async function getStudentCourse(bankId: string) {
   if (bankError) throw new Error("Unable to load course.");
   if (!bank) return null;
   // RLS independently checks enabled student, active grant, active bank and question.
-  const { data: questions, error: questionError } = await db.from("bank_questions").select("id,question_bank_id,text,status,options").eq("question_bank_id", bankId).eq("status", "active").order("created_at");
-  if (questionError) throw new Error("Unable to load questions.");
+  const [questionsResult, attemptResult] = await Promise.all([
+    db.from("bank_questions").select("id,question_bank_id,text,status,options").eq("question_bank_id", bankId).eq("status", "active").order("created_at"),
+    db.from("question_attempts").select("id").eq("student_id", profile.id).eq("question_bank_id", bankId).eq("status", "IN_PROGRESS").maybeSingle(),
+  ]);
+  if (questionsResult.error || attemptResult.error) throw new Error("Unable to load course progress.");
+  const answerResult = attemptResult.data
+    ? await db.from("question_attempt_answers").select("question_id,selected_option_id,is_correct").eq("attempt_id", attemptResult.data.id)
+    : { data: [], error: null };
+  if (answerResult.error) throw new Error("Unable to load recorded answers.");
   // Parse an explicit allowlist: never serialize extra option/solution properties.
-  const safeQuestions: StudentQuestion[] = z.array(studentQuestionSchema).parse(questions ?? []);
-  return { bank, questions: safeQuestions };
+  const safeQuestions: StudentQuestion[] = z.array(studentQuestionSchema).parse(questionsResult.data ?? []);
+  const recordedAnswers: RecordedAnswer[] = (answerResult.data ?? []).map((answer) => ({
+    questionId: answer.question_id,
+    selectedOptionId: answer.selected_option_id,
+    isCorrect: answer.is_correct,
+  }));
+  return { bank, questions: safeQuestions, recordedAnswers };
 }
 
 export async function getAdminRequests(): Promise<AdminAccessRequest[]> {

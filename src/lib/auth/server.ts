@@ -46,7 +46,9 @@ export async function getEffectiveProfileStatus(
 
   const supabase = client ?? await createClient();
   const { data, error } = await supabase.rpc("is_profile_access_active", {
-    profile_expiration_date: profile.expiration_date,
+    // PostgreSQL accepts NULL here; generated RPC argument types do not encode
+    // nullable function parameters, so preserve the runtime value explicitly.
+    profile_expiration_date: profile.expiration_date as string,
     profile_role: profile.role,
     profile_status: profile.status,
   });

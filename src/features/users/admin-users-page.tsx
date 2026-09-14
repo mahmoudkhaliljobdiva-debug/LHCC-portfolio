@@ -2,6 +2,7 @@
 
 import { Activity, Edit3, Plus, Power, PowerOff, Search, UserCheck, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import {
@@ -20,7 +21,7 @@ import {
 import { useAdminQuestionBanks } from "@/features/question-banks/admin-question-bank-provider";
 import { cn } from "@/lib/cn";
 import type { ServerResult } from "@/types/server-result";
-import type { EffectiveUserStatus, ManagedUserRole, PlatformUser, PlatformUserInput } from "@/types/user-management";
+import type { EffectiveUserStatus, ManagedUserRole, PlatformUser, PlatformUserInput, UserUsageSummary } from "@/types/user-management";
 import { getEffectiveUserStatus, getRemainingDays } from "@/utils/user-activation";
 
 type SortKey = "name" | "role" | "status" | "expiration";
@@ -28,9 +29,10 @@ type SortKey = "name" | "role" | "status" | "expiration";
 interface AdminUsersPageProps {
   readonly initialUsers: readonly PlatformUser[];
   readonly initialError?: string | undefined;
+  readonly usage: readonly UserUsageSummary[];
 }
 
-export function AdminUsersPage({ initialUsers, initialError }: AdminUsersPageProps) {
+export function AdminUsersPage({ initialUsers, initialError, usage }: AdminUsersPageProps) {
   const bankStore = useAdminQuestionBanks();
   const [users, setUsers] = useState(initialUsers);
   const [search, setSearch] = useState("");
@@ -166,8 +168,8 @@ export function AdminUsersPage({ initialUsers, initialError }: AdminUsersPagePro
           <div className="px-6 py-16 text-center"><Users className="mx-auto size-9 text-slate-400" /><h2 className="mt-4 font-semibold text-slate-900">{pageError ? "Users could not be loaded." : roleFilter === "student" ? "No students match the selected filters." : "No users found."}</h2></div>
         ) : (
           <>
-            <div className="grid gap-4 p-4 lg:hidden">{rows.map((row) => <UserCard key={row.user.id} row={row} onEdit={() => setDialog({ mode: "edit", user: row.user })} onActivate={() => setReactivateTarget(row.user)} onDeactivate={() => setDeactivateTarget(row.user)} />)}</div>
-            <div className="hidden overflow-x-auto lg:block"><table className="w-full min-w-[1120px] text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["User", "Email", "Role", "Status", "Activation", "Expiration", "Remaining", "Usage", "Actions"].map((heading) => <th key={heading} className="px-5 py-3 font-medium">{heading}</th>)}</tr></thead><tbody>{rows.map((row) => <UserTableRow key={row.user.id} row={row} onEdit={() => setDialog({ mode: "edit", user: row.user })} onActivate={() => setReactivateTarget(row.user)} onDeactivate={() => setDeactivateTarget(row.user)} />)}</tbody></table></div>
+            <div className="grid gap-4 p-4 lg:hidden">{rows.map((row) => <UserCard key={row.user.id} row={row} usage={usage.find((item) => item.studentId === row.user.id)} onEdit={() => setDialog({ mode: "edit", user: row.user })} onActivate={() => setReactivateTarget(row.user)} onDeactivate={() => setDeactivateTarget(row.user)} />)}</div>
+            <div className="hidden overflow-x-auto lg:block"><table className="w-full min-w-[1120px] text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["User", "Email", "Role", "Status", "Activation", "Expiration", "Remaining", "Usage", "Actions"].map((heading) => <th key={heading} className="px-5 py-3 font-medium">{heading}</th>)}</tr></thead><tbody>{rows.map((row) => <UserTableRow key={row.user.id} row={row} usage={usage.find((item) => item.studentId === row.user.id)} onEdit={() => setDialog({ mode: "edit", user: row.user })} onActivate={() => setReactivateTarget(row.user)} onDeactivate={() => setDeactivateTarget(row.user)} />)}</tbody></table></div>
           </>
         )}
       </section>
@@ -180,25 +182,25 @@ export function AdminUsersPage({ initialUsers, initialError }: AdminUsersPagePro
 }
 
 interface UserRowData { readonly user: PlatformUser; readonly effectiveStatus: EffectiveUserStatus }
-interface RowActions { readonly row: UserRowData; readonly onEdit: () => void; readonly onActivate: () => void; readonly onDeactivate: () => void }
+interface RowActions { readonly row: UserRowData; readonly usage?: UserUsageSummary | undefined; readonly onEdit: () => void; readonly onActivate: () => void; readonly onDeactivate: () => void }
 
 function UserTableRow(props: RowActions) {
   const { row } = props;
-  return <tr className="border-t"><td className="px-5 py-4 font-semibold text-slate-900">{row.user.fullName}</td><td className="px-5 py-4 text-slate-600">{row.user.email}</td><td className="px-5 py-4"><RoleBadge role={row.user.role} /></td><td className="px-5 py-4"><StatusBadge status={row.effectiveStatus} /></td><td className="px-5 py-4 text-slate-600">{formatDate(row.user.activationStartDate)}</td><td className="px-5 py-4 text-slate-600">{formatDate(row.user.expirationDate)}</td><td className="px-5 py-4 text-slate-600">{remainingLabel(row.user, row.effectiveStatus)}</td><td className="px-5 py-4"><UsagePlaceholder /></td><td className="px-5 py-4"><Actions {...props} /></td></tr>;
+  return <tr className="border-t"><td className="px-5 py-4 font-semibold text-slate-900">{row.user.fullName}</td><td className="px-5 py-4 text-slate-600">{row.user.email}</td><td className="px-5 py-4"><RoleBadge role={row.user.role} /></td><td className="px-5 py-4"><StatusBadge status={row.effectiveStatus} /></td><td className="px-5 py-4 text-slate-600">{formatDate(row.user.activationStartDate)}</td><td className="px-5 py-4 text-slate-600">{formatDate(row.user.expirationDate)}</td><td className="px-5 py-4 text-slate-600">{remainingLabel(row.user, row.effectiveStatus)}</td><td className="px-5 py-4"><UsageSummary usage={props.usage} /></td><td className="px-5 py-4"><Actions {...props} /></td></tr>;
 }
 
 function UserCard(props: RowActions) {
   const { row } = props;
-  return <article className="rounded-xl border bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">{row.user.fullName}</h2><p className="mt-1 break-all text-sm text-slate-500">{row.user.email}</p></div><StatusBadge status={row.effectiveStatus} /></div><div className="mt-4 flex gap-2"><RoleBadge role={row.user.role} /></div><dl className="mt-4 grid grid-cols-2 gap-3 text-sm"><div><dt className="text-xs text-slate-500">Activation</dt><dd className="mt-1 text-slate-700">{formatDate(row.user.activationStartDate)}</dd></div><div><dt className="text-xs text-slate-500">Expiration</dt><dd className="mt-1 text-slate-700">{formatDate(row.user.expirationDate)}</dd></div></dl><div className="mt-4"><UsagePlaceholder /></div><div className="mt-4 border-t pt-3"><Actions {...props} /></div></article>;
+  return <article className="rounded-xl border bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">{row.user.fullName}</h2><p className="mt-1 break-all text-sm text-slate-500">{row.user.email}</p></div><StatusBadge status={row.effectiveStatus} /></div><div className="mt-4 flex gap-2"><RoleBadge role={row.user.role} /></div><dl className="mt-4 grid grid-cols-2 gap-3 text-sm"><div><dt className="text-xs text-slate-500">Activation</dt><dd className="mt-1 text-slate-700">{formatDate(row.user.activationStartDate)}</dd></div><div><dt className="text-xs text-slate-500">Expiration</dt><dd className="mt-1 text-slate-700">{formatDate(row.user.expirationDate)}</dd></div></dl><div className="mt-4"><UsageSummary usage={props.usage} /></div><div className="mt-4 border-t pt-3"><Actions {...props} /></div></article>;
 }
 
 function RoleBadge({ role }: { readonly role: ManagedUserRole }) { return <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold capitalize text-sky-700">{role}</span>; }
 function StatusBadge({ status }: { readonly status: EffectiveUserStatus }) { const labels = { active: "Active", inactive: "Inactive", expired: "Expired", "expiring-soon": "Expires Soon" }; return <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", status === "active" ? "bg-emerald-50 text-emerald-700" : status === "expiring-soon" ? "bg-amber-50 text-amber-800" : "bg-rose-50 text-rose-700")}>{labels[status]}</span>; }
-function UsagePlaceholder() { return <div className="text-xs leading-5 text-slate-500"><p className="font-medium text-slate-600">Usage deferred</p><p>Mock usage is not joined to real accounts.</p></div>; }
+function UsageSummary({ usage }: { readonly usage?: UserUsageSummary | undefined }) { return <div className="text-xs leading-5 text-slate-500"><p className="font-medium text-slate-700">{usage ? `${usage.questionsAnswered} answers · ${usage.accuracy}%` : "No activity"}</p><p>{usage ? `${usage.attemptsCount} attempts` : "No attempts recorded"}</p></div>; }
 
 function Actions(props: RowActions) {
   const active = props.row.effectiveStatus === "active" || props.row.effectiveStatus === "expiring-soon";
-  return <div className="flex flex-wrap items-center gap-1.5">{active ? <button type="button" onClick={props.onDeactivate} className="rounded-lg border p-2 text-rose-700" aria-label={`Deactivate ${props.row.user.fullName}`} title="Deactivate"><PowerOff className="size-4" /></button> : <button type="button" onClick={props.onActivate} className="rounded-lg border p-2 text-emerald-700" aria-label={`Reactivate ${props.row.user.fullName}`} title="Reactivate"><Power className="size-4" /></button>}<button type="button" onClick={props.onEdit} className="rounded-lg border p-2 text-slate-600" aria-label={`Edit ${props.row.user.fullName}`} title="Edit"><Edit3 className="size-4" /></button>{props.row.user.role === "student" && <button type="button" disabled className="rounded-lg border p-2 text-slate-400 opacity-60" aria-label={`Activity migration pending for ${props.row.user.fullName}`} title="Activity migration pending"><Activity className="size-4" /></button>}</div>;
+  return <div className="flex flex-wrap items-center gap-1.5">{active ? <button type="button" onClick={props.onDeactivate} className="rounded-lg border p-2 text-rose-700" aria-label={`Deactivate ${props.row.user.fullName}`} title="Deactivate"><PowerOff className="size-4" /></button> : <button type="button" onClick={props.onActivate} className="rounded-lg border p-2 text-emerald-700" aria-label={`Reactivate ${props.row.user.fullName}`} title="Reactivate"><Power className="size-4" /></button>}<button type="button" onClick={props.onEdit} className="rounded-lg border p-2 text-slate-600" aria-label={`Edit ${props.row.user.fullName}`} title="Edit"><Edit3 className="size-4" /></button>{props.row.user.role === "student" && <Link href={`/admin/users/${props.row.user.id}/activity`} className="grid size-11 place-items-center rounded-xl border text-teal-700" aria-label={`View activity for ${props.row.user.fullName}`} title="View activity"><Activity className="size-4" /></Link>}</div>;
 }
 
 function Filter({ value, options, label, onChange }: { readonly value: string; readonly options: readonly (readonly [string, string])[]; readonly label: string; readonly onChange: (value: string) => void }) { return <label><span className="sr-only">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-xl border bg-slate-50 px-3 text-sm">{options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}</select></label>; }

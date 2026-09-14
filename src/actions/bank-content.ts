@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
 import type { ServerResult } from "@/types/server-result";
 
-const bankSchema = z.object({ name: z.string().trim().min(1).max(200), description: z.string().trim().min(1).max(5000), status: z.enum(["active", "inactive"]), displayOrder: z.number().int().min(0).optional() });
+const bankSchema = z.object({ name: z.string().trim().min(1).max(200), description: z.string().trim().min(1).max(5000), status: z.enum(["active", "inactive"]), displayOrder: z.number().int().min(0).optional(), imageUrl: z.url().max(2000).optional().or(z.literal("")), price: z.number().finite().min(0).max(9999999999.99) });
 const questionSchema = z.object({ bankId: z.string().min(1).max(200), text: z.string().trim().min(1).max(10000), status: z.enum(["active", "inactive"]), answers: z.array(z.object({ id: z.string().min(1).max(200), text: z.string().trim().min(1).max(5000), isCorrect: z.boolean() })).min(2).max(10) }).refine((value) => value.answers.filter((answer) => answer.isCorrect).length === 1 && new Set(value.answers.map((answer) => answer.id)).size === value.answers.length);
 
 export async function manageBankContent(operation: "save_bank" | "delete_bank" | "save_question" | "delete_question", id: string, input: unknown = {}): Promise<ServerResult<null>> {

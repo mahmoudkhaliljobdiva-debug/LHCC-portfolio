@@ -15,7 +15,7 @@ export function AdminQuestionBankList() {
   const store = useAdminQuestionBanks();
   const [dialog, setDialog] = useState<BankDialogState | null>(null);
   const [deleteBank, setDeleteBank] = useState<AdminQuestionBank | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ readonly type: "success" | "error"; readonly message: string } | null>(null);
 
   const banks = useMemo(() => [...store.banks].sort((a, b) => (a.displayOrder ?? 999) - (b.displayOrder ?? 999) || a.name.localeCompare(b.name)), [store.banks]);
 
@@ -24,10 +24,10 @@ export function AdminQuestionBankList() {
   async function handleSave(input: QuestionBankInput) {
     if (dialog?.mode === "edit") {
       await store.updateQuestionBank(dialog.bank.id, input);
-      setSuccess(`${input.name} updated successfully.`);
+      setNotice({ type: "success", message: `${input.name} updated successfully.` });
     } else {
       await store.addQuestionBank(input);
-      setSuccess(`${input.name} added successfully.`);
+      setNotice({ type: "success", message: `${input.name} added successfully.` });
     }
     setDialog(null);
   }
@@ -36,19 +36,19 @@ export function AdminQuestionBankList() {
     if (!deleteBank) return;
     try {
     await store.deleteQuestionBank(deleteBank.id);
-    setSuccess(`${deleteBank.name} and all linked questions were deleted.`);
+    setNotice({ type: "success", message: `${deleteBank.name} and all linked questions were deleted.` });
     setDeleteBank(null);
-    } catch (error) { setSuccess(error instanceof Error ? error.message : "Unable to delete bank."); setDeleteBank(null); }
+    } catch (error) { setNotice({ type: "error", message: error instanceof Error ? error.message : "Unable to delete bank." }); setDeleteBank(null); }
   }
 
   return (
     <div>
       <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="text-sm font-semibold text-teal-700">Content management</p><h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Question banks</h1><p className="mt-2 text-sm text-slate-500">Create banks and manage their single-choice questions.</p></div>
-        <button type="button" onClick={() => { setDialog({ mode: "add" }); setSuccess(null); }} className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-800"><Plus className="size-4" />Add Question Bank</button>
+        <button type="button" onClick={() => { setDialog({ mode: "add" }); setNotice(null); }} className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-800"><Plus className="size-4" />Add Question Bank</button>
       </div>
 
-      {success && <div role="status" className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{success}</div>}
+      {notice && <div role={notice.type === "error" ? "alert" : "status"} className={cn("mb-6 rounded-xl border px-4 py-3 text-sm font-medium", notice.type === "error" ? "border-rose-200 bg-rose-50 text-rose-800" : "border-emerald-200 bg-emerald-50 text-emerald-800")}>{notice.message}</div>}
 
       <div className="mb-5 flex items-center justify-between"><p className="text-sm font-medium text-slate-600">{banks.length} {banks.length === 1 ? "bank" : "banks"}</p></div>
       {banks.length === 0 ? (
@@ -62,11 +62,11 @@ export function AdminQuestionBankList() {
                 <div className="flex items-start justify-between gap-4"><span className="grid size-11 place-items-center rounded-xl bg-teal-50 text-teal-700"><BookOpen className="size-5" /></span><span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold capitalize", bank.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600")}>{bank.status}</span></div>
                 <h2 className="mt-5 text-lg font-semibold text-slate-950">{bank.name}</h2>
                 <p className="mt-2 min-h-12 text-sm leading-6 text-slate-500">{bank.description}</p>
-                <div className="mt-5 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 text-xs"><div><p className="text-slate-500">Questions</p><p className="mt-1 font-semibold text-slate-900">{questionCount}</p></div><div><p className="text-slate-500">Created</p><p className="mt-1 flex items-center gap-1 font-semibold text-slate-900"><CalendarDays className="size-3" />{formatDate(bank.createdAt)}</p></div></div>
+                <div className="mt-5 grid grid-cols-3 gap-3 rounded-xl bg-slate-50 p-3 text-xs"><div><p className="text-slate-500">Questions</p><p className="mt-1 font-semibold text-slate-900">{questionCount}</p></div><div><p className="text-slate-500">Price</p><p className="mt-1 font-semibold text-slate-900">{formatCurrency(bank.price)}</p></div><div><p className="text-slate-500">Created</p><p className="mt-1 flex items-center gap-1 font-semibold text-slate-900"><CalendarDays className="size-3" />{formatDate(bank.createdAt)}</p></div></div>
                 <div className="mt-5 flex items-center gap-2 border-t pt-4">
                   <button type="button" onClick={(event) => { event.stopPropagation(); router.push(`/admin/question-banks/${bank.id}`); }} className="mr-auto rounded-lg bg-teal-700 px-3 py-2 text-xs font-semibold text-white">Open Bank</button>
-                  <button type="button" aria-label={`Edit ${bank.name}`} onClick={(event) => { event.stopPropagation(); setDialog({ mode: "edit", bank }); setSuccess(null); }} className="rounded-lg border p-2 text-slate-600 hover:bg-slate-50"><Edit3 className="size-4" /></button>
-                  <button type="button" aria-label={`Delete ${bank.name}`} onClick={(event) => { event.stopPropagation(); setDeleteBank(bank); setSuccess(null); }} className="rounded-lg border p-2 text-rose-700 hover:bg-rose-50"><Trash2 className="size-4" /></button>
+                  <button type="button" aria-label={`Edit ${bank.name}`} onClick={(event) => { event.stopPropagation(); setDialog({ mode: "edit", bank }); setNotice(null); }} className="rounded-lg border p-2 text-slate-600 hover:bg-slate-50"><Edit3 className="size-4" /></button>
+                  <button type="button" aria-label={`Delete ${bank.name}`} onClick={(event) => { event.stopPropagation(); setDeleteBank(bank); setNotice(null); }} className="rounded-lg border p-2 text-rose-700 hover:bg-rose-50"><Trash2 className="size-4" /></button>
                 </div>
               </article>
             );
@@ -85,6 +85,8 @@ function BankFormDialog({ state, existingBanks, onCancel, onSave }: { readonly s
   const [description, setDescription] = useState(state.mode === "edit" ? state.bank.description : "");
   const [status, setStatus] = useState<QuestionBankStatus>(state.mode === "edit" ? state.bank.status : "active");
   const [displayOrder, setDisplayOrder] = useState(state.mode === "edit" && state.bank.displayOrder !== undefined ? String(state.bank.displayOrder) : "");
+  const [price, setPrice] = useState(state.mode === "edit" ? String(state.bank.price) : "0");
+  const [imageUrl, setImageUrl] = useState(state.mode === "edit" ? state.bank.imageUrl ?? "" : "");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [isSaving, setIsSaving] = useState(false);
@@ -96,9 +98,11 @@ function BankFormDialog({ state, existingBanks, onCancel, onSave }: { readonly s
     if (duplicate) nextErrors.name = "A question bank with this name already exists.";
     if (!description.trim()) nextErrors.description = "Description is required.";
     if (displayOrder && (!Number.isInteger(Number(displayOrder)) || Number(displayOrder) < 0)) nextErrors.displayOrder = "Display order must be a positive whole number.";
+    if (!Number.isFinite(Number(price)) || Number(price) < 0) nextErrors.price = "Price must be zero or greater.";
+    if (imageUrl && !URL.canParse(imageUrl)) nextErrors.imageUrl = "Enter a valid image URL.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-    const base = { name: name.trim(), description: description.trim(), status };
+    const base = { name: name.trim(), description: description.trim(), status, price: Number(price), ...(imageUrl.trim() ? { imageUrl: imageUrl.trim() } : {}) };
     setIsSaving(true);
     try { await onSave(displayOrder ? { ...base, displayOrder: Number(displayOrder) } : base); }
     catch (error) { setErrors({ form: error instanceof Error ? error.message : "Unable to save bank." }); }
@@ -114,9 +118,11 @@ function BankFormDialog({ state, existingBanks, onCancel, onSave }: { readonly s
         <div className="mt-6 grid gap-5">
           <Field label="Bank name" value={name} error={errors.name} autoFocus onChange={(value) => { setName(value); setErrors((current) => ({ ...current, name: "" })); }} />
           <Field label="Description" value={description} error={errors.description} multiline onChange={(value) => { setDescription(value); setErrors((current) => ({ ...current, description: "" })); }} />
+          <Field label="Image URL (optional)" value={imageUrl} error={errors.imageUrl} onChange={setImageUrl} />
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="grid gap-2 text-sm font-medium text-slate-700">Status<select value={status} onChange={(event) => setStatus(event.target.value as QuestionBankStatus)} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
             <Field label="Display order (optional)" value={displayOrder} error={errors.displayOrder} inputMode="numeric" onChange={setDisplayOrder} />
+            <Field label="Access price (USD)" value={price} error={errors.price} inputMode="decimal" onChange={setPrice} />
           </div>
         </div>
         <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700">Cancel</button><button type="submit" disabled={isSaving} className="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{isSaving ? "Saving…" : "Save Question Bank"}</button></div>
@@ -135,3 +141,4 @@ function Field({ label, value, error, multiline = false, autoFocus = false, inpu
 }
 
 function formatDate(value: string): string { return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value)); }
+function formatCurrency(value: number): string { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value); }
