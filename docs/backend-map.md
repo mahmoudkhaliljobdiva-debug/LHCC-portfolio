@@ -1,6 +1,6 @@
 # Backend map and production data audit
 
-Updated: 2026-09-14. Baseline: `c294ca7` on `main`.
+Updated: 2026-09-20. Baseline: `9465fbe` on `main`.
 Production: https://lhcc-lb.com (also https://lhcc-portfolio.vercel.app).
 Supabase: `lcazjsmmegwwnmuupsko`. Vercel: `lhcc-portfolio`.
 
@@ -59,9 +59,10 @@ erDiagram
 Options are stored in `bank_questions.options` as `[{id,text}]`.
 The one correct QCU option id is in the unexposed private schema.
 
-No tables, columns, RPCs, or policies were created/changed in this follow-up.
 Local and production migration histories match through
-`20260913175259_harden_wallet_and_add_fk_indexes`.
+`20260918174508_make_completed_answers_idempotent`. That migration keeps the
+existing answer-submission contract but makes completed-answer retries return
+the stored result instead of implicitly starting a new attempt.
 The preceding migration created `question_attempts`, `question_attempt_answers`,
 `wallet_transactions`, and `portfolio_content`; extended `question_banks`
 with image/price/creator and `user_bank_access` with id/price/revocation/audit fields.
@@ -85,7 +86,7 @@ private functions with a fixed empty search path.
 | `requestBankAccess(bankId)` → `request_bank_access` | Active STUDENT, active ungranted bank | New PENDING request; duplicate pending prevented; prior decisions retained. |
 | approve/reject → `review_bank_access(request_id,decision,reason)` | Active ADMIN | Reviewed timestamp/reviewer; approval activates grant and inserts one BANK_SALE for paid access in one transaction. Retry cannot create duplicate sale. |
 | `manageBankContent(operation,id,input)` → `manage_bank_content` | Active ADMIN; save/delete bank or question | Persistent content with QCU validation; FK-protected deletion respects existing history. |
-| `submitBankAnswer(questionId,optionId)` → `submit_bank_answer` | Active STUDENT with approved active bank | Serializes attempt creation, validates option, grades via private key, stores answer and score; returns correctness, attempt id, completion flag, score. Retry during in-progress attempt returns saved result. |
+| `submitBankAnswer(questionId,optionId)` → `submit_bank_answer` | Active STUDENT with approved active bank | Serializes attempt creation, validates option, grades via private key, stores answer and score; returns correctness, attempt id, completion flag, score. In-progress and completed retries return the saved result. |
 | `savePortfolioContent(input)` → `save_portfolio_content(payload)` | Active ADMIN; complete validated four-section model | Atomic content/revision update and cache revalidation; returns persisted published content. |
 | `resetPortfolioContent()` → `reset_portfolio_content` | Active ADMIN, UI confirmation | Restores DB `default_content`, increments revision and revalidates. No frontend default import. |
 | `createWalletTicket` / `updateWalletTicket` / `deleteWalletTicket` → `manage_wallet_transaction` | Active ADMIN; manual income/expense id, amount/date/text | Writes only manual types; automatic transactions are read-only through this operation. |
@@ -93,9 +94,10 @@ private functions with a fixed empty search path.
 
 There are no separate `startAttempt`/`completeAttempt` actions: the answer
 submission RPC owns those transitions. There is currently no explicit retake UI.
-The RPC can create a new attempt after completion, but a refreshed course retains
-the latest completed answers for review. Changing the question set during an
-attempt and full exam scheduling need separate product rules.
+The latest active or completed attempt is reused, so sequential and concurrent
+retries cannot create a second completed attempt. Changing the question set
+during an attempt, an explicit retake workflow, and full exam scheduling need
+separate product rules.
 
 ## RLS, constraints, and secret review
 
