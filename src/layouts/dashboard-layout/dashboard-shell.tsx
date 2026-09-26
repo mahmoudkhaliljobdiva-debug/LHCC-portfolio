@@ -51,11 +51,6 @@ export function DashboardShell({
           <p className="text-xs font-medium text-slate-500">Current workspace</p>
           <p className="mt-1 text-sm font-semibold text-slate-900 capitalize">{role} portal</p>
         </div>
-        {role === "admin" && <nav aria-label="Admin portal switcher" className="mt-3 grid gap-1 text-sm font-medium text-slate-700">
-          <NavigationLink href="/admin" onClick={() => setOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-slate-50">Admin Portal</NavigationLink>
-          <NavigationLink href={"/admin/view-as/student" as import("next").Route} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-slate-50">View Student Portal</NavigationLink>
-          <NavigationLink href={"/admin/view-as/teacher" as import("next").Route} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-slate-50">View Teacher Portal</NavigationLink>
-        </nav>}
         <nav aria-label={`${role} navigation`} className="mt-6 grid gap-1">
           {ROLE_NAVIGATION[role].map(({ href, label, icon: Icon }) => {
             const active = pathname === href;

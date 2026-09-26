@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
 import { getAuthenticatedProfile, portalForRole } from "@/lib/auth/server";
 
 const capabilities = [
@@ -176,11 +177,11 @@ export default async function HomePage() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             {[
-              { href: "/student" as const, label: "Student portal" },
-              { href: "/teacher" as const, label: "Teacher portal" },
+              { href: profile?.role === "ADMIN" ? "/admin/users?role=STUDENT" : "/student", label: "Student portal" },
+              { href: profile?.role === "ADMIN" ? "/admin/users?role=TEACHER" : "/teacher", label: "Teacher portal" },
               { href: "/admin" as const, label: "Admin portal" },
             ].map((portal) => (
-              <Link key={portal.href} href={portal.href} className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50">
+              <Link key={portal.href} href={portal.href as Route} className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50">
                 {portal.label}
               </Link>
             ))}

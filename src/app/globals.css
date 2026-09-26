@@ -248,6 +248,16 @@ select { appearance: none; padding-right: 2.5rem !important; background-image: u
   background-color: #123d34;
 }
 
+/* Keep the pinned user cell opaque and in sync with its row in dark mode. */
+.dark .users-table-row:hover,
+.dark .users-table-row:hover .users-sticky-cell {
+  background-color: #294653;
+}
+.dark .users-table-row[aria-selected="true"],
+.dark .users-table-row[aria-selected="true"] .users-sticky-cell {
+  background-color: #213e49;
+}
+
 .dark .bg-rose-50 {
   background-color: #48262b;
 }

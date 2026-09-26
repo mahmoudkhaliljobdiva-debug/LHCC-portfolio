@@ -1,60 +1,61 @@
-# Admin portal preview
+# Admin selected-user portal access
 
-The active authenticated actor remains ADMIN. The viewed subject is a separate
-server-validated STUDENT or TEACHER profile; preview never changes Auth cookies,
-logs in as a subject, or stores an impersonation role in browser storage.
+## One selection workflow
 
-## Routes and authorization
+The public homepage's existing portal cards are role-aware. For ADMIN, Student
+portal opens `/admin/users?role=STUDENT`, Teacher portal opens
+`/admin/users?role=TEACHER`, and Admin portal opens `/admin`. Student/teacher own
+portal links and anonymous login behavior are unchanged. The global Dashboard
+button always returns to the authenticated actor's own dashboard.
 
-- `/admin/view-as/student` and `/admin/view-as/teacher`: searchable selectors.
-- `/admin/view-as/{role}/{userId}`: subject dashboard.
-- Subject navigation remains beneath that route (analytics, banks, profile, etc.).
-- Each server data entry point calls `authorizeActiveAdmin()`, validates the UUID,
-  and verifies the target's real profile role before privileged reads.
-- Invalid/missing/wrong-role targets return a controlled 404. Non-admin actors
-  remain blocked by existing server guards. No schema, RLS, or Auth changes.
+Selection reuses the real Supabase-backed Users table, existing search, status,
+role filters, and management actions. Query parameters initialize the role filter
+on both navigation and refresh; changing that filter updates the URL. Every
+student/teacher row has a labeled Open Portal action. No separate directory,
+selector table, or admin portal switcher remains. Old selector bookmarks redirect
+to the same filtered Users page after admin authorization.
 
-## Data and safety
+The Users table horizontally scrolls at all screen sizes. Its first User column
+and header are sticky on the left, 200px wide, with opaque light/dark backgrounds,
+matching hover/selected styling, and higher stacking order. Names wrap at words;
+roles, statuses, dates, and portal labels remain intact. The scroll region is
+keyboard-focusable. Existing account management actions remain available.
 
-Normal portals retain caller-session queries and RLS. Private shared readers
-reuse the existing dashboard calculations. Explicit admin preview wrappers
-validate actor/subject before creating a server-only administrative client.
-Student attempts, answers, grants, and requests are scoped to the subject;
-question visibility additionally requires active bank/question and a grant.
-Question content uses the existing explicit safe field/option allowlist, never
-the private solutions table. Inactive/expired subjects show an access state,
-not a functional learning portal.
+## Actor and subject security
 
-Teachers currently see institution-wide reporting. Preview uses the selected
-teacher's identity with the same reporting scope; it does not invent assignments.
+The authenticated actor stays ADMIN; the selected subject is a separately
+validated STUDENT/TEACHER. Selected-user routes remain under
+`/admin/view-as/{role}/{userId}`. Each server entry point authorizes an active
+admin and validates the target UUID, existence, and expected profile role before
+privileged reads. Normal portals retain their caller-session queries and RLS.
+No Auth, RLS, schema, migration, or service-key changes are needed.
 
-Access requests and answer submission are disabled and explain read-only mode.
-Existing backend writes still require the real STUDENT actor: enabling a DOM
-control cannot turn the ADMIN session into that student. Management stays in
-existing admin workflows. Exit returns to `/admin`; public Dashboard also remains
-`/admin`. Refresh re-authorizes from the route, without client preview state.
-Leaving/changing subject context uses intentional document navigation to avoid
-reusing a stale nested Next router tree. Browser session cookies remain intact;
-normal non-preview navigation remains unchanged.
+The persistent banner identifies the selected user and signed-in administrator.
+Back to Students/Teachers returns to the corresponding filtered Users table;
+Exit View returns to Admin. Context-boundary links use document navigation to
+avoid reusing stale nested router trees, while preserving session cookies.
+Back to Website retains ADMIN identity; the public Dashboard link stays /admin.
+Refresh revalidates server-side from the route, not browser storage.
 
-The persistent banner names both identities. Server logs emit `VIEW_AS`,
-`actor_user_id`, `target_user_id`, target role, and `read_only: true`; logs contain
-no passwords/tokens/emails/solutions. They use existing platform runtime logging,
-not a duplicate database audit system.
+Student data is scoped to the subject's attempts, answers, requests, and grants;
+question visibility requires active bank/question and an active grant. Question
+content uses the existing safe allowlist, never private solution data. Inactive
+or expired subjects get an access-state message. Teacher reporting remains
+institution-wide, as in the existing teacher portal; no assignments are invented.
 
-## Directory and verification
+Personal requests and answer submission are disabled with read-only explanations.
+Existing backend guards reject such writes by the real ADMIN actor, regardless
+of browser DOM changes. Management remains in Admin workflows. Server runtime
+logs identify VIEW_AS, actor_user_id, target_user_id, role, and read_only without
+passwords, tokens, emails, or answer keys.
 
-Selectors return 20 profiles per page, role-filtered in the database, with name,
-email search and profile-status filters. Effective status is displayed. Auth's
-admin API has no email-search filter, so search scans Auth pages server-side;
-only the matching profile page is returned to the browser. At much larger scale,
-an admin-protected indexed directory would avoid this scan; none is added here.
+## Verification
 
-`scripts/portal-preview-test.mjs` compares real normal-portal rendering with
-preview for five existing student QA identities and the existing teacher. It
-checks role denial, invalid targets, session preservation, change/exit, refresh,
-five responsive widths in light/dark, disabled writes, read-only RLS regressions,
-and business-data fingerprints. Run with `.env.local`; set `LHCC_TEST_URL` to
-`https://lhcc-lb.com` for production. Credentials stay in the ignored QA manifest.
-There is only one existing teacher, so Teacher A-to-B switching cannot be tested
-without a second account; selector reopening/reselection is tested.
+`scripts/portal-preview-test.mjs` verifies homepage-to-Users flows, role filters,
+row portal actions, return links, session preservation, subject-data equality for
+five existing student QA accounts and the teacher, invalid targets/non-admin
+security, RLS read regressions, disabled actions, and unchanged business-data
+fingerprints. Sticky geometry, scrolling, readable column styles, selected-row
+backgrounds, and light/dark layouts are tested at 390, 430, 768, 1024, 1366, 1920px.
+Credentials remain in the ignored QA manifest. Set LHCC_TEST_URL to
+https://lhcc-lb.com for production; otherwise it targets localhost:3100.

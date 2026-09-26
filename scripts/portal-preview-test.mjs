@@ -34,29 +34,53 @@ try {
   await page.goto('/'+role+'/question-banks');
   expected[key].banks=await page.evaluate("[...document.querySelectorAll('main article')].map(el=>el.textContent.replace(/\\s+/g,' ').trim())");
   await page.goto(path('student','completed'));assert(await page.evaluate("location.pathname==='/unauthorized'"),'non-admin route denied');
+  await page.goto('/');
+  assert(await page.evaluate(`[...document.querySelectorAll('main a')].find(el=>el.textContent.trim()===${JSON.stringify(role==='student'?'Student portal':'Teacher portal')}).getAttribute('href')===${JSON.stringify('/'+role)}`),'normal own portal unchanged');
+  await clickRoute(page,role==='student'?'Student portal':'Teacher portal','/'+role);
+  assert.equal(await body(page),expected[key].dashboard,'normal own portal data unchanged');
+  await page.goto('/admin/users?role=STUDENT');assert(await page.evaluate("location.pathname==='/unauthorized'"),'non-admin Users table denied');
   console.log('PASS normal '+key+': reference data and preview denial');
  }
  const page=await browser.page();await login(page,m.users.admin,'/admin');
  for (const role of ['student','teacher']) {
-  await page.goto('/admin/view-as/'+role);
-  for(const dark of [false,true]) for(const width of [390,430,768,1366,1920]) {
-   await page.resize(width);await page.evaluate(`document.documentElement.classList.toggle('dark',${dark})`);await page.healthy(role+' selector '+width);
+  await page.goto('/');
+  await page.resize(1366,768);
+  await clickRoute(page,role==='student'?'Student portal':'Teacher portal','/admin/users');
+  assert(await page.evaluate(`new URLSearchParams(location.search).get('role')===${JSON.stringify(role.toUpperCase())}`),'homepage role filter URL');
+  assert(await page.evaluate(`[...document.querySelectorAll('label')].find(el=>el.textContent.includes('Role filter')).querySelector('select').value===${JSON.stringify(role)}`),'role filter selected');
+  assert(await page.evaluate(`[...document.querySelectorAll('tbody tr')].length>0 && [...document.querySelectorAll('tbody tr')].every(el=>el.cells[2].textContent===${JSON.stringify(role)})`),'only matching real profiles');
+  await page.goto('/admin/users?role='+role.toUpperCase());
+  assert(await page.evaluate(`[...document.querySelectorAll('label')].find(el=>el.textContent.includes('Role filter')).querySelector('select').value===${JSON.stringify(role)}`),'role filter survives refresh');
+  assert(!await page.evaluate("Boolean(document.querySelector('[aria-label=\"Admin portal switcher\"]'))"),'duplicate switcher removed');
+  for(const dark of [false,true]) for(const width of [390,430,768,1024,1366,1920]) {
+   await page.resize(width);await page.evaluate(`document.documentElement.classList.toggle('dark',${dark})`);await new Promise(resolve=>setTimeout(resolve,200));await page.healthy(role+' Users table '+width);
+   const geometry=await page.evaluate(`(() => {const scroller=document.querySelector('.table-scroll-region');scroller.scrollLeft=0;const cell=scroller.querySelector('tbody td');const before=cell.getBoundingClientRect().left;scroller.scrollLeft=scroller.scrollWidth;const after=cell.getBoundingClientRect().left;const header=scroller.querySelector('th');const style=getComputedStyle(cell);return {before,after,header:header.getBoundingClientRect().left,position:style.position,background:style.backgroundColor,width:cell.getBoundingClientRect().width,wordBreak:style.wordBreak,whiteSpace:scroller.querySelector('tbody tr').cells[2].style.whiteSpace || getComputedStyle(scroller.querySelector('tbody tr').cells[2]).whiteSpace,scroll:scroller.scrollLeft};})()`);
+   assert(Math.abs(geometry.before-geometry.after)<2 && Math.abs(geometry.header-geometry.after)<2,'sticky name/header position');
+   assert.equal(geometry.position,'sticky');assert(geometry.width>=200,'readable user column');assert.notEqual(geometry.background,'rgba(0, 0, 0, 0)');assert.equal(geometry.wordBreak,'normal');assert.equal(geometry.whiteSpace,'nowrap');assert(geometry.scroll>0,'table scrolls');
+   assert(await page.evaluate("(() => {const row=document.querySelector('tbody tr');row.setAttribute('aria-selected','true');const equal=getComputedStyle(row).backgroundColor===getComputedStyle(row.cells[0]).backgroundColor;row.removeAttribute('aria-selected');return equal;})()"),'selected row/sticky background matches');
+   await page.hover('tbody td');
+   assert(await page.evaluate("(() => {const row=document.querySelector('tbody tr');return getComputedStyle(row).backgroundColor===getComputedStyle(row.cells[0]).backgroundColor;})()"),'hover row/sticky background matches');
+   assert(await page.evaluate("(() => {const link=document.querySelector('tbody a[aria-label^=\"Open \" ]');const rect=link.getBoundingClientRect();const cell=document.querySelector('tbody td').getBoundingClientRect();return rect.right<=innerWidth && rect.left>=cell.right;})()"),'portal action remains visible after scrolling');
    if ((dark && width===390) || (!dark && width===1366)) await page.screenshot(`preview-${role}-selector-${width}-${dark?'dark':'light'}`);
   }
   const key=role==='student'?'completed':'teacher';
-  await page.goto('/admin/view-as/'+role+'?q='+encodeURIComponent(m.users[key].email));
+  await page.fill('input[placeholder="Search name or email"]',m.users[key].email);
+  await waitFor(()=>page.evaluate("document.querySelectorAll('tbody tr').length===1"),'Users email search');
   assert(await page.evaluate(`document.querySelectorAll('tbody tr').length===1 && document.querySelector('tbody').textContent.includes(${JSON.stringify(m.users[key].name)})`),'email search');
-  await page.evaluate("document.querySelector('tbody a').click()");
+  await page.evaluate("document.querySelector('tbody a[aria-label^=\"Open \" ]').click()");
   await waitFor(()=>page.evaluate(`location.pathname===${JSON.stringify(path(role,key))}`),'selected target');
   await page.goto(path(role,key));
   assert.equal(await body(page),expected[key].dashboard,'dashboard equals actual subject');
-  for(const dark of [false,true]) for(const width of [390,430,768,1366,1920]) {
+  for(const dark of [false,true]) for(const width of [390,430,768,1024,1366,1920]) {
    await page.resize(width);await page.evaluate(`document.documentElement.classList.toggle('dark',${dark})`);await page.healthy(role+' banner '+width);
    if ((dark && width===390) || (!dark && width===1366)) await page.screenshot(`preview-${role}-banner-${width}-${dark?'dark':'light'}`);
   }
   await page.resize(1366,768);
   assert((await page.text()).includes('Signed in as '+m.users.admin.name+' — Administrator'));
-  await clickRoute(page,'Change '+(role==='student'?'Student':'Teacher'),'/admin/view-as/'+role);
+  await clickRoute(page,role==='student'?'Back to Students':'Back to Teachers','/admin/users');
+  assert(await page.evaluate(`new URLSearchParams(location.search).get('role')===${JSON.stringify(role.toUpperCase())}`),'back retains filter');
+  await page.goto('/admin/view-as/'+role);
+  assert(await page.evaluate("location.pathname==='/admin/users'"),'legacy selector redirects to Users');
   if(role==='student') {
    await page.goto(path(role,'approved'));assert.equal(await body(page),expected.approved.dashboard,'change student context');
   } else {
@@ -68,6 +92,8 @@ try {
   await clickRoute(page,'Dashboard','/admin');
   console.log('PASS '+role+': selector/search, subject data, change/exit, refresh, actor/session, responsive light/dark');
  }
+ await page.goto('/');await clickRoute(page,'Admin portal','/admin');
+ assert((await page.text()).includes('Platform overview'),'homepage Admin portal dashboard');
  for(const key of ['approved','completed','locked','pending','rejected','teacher']) {
   const role=key==='teacher'?'teacher':'student';
   await page.goto(path(role,key));assert.equal(await body(page),expected[key].dashboard,key+' dashboard data');

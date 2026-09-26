@@ -5,6 +5,7 @@ import { Select } from "@/components/ui/select";
 import { Activity, Edit3, Plus, Power, PowerOff, Search, UserCheck, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import {
@@ -32,13 +33,15 @@ interface AdminUsersPageProps {
   readonly initialUsers: readonly PlatformUser[];
   readonly initialError?: string | undefined;
   readonly usage: readonly UserUsageSummary[];
+  readonly initialRole: "all" | ManagedUserRole;
 }
 
-export function AdminUsersPage({ initialUsers, initialError, usage }: AdminUsersPageProps) {
+export function AdminUsersPage({ initialUsers, initialError, usage, initialRole }: AdminUsersPageProps) {
+  const router = useRouter();
   const bankStore = useAdminQuestionBanks();
   const [users, setUsers] = useState(initialUsers);
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | ManagedUserRole>("all");
+  const roleFilter = initialRole;
   const [statusFilter, setStatusFilter] = useState<"all" | EffectiveUserStatus>("all");
   const [sort, setSort] = useState<SortKey>("name");
   const [dialog, setDialog] = useState<UserDialogState | null>(null);
@@ -161,7 +164,10 @@ export function AdminUsersPage({ initialUsers, initialError, usage }: AdminUsers
       <section className="mt-6 overflow-hidden rounded-2xl border bg-white shadow-sm">
         <div className="grid gap-3 border-b p-5 md:grid-cols-2 xl:grid-cols-[1fr_180px_190px_190px]">
           <label className="relative"><span className="sr-only">Search by name or email</span><Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name or email" className="h-10 w-full rounded-xl border bg-slate-50 pr-3 pl-9 text-sm" /></label>
-          <Filter value={roleFilter} onChange={(value) => setRoleFilter(value as "all" | ManagedUserRole)} options={[["all", "All roles"], ["student", "Students"], ["teacher", "Teachers"]]} label="Role filter" />
+          <Filter value={roleFilter} onChange={(value) => {
+            const nextRole = value === "student" || value === "teacher" ? value : "all";
+            router.replace(nextRole === "all" ? "/admin/users" : `/admin/users?role=${nextRole.toUpperCase()}`, { scroll: false });
+          }} options={[["all", "All roles"], ["student", "Students"], ["teacher", "Teachers"]]} label="Role filter" />
           <Filter value={statusFilter} onChange={(value) => setStatusFilter(value as "all" | EffectiveUserStatus)} options={[["all", "All statuses"], ["active", "Active"], ["inactive", "Inactive"], ["expired", "Expired"], ["expiring-soon", "Expiring soon"]]} label="Status filter" />
           <Filter value={sort} onChange={(value) => setSort(value as SortKey)} options={[["name", "Sort: Name"], ["role", "Sort: Role"], ["status", "Sort: Status"], ["expiration", "Sort: Expiration"]]} label="Sort users" />
         </div>
@@ -170,8 +176,7 @@ export function AdminUsersPage({ initialUsers, initialError, usage }: AdminUsers
           <div className="px-6 py-16 text-center"><Users className="mx-auto size-9 text-slate-400" /><h2 className="mt-4 font-semibold text-slate-900">{pageError ? "Users could not be loaded." : roleFilter === "student" ? "No students match the selected filters." : "No users found."}</h2></div>
         ) : (
           <>
-            <div className="grid gap-4 p-4 lg:hidden">{rows.map((row) => <UserCard key={row.user.id} row={row} usage={usage.find((item) => item.studentId === row.user.id)} onEdit={() => setDialog({ mode: "edit", user: row.user })} onActivate={() => setReactivateTarget(row.user)} onDeactivate={() => setDeactivateTarget(row.user)} />)}</div>
-            <div className="table-scroll-region hidden lg:block"><table className="w-full min-w-[1360px] text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["User", "Email", "Role", "Status", "Activation", "Expiration", "Remaining", "Usage", "Actions"].map((heading) => <th key={heading} className="px-5 py-3 font-medium">{heading}</th>)}</tr></thead><tbody>{rows.map((row) => <UserTableRow key={row.user.id} row={row} usage={usage.find((item) => item.studentId === row.user.id)} onEdit={() => setDialog({ mode: "edit", user: row.user })} onActivate={() => setReactivateTarget(row.user)} onDeactivate={() => setDeactivateTarget(row.user)} />)}</tbody></table></div>
+            <div className="table-scroll-region" role="region" aria-label="Users table, scroll horizontally for actions" tabIndex={0}><table className="w-full min-w-[1520px] text-left text-sm"><caption className="sr-only">Student and teacher account management</caption><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["User", "Email", "Role", "Status", "Activation", "Expiration", "Remaining", "Usage", "Actions"].map((heading, index) => <th scope="col" key={heading} className={cn("whitespace-nowrap px-5 py-3 font-medium", index === 0 && "sticky left-0 z-20 w-[200px] min-w-[200px] bg-slate-50")}>{heading}</th>)}</tr></thead><tbody>{rows.map((row) => <UserTableRow key={row.user.id} row={row} usage={usage.find((item) => item.studentId === row.user.id)} onEdit={() => setDialog({ mode: "edit", user: row.user })} onActivate={() => setReactivateTarget(row.user)} onDeactivate={() => setDeactivateTarget(row.user)} />)}</tbody></table></div>
           </>
         )}
       </section>
@@ -188,12 +193,7 @@ interface RowActions { readonly row: UserRowData; readonly usage?: UserUsageSumm
 
 function UserTableRow(props: RowActions) {
   const { row } = props;
-  return <tr className="border-t"><td className="min-w-44 px-5 py-4 font-semibold text-slate-900">{row.user.fullName}</td><td className="min-w-64 whitespace-nowrap px-5 py-4 text-slate-600" title={row.user.email}>{row.user.email}</td><td className="px-5 py-4"><RoleBadge role={row.user.role} /></td><td className="px-5 py-4"><StatusBadge status={row.effectiveStatus} /></td><td className="px-5 py-4 text-slate-600">{formatDate(row.user.activationStartDate)}</td><td className="px-5 py-4 text-slate-600">{formatDate(row.user.expirationDate)}</td><td className="px-5 py-4 text-slate-600">{remainingLabel(row.user, row.effectiveStatus)}</td><td className="px-5 py-4"><UsageSummary usage={props.usage} /></td><td className="px-5 py-4"><Actions {...props} /></td></tr>;
-}
-
-function UserCard(props: RowActions) {
-  const { row } = props;
-  return <article className="rounded-xl border bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="font-semibold text-slate-900">{row.user.fullName}</h2><p className="mt-1 truncate text-sm text-slate-500" title={row.user.email}>{row.user.email}</p></div><StatusBadge status={row.effectiveStatus} /></div><div className="mt-4 flex gap-2"><RoleBadge role={row.user.role} /></div><dl className="mt-4 grid grid-cols-2 gap-3 text-sm"><div><dt className="text-xs text-slate-500">Activation</dt><dd className="mt-1 text-slate-700">{formatDate(row.user.activationStartDate)}</dd></div><div><dt className="text-xs text-slate-500">Expiration</dt><dd className="mt-1 text-slate-700">{formatDate(row.user.expirationDate)}</dd></div></dl><div className="mt-4"><UsageSummary usage={props.usage} /></div><div className="mt-4 border-t pt-3"><Actions {...props} /></div></article>;
+  return <tr className="users-table-row group border-t bg-white hover:bg-slate-50 aria-selected:bg-teal-50"><td className="users-sticky-cell sticky left-0 z-10 w-[200px] min-w-[200px] max-w-[200px] bg-white px-5 py-4 font-semibold whitespace-normal break-normal text-slate-900 group-hover:bg-slate-50 group-aria-selected:bg-teal-50">{row.user.fullName}</td><td className="min-w-64 whitespace-nowrap px-5 py-4 text-slate-600" title={row.user.email}>{row.user.email}</td><td className="whitespace-nowrap px-5 py-4"><RoleBadge role={row.user.role} /></td><td className="whitespace-nowrap px-5 py-4"><StatusBadge status={row.effectiveStatus} /></td><td className="whitespace-nowrap px-5 py-4 text-slate-600">{formatDate(row.user.activationStartDate)}</td><td className="whitespace-nowrap px-5 py-4 text-slate-600">{formatDate(row.user.expirationDate)}</td><td className="whitespace-nowrap px-5 py-4 text-slate-600">{remainingLabel(row.user, row.effectiveStatus)}</td><td className="px-5 py-4"><UsageSummary usage={props.usage} /></td><td className="min-w-[240px] px-5 py-4"><Actions {...props} /></td></tr>;
 }
 
 function RoleBadge({ role }: { readonly role: ManagedUserRole }) { return <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold capitalize text-sky-700">{role}</span>; }
@@ -202,7 +202,8 @@ function UsageSummary({ usage }: { readonly usage?: UserUsageSummary | undefined
 
 function Actions(props: RowActions) {
   const active = props.row.effectiveStatus === "active" || props.row.effectiveStatus === "expiring-soon";
-  return <div className="flex flex-wrap items-center gap-1.5">{active ? <button type="button" onClick={props.onDeactivate} className="rounded-lg border p-2 text-rose-700" aria-label={`Deactivate ${props.row.user.fullName}`} title="Deactivate"><PowerOff className="size-4" /></button> : <button type="button" onClick={props.onActivate} className="rounded-lg border p-2 text-emerald-700" aria-label={`Reactivate ${props.row.user.fullName}`} title="Reactivate"><Power className="size-4" /></button>}<button type="button" onClick={props.onEdit} className="rounded-lg border p-2 text-slate-600" aria-label={`Edit ${props.row.user.fullName}`} title="Edit"><Edit3 className="size-4" /></button>{props.row.user.role === "student" && <Link href={`/admin/users/${props.row.user.id}/activity`} className="grid size-11 place-items-center rounded-xl border text-teal-700" aria-label={`View activity for ${props.row.user.fullName}`} title="View activity"><Activity className="size-4" /></Link>}</div>;
+  const portalLabel = props.row.user.role === "student" ? "Open Student Portal" : "Open Teacher Portal";
+  return <div className="flex flex-wrap items-center justify-end gap-1.5">{active ? <button type="button" onClick={props.onDeactivate} className="rounded-lg border p-2 text-rose-700" aria-label={`Deactivate ${props.row.user.fullName}`} title="Deactivate"><PowerOff className="size-4" /></button> : <button type="button" onClick={props.onActivate} className="rounded-lg border p-2 text-emerald-700" aria-label={`Reactivate ${props.row.user.fullName}`} title="Reactivate"><Power className="size-4" /></button>}<button type="button" onClick={props.onEdit} className="rounded-lg border p-2 text-slate-600" aria-label={`Edit ${props.row.user.fullName}`} title="Edit"><Edit3 className="size-4" /></button>{props.row.user.role === "student" && <Link href={`/admin/users/${props.row.user.id}/activity`} className="grid size-11 place-items-center rounded-xl border text-teal-700" aria-label={`View activity for ${props.row.user.fullName}`} title="View activity"><Activity className="size-4" /></Link>}<Link prefetch={false} href={`/admin/view-as/${props.row.user.role}/${props.row.user.id}` as import("next").Route} className="mt-1 ml-auto inline-flex rounded-xl bg-teal-700 px-3 py-2.5 text-xs font-semibold whitespace-nowrap text-white" aria-label={`${portalLabel} for ${props.row.user.fullName}`}>{portalLabel}</Link></div>;
 }
 
 function Filter({ value, options, label, onChange }: { readonly value: string; readonly options: readonly (readonly [string, string])[]; readonly label: string; readonly onChange: (value: string) => void }) { return <label><span className="sr-only">{label}</span><Select value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-xl border bg-slate-50 px-3 text-sm">{options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}</Select></label>; }

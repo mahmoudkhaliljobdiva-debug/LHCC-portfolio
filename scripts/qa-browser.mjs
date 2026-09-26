@@ -63,6 +63,11 @@ export async function startBrowser(base) {
         await pause(500);
       },
       async resize(width, height = width < 600 ? 844 : width === 1366 ? 768 : 1080) { await command("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: width < 600 }, sessionId); await pause(100); },
+      async hover(selector) {
+        const point = await evaluate(`(() => {const element=document.querySelector(${JSON.stringify(selector)});element.scrollIntoView({block:'center'});const rect=element.getBoundingClientRect();return {x:rect.left+rect.width/2,y:rect.top+rect.height/2};})()`);
+        await command("Input.dispatchMouseEvent", { type: "mouseMoved", ...point }, sessionId);
+        await pause(200);
+      },
       async text() { return evaluate("document.body.innerText"); },
       async fill(selector, value) { await this.fillElement(`document.querySelector(${JSON.stringify(selector)})`, value); },
       async fillLabel(label, value, scope = "document") {
