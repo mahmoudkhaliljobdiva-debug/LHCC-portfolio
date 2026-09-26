@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { login } from "@/actions/auth";
 
@@ -17,9 +17,12 @@ export function LoginForm({ reason }: { readonly reason?: string | undefined }) 
   const [feedback, setFeedback] = useState<LoginFeedback | null>(() => reasonFeedback(reason));
   const [fieldErrors, setFieldErrors] = useState<Readonly<Record<string, readonly string[]>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitting = useRef(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setFeedback(null);
     setFieldErrors({});
     setIsSubmitting(true);
@@ -30,10 +33,14 @@ export function LoginForm({ reason }: { readonly reason?: string | undefined }) 
         setFeedback({ type: "error", message: result.error.message });
         setFieldErrors(result.error.fieldErrors ?? {});
         setIsSubmitting(false);
+        submitting.current = false;
+      } else {
+        window.location.assign(result.data.destination);
       }
     } catch {
       setFeedback({ type: "error", message: "Sign in is temporarily unavailable. Please try again." });
       setIsSubmitting(false);
+      submitting.current = false;
     }
   }
 

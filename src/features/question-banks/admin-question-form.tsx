@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { ArrowLeft, CheckCircle2, Plus, Trash2 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -89,7 +91,7 @@ function ReadyAdminQuestionForm({ bank, existingQuestion }: { readonly bank: Adm
           <h2 className="font-semibold text-slate-950">Question details</h2>
           <div className="mt-5 grid gap-5">
             <label className="grid gap-2 text-sm font-medium text-slate-700">Question text <span className="sr-only">required</span><textarea rows={5} value={text} onChange={(event) => { setText(event.target.value); setErrors((current) => ({ ...current, text: "" })); }} aria-invalid={Boolean(errors.text)} className={cn("rounded-xl border bg-slate-50 px-3.5 py-3 text-sm", errors.text && "border-rose-400")} />{errors.text && <span className="text-xs text-rose-700">{errors.text}</span>}</label>
-            <label className="grid max-w-xs gap-2 text-sm font-medium text-slate-700">Status<select value={status} onChange={(event) => setStatus(event.target.value as QuestionBankStatus)} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+            <label className="grid max-w-xs gap-2 text-sm font-medium text-slate-700">Status<Select value={status} onChange={(event) => setStatus(event.target.value as QuestionBankStatus)} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="active">Active</option><option value="inactive">Inactive</option></Select></label>
           </div>
         </section>
 

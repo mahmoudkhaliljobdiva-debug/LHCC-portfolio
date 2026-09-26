@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useState } from "react";
 import Link from "next/link";
 
@@ -96,17 +98,17 @@ export function UserFormDialog({ state, users, onCancel, onSave }: UserFormDialo
             <TextField label="Age (optional)" type="number" min={MIN_PROFILE_AGE} max={MAX_PROFILE_AGE} value={age} error={errors.age} onChange={setAge} />
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Gender (optional)
-              <select value={gender} onChange={(event) => setGender(event.target.value as ProfileGender | "")} className="h-11 rounded-xl border bg-slate-50 px-3">
+              <Select value={gender} onChange={(event) => setGender(event.target.value as ProfileGender | "")} className="h-11 rounded-xl border bg-slate-50 px-3">
                 <option value="">Not specified</option>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
-              </select>
+              </Select>
             </label>
           </div>
           <TextAreaField label="Home address (optional)" value={homeAddress} error={errors.homeAddress} maxLength={MAX_HOME_ADDRESS_LENGTH} onChange={setHomeAddress} />
           <div className="grid gap-5 sm:grid-cols-2">
-            <label className="grid gap-2 text-sm font-medium text-slate-700">Role<select value={role} onChange={(event) => { const next = event.target.value as ManagedUserRole; setRole(next); if (next === "student") setMonths(1); }} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="student">Student</option><option value="teacher">Teacher</option></select></label>
-            <label className="grid gap-2 text-sm font-medium text-slate-700">Status<select value={status} onChange={(event) => setStatus(event.target.value as "active" | "inactive")} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+            <label className="grid gap-2 text-sm font-medium text-slate-700">Role<Select value={role} onChange={(event) => { const next = event.target.value as ManagedUserRole; setRole(next); if (next === "student") setMonths(1); }} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="student">Student</option><option value="teacher">Teacher</option></Select></label>
+            <label className="grid gap-2 text-sm font-medium text-slate-700">Status<Select value={status} onChange={(event) => setStatus(event.target.value as "active" | "inactive")} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="active">Active</option><option value="inactive">Inactive</option></Select></label>
             {role === "teacher" && <TextField label="Activation start date" type="date" value={start} error={errors.activationStartDate} onChange={setStart} />}
             {role === "student" ? <p className="text-sm text-slate-600">Enabled students can sign in. Course approval is managed separately.</p> : <TextField label="Activation duration in months" type="number" min={1} max={36} value={String(months)} error={errors.activationMonths} onChange={(value) => setMonths(Number(value))} />}
           </div>

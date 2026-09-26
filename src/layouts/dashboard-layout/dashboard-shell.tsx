@@ -93,9 +93,9 @@ export function DashboardShell({
               <p className="text-sm font-semibold text-slate-900">{displayName}</p>
               <p className="text-xs text-slate-500 capitalize">{role}</p>
             </div>
-            <div aria-hidden="true" className="hidden size-11 shrink-0 place-items-center rounded-xl bg-teal-700 text-sm font-semibold text-white min-[390px]:grid">
+            <Link href="/account/settings" aria-label="Account settings" className="hidden size-11 shrink-0 place-items-center rounded-xl bg-teal-700 text-sm font-semibold text-white min-[390px]:grid">
               {displayName.split(" ").map((part) => part[0]).join("").slice(-2).toUpperCase()}
-            </div>
+            </Link>
             <form action={logout}>
               <button type="submit" aria-label="Sign out" title="Sign out" className="grid size-11 place-items-center rounded-xl border text-slate-600 hover:bg-slate-50">
                 <LogOut className="size-[18px]" />

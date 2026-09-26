@@ -151,7 +151,9 @@ export function PortfolioEditor({ initialContent }: { readonly initialContent: P
   }
 
   async function handleReset() {
+    if (isSaving) return;
     setIsSaving(true);
+    setFeedback(null);
     try {
       const result = await resetPortfolioContent();
       if (result.ok) {
@@ -226,7 +228,7 @@ export function PortfolioEditor({ initialContent }: { readonly initialContent: P
             <p id="reset-description" className="mt-2 text-sm leading-6 text-slate-500">This replaces all saved portfolio edits with the original default content. This action cannot be undone.</p>
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button type="button" autoFocus onClick={() => setResetOpen(false)} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700">Cancel</button>
-              <button type="button" onClick={handleReset} className="rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-800">Reset content</button>
+              <button type="button" disabled={isSaving} onClick={handleReset} className="rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-800 disabled:opacity-50">{isSaving ? "Restoring…" : "Reset content"}</button>
             </div>
           </div>
         </div>

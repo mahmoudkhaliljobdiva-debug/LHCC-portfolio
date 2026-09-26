@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { ArrowLeft, Edit3, FileQuestion, Plus, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -47,7 +49,7 @@ export function AdminQuestionBankDetail({ bankId, saved }: { readonly bankId: st
           <div><h2 className="font-semibold text-slate-950">Questions</h2><p className="mt-1 text-xs text-slate-500">Only questions assigned to {bank.name} are shown.</p></div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <label className="relative"><span className="sr-only">Search question text</span><Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search questions" className="h-10 w-full rounded-xl border bg-slate-50 pr-3 pl-9 text-sm sm:w-64" /></label>
-            <label><span className="sr-only">Filter by status</span><select value={filter} onChange={(event) => setFilter(event.target.value as "all" | QuestionBankStatus)} className="h-10 w-full rounded-xl border bg-slate-50 px-3 text-sm"><option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+            <label><span className="sr-only">Filter by status</span><Select value={filter} onChange={(event) => setFilter(event.target.value as "all" | QuestionBankStatus)} className="h-10 w-full rounded-xl border bg-slate-50 px-3 text-sm"><option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></Select></label>
           </div>
         </div>
 

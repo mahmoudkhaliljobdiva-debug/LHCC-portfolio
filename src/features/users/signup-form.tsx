@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { ArrowLeft } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -106,13 +108,13 @@ export function SignupForm({ countryOptions }: { readonly countryOptions: readon
         </Field>
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
           <Field label="Country" error={fieldErrors.countryCode?.[0]}>
-            <select required value={countryCode} onChange={(event) => updateField("countryCode", event.target.value)} aria-invalid={Boolean(fieldErrors.countryCode?.length)} autoComplete="country" className={inputClassName}>
+            <Select required value={countryCode} onChange={(event) => updateField("countryCode", event.target.value)} aria-invalid={Boolean(fieldErrors.countryCode?.length)} autoComplete="country" className={inputClassName}>
               {countryOptions.map((country) => (
                 <option key={country.code} value={country.code}>
                   {country.flag} {country.name} ({country.callingCode})
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="Phone number" error={fieldErrors.phone?.[0]}>
             <input type="tel" required autoComplete="tel-national" inputMode="tel" maxLength={30} value={phone} onChange={(event) => updateField("phone", event.target.value)} placeholder="71 056 331" aria-invalid={Boolean(fieldErrors.phone?.length)} className={inputClassName} />
@@ -123,11 +125,11 @@ export function SignupForm({ countryOptions }: { readonly countryOptions: readon
             <input type="number" required inputMode="numeric" min={MIN_PROFILE_AGE} max={MAX_PROFILE_AGE} step={1} value={age} onChange={(event) => updateField("age", event.target.value)} placeholder="Your age" aria-invalid={Boolean(fieldErrors.age?.length)} className={inputClassName} />
           </Field>
           <Field label="Gender" error={fieldErrors.gender?.[0]}>
-            <select required value={gender} onChange={(event) => updateField("gender", event.target.value)} aria-invalid={Boolean(fieldErrors.gender?.length)} className={inputClassName}>
+            <Select required value={gender} onChange={(event) => updateField("gender", event.target.value)} aria-invalid={Boolean(fieldErrors.gender?.length)} className={inputClassName}>
               <option value="" disabled hidden>Select gender</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
-            </select>
+            </Select>
           </Field>
         </div>
         <Field label="Home Address" error={fieldErrors.homeAddress?.[0]}>

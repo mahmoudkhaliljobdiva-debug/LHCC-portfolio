@@ -25,7 +25,7 @@ interface UpdatePasswordInput {
   readonly confirmPassword: string;
 }
 
-export async function login(input: LoginInput): Promise<ServerResult<null>> {
+export async function login(input: LoginInput): Promise<ServerResult<{ destination: ReturnType<typeof portalForRole> }>> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) return validationFailure(parsed.error.flatten().fieldErrors);
   let destination: ReturnType<typeof portalForRole>;
@@ -66,7 +66,7 @@ export async function login(input: LoginInput): Promise<ServerResult<null>> {
     return failure("INTERNAL_ERROR", "Sign in is temporarily unavailable. Please try again.");
   }
 
-  redirect(destination);
+  return { ok: true, data: { destination } };
 }
 
 export async function registerAccount(

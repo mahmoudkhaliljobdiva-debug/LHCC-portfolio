@@ -1,4 +1,6 @@
 "use client";
+
+import { Select } from "@/components/ui/select";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { approveBankAccessRequest, rejectBankAccessRequest } from "@/actions/bank-access";
@@ -6,7 +8,7 @@ import type { AdminAccessRequest } from "@/types/bank-access";
 export function AccessRequestManager({ requests }: { readonly requests: AdminAccessRequest[] }) {
   const [filter, setFilter] = useState("PENDING");
   const visible = requests.filter((r) => filter === "ALL" || r.status === filter);
-  return <><h1 className="text-2xl font-semibold text-slate-950 sm:text-3xl">Course access requests</h1><p className="mt-2 text-sm text-slate-500">Approve course access independently of account status. Previous decisions remain in the history.</p><label className="mt-6 grid max-w-xs gap-2 text-sm font-medium text-slate-700">Request status<select value={filter} onChange={(e) => setFilter(e.target.value)} className="h-11 rounded-xl border bg-white px-3">{["PENDING", "APPROVED", "REJECTED", "ALL"].map((status) => <option key={status}>{status}</option>)}</select></label><div className="mt-5 grid gap-4 lg:grid-cols-2">{visible.map((r) => <RequestCard key={r.id} request={r} />)}</div>{!visible.length && <p className="mt-5 rounded-2xl border bg-white p-6 text-slate-600">No requests in this category.</p>}</>;
+  return <><h1 className="text-2xl font-semibold text-slate-950 sm:text-3xl">Course access requests</h1><p className="mt-2 text-sm text-slate-500">Approve course access independently of account status. Previous decisions remain in the history.</p><label className="mt-6 grid max-w-xs gap-2 text-sm font-medium text-slate-700">Request status<Select value={filter} onChange={(e) => setFilter(e.target.value)} className="h-11 rounded-xl border bg-white px-3">{["PENDING", "APPROVED", "REJECTED", "ALL"].map((status) => <option key={status}>{status}</option>)}</Select></label><div className="mt-5 grid gap-4 lg:grid-cols-2">{visible.map((r) => <RequestCard key={r.id} request={r} />)}</div>{!visible.length && <p className="mt-5 rounded-2xl border bg-white p-6 text-slate-600">No requests in this category.</p>}</>;
 }
 function RequestCard({ request }: { readonly request: AdminAccessRequest }) {
   const router = useRouter();

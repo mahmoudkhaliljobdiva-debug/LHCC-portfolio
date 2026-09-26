@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { BookOpen, CalendarDays, Edit3, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -120,7 +122,7 @@ function BankFormDialog({ state, existingBanks, onCancel, onSave }: { readonly s
           <Field label="Description" value={description} error={errors.description} multiline onChange={(value) => { setDescription(value); setErrors((current) => ({ ...current, description: "" })); }} />
           <Field label="Image URL (optional)" value={imageUrl} error={errors.imageUrl} onChange={setImageUrl} />
           <div className="grid gap-5 sm:grid-cols-2">
-            <label className="grid gap-2 text-sm font-medium text-slate-700">Status<select value={status} onChange={(event) => setStatus(event.target.value as QuestionBankStatus)} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+            <label className="grid gap-2 text-sm font-medium text-slate-700">Status<Select value={status} onChange={(event) => setStatus(event.target.value as QuestionBankStatus)} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="active">Active</option><option value="inactive">Inactive</option></Select></label>
             <Field label="Display order (optional)" value={displayOrder} error={errors.displayOrder} inputMode="numeric" onChange={setDisplayOrder} />
             <Field label="Access price (USD)" value={price} error={errors.price} inputMode="decimal" onChange={setPrice} />
           </div>

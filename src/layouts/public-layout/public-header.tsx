@@ -15,7 +15,7 @@ const links = [
   { href: "/contact", label: "Contact" },
 ] as const;
 
-export function PublicHeader() {
+export function PublicHeader({ displayName }: { readonly displayName?: string | undefined }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -35,12 +35,12 @@ export function PublicHeader() {
         </nav>
         <div className="hidden items-center gap-2 lg:flex xl:gap-3">
           <ThemeToggle />
-          <Link href="/login" className="px-3 py-2 text-sm font-semibold text-slate-700">
+          {!displayName && <Link href="/login" className="px-3 py-2 text-sm font-semibold text-slate-700">
             Sign in
-          </Link>
-          <Link href="/signup" className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950">
+          </Link>}
+          {!displayName && <Link href="/signup" className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950">
             Create account
-          </Link>
+          </Link>}
           <Link
             href="/student"
             className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
@@ -48,6 +48,8 @@ export function PublicHeader() {
             Explore platform
           </Link>
         </div>
+        <div className="flex shrink-0 items-center gap-2">
+        {displayName && <Link href="/account/settings" aria-label={`Account settings for ${displayName}`} title={displayName} className="grid size-11 shrink-0 place-items-center rounded-xl bg-teal-700 text-sm font-semibold text-white hover:bg-teal-800">{displayName.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}</Link>}
         <button
           type="button"
           className="grid size-11 place-items-center rounded-xl text-slate-700 hover:bg-slate-50 lg:hidden"
@@ -57,6 +59,7 @@ export function PublicHeader() {
         >
           {open ? <X /> : <Menu />}
         </button>
+        </div>
       </div>
       <div
         className={cn(
@@ -79,12 +82,12 @@ export function PublicHeader() {
               {link.label}
             </Link>
           ))}
-          <Link href="/login" onClick={() => setOpen(false)} className="mt-2 rounded-xl border px-3 py-3 text-center font-semibold">
+          {!displayName && <Link href="/login" onClick={() => setOpen(false)} className="mt-2 rounded-xl border px-3 py-3 text-center font-semibold">
             Sign in
-          </Link>
-          <Link href="/signup" onClick={() => setOpen(false)} className="rounded-lg bg-teal-700 px-3 py-3 text-center font-semibold text-white hover:bg-teal-800">
+          </Link>}
+          {!displayName && <Link href="/signup" onClick={() => setOpen(false)} className="rounded-lg bg-teal-700 px-3 py-3 text-center font-semibold text-white hover:bg-teal-800">
             Create account
-          </Link>
+          </Link>}
           <Link href="/student" onClick={() => setOpen(false)} className="rounded-xl bg-slate-950 px-3 py-3 text-center font-semibold text-white hover:bg-slate-800">
             Explore platform
           </Link>
