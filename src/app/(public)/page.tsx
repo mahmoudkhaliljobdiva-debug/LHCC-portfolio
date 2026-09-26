@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { getAuthenticatedProfile, portalForRole } from "@/lib/auth/server";
 
 const capabilities = [
   {
@@ -35,7 +36,8 @@ const audiences = [
   { icon: ShieldCheck, label: "Institutions", text: "Coordinate learning through a reliable central platform." },
 ] as const;
 
-export default function HomePage() {
+export default async function HomePage() {
+  const profile = await getAuthenticatedProfile();
   return (
     <>
       <section className="relative overflow-hidden bg-white">
@@ -55,10 +57,10 @@ export default function HomePage() {
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/student"
+                href={profile ? portalForRole(profile.role) : "/student"}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
               >
-                Open student portal <ArrowRight className="size-4" />
+                {profile ? "Open dashboard" : "Open student portal"} <ArrowRight className="size-4" />
               </Link>
               <Link
                 href="/platform"

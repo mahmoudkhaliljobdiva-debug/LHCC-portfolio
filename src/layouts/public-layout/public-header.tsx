@@ -15,7 +15,7 @@ const links = [
   { href: "/contact", label: "Contact" },
 ] as const;
 
-export function PublicHeader({ displayName }: { readonly displayName?: string | undefined }) {
+export function PublicHeader({ displayName, dashboardHref }: { readonly displayName?: string | undefined; readonly dashboardHref?: "/admin" | "/teacher" | "/student" | undefined }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -42,10 +42,10 @@ export function PublicHeader({ displayName }: { readonly displayName?: string | 
             Create account
           </Link>}
           <Link
-            href="/student"
+            href={dashboardHref ?? "/student"}
             className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
-            Explore platform
+            {dashboardHref ? "Dashboard" : "Explore platform"}
           </Link>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -88,8 +88,8 @@ export function PublicHeader({ displayName }: { readonly displayName?: string | 
           {!displayName && <Link href="/signup" onClick={() => setOpen(false)} className="rounded-lg bg-teal-700 px-3 py-3 text-center font-semibold text-white hover:bg-teal-800">
             Create account
           </Link>}
-          <Link href="/student" onClick={() => setOpen(false)} className="rounded-xl bg-slate-950 px-3 py-3 text-center font-semibold text-white hover:bg-slate-800">
-            Explore platform
+          <Link href={dashboardHref ?? "/student"} onClick={() => setOpen(false)} className="rounded-xl bg-slate-950 px-3 py-3 text-center font-semibold text-white hover:bg-slate-800">
+            {dashboardHref ? "Dashboard" : "Explore platform"}
           </Link>
         </nav>
       </div>

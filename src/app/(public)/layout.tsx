@@ -1,6 +1,6 @@
 import { PublicFooter } from "@/layouts/public-layout/public-footer";
 import { PublicHeader } from "@/layouts/public-layout/public-header";
-import { getAuthenticatedProfile } from "@/lib/auth/server";
+import { getAuthenticatedProfile, portalForRole } from "@/lib/auth/server";
 
 export default async function PublicLayout({
   children,
@@ -8,7 +8,7 @@ export default async function PublicLayout({
   const profile = await getAuthenticatedProfile();
   return (
     <>
-      <PublicHeader displayName={profile?.full_name} />
+      <PublicHeader displayName={profile?.full_name} dashboardHref={profile ? portalForRole(profile.role) : undefined} />
       <main>{children}</main>
       <PublicFooter />
     </>
