@@ -7,16 +7,17 @@ import { requestBankAccess } from "@/actions/bank-access";
 import type { StudentBank } from "@/types/bank-access";
 
 const labels = { LOCKED: "Locked", PENDING: "Pending Approval", APPROVED: "Access Granted", REJECTED: "Access Request Rejected" };
-export function QuestionBankGrid({ banks }: { readonly banks: StudentBank[] }) {
+export function QuestionBankGrid({ banks, previewBase }: { readonly banks: StudentBank[]; readonly previewBase?: string }) {
   if (!banks.length) return <p className="rounded-2xl border bg-white p-6 text-slate-600">No courses are currently available.</p>;
-  return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{banks.map((bank) => <BankCard key={bank.id} bank={bank} />)}</div>;
+  return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{banks.map((bank) => <BankCard key={bank.id} bank={bank} previewBase={previewBase} />)}</div>;
 }
-function BankCard({ bank }: { readonly bank: StudentBank }) {
+function BankCard({ bank, previewBase }: { readonly bank: StudentBank; readonly previewBase: string | undefined }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState("");
   const [failed, setFailed] = useState(false);
   function request() {
+    if (previewBase) return;
     startTransition(async () => {
       try {
         const result = await requestBankAccess(bank.id);
@@ -33,7 +34,8 @@ function BankCard({ bank }: { readonly bank: StudentBank }) {
     <p className="mt-3 text-sm font-semibold text-slate-800">{bank.price > 0 ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(bank.price) : "Free access"}</p>
     {bank.accessState === "REJECTED" && bank.rejectionReason && <p className="mt-3 text-sm text-slate-600">Reason: {bank.rejectionReason}</p>}
     <div className="mt-5 border-t pt-4">
-      {bank.accessState === "APPROVED" ? <Link href={`/student/banks/${bank.id}`} className="inline-flex rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white">Open Course<span className="sr-only">: {bank.name}</span></Link> : <button type="button" disabled={pending || bank.accessState === "PENDING"} onClick={request} className="rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">{pending ? "Sending…" : bank.accessState === "PENDING" ? "Pending Approval" : bank.accessState === "REJECTED" ? "Request Again" : "Request Access"}<span className="sr-only">: {bank.name}</span></button>}
+      {bank.accessState === "APPROVED" ? <Link href={`${previewBase ?? "/student"}/banks/${bank.id}` as import("next").Route} className="inline-flex rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white">Open Course<span className="sr-only">: {bank.name}</span></Link> : <button type="button" disabled={Boolean(previewBase) || pending || bank.accessState === "PENDING"} onClick={request} className="rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">{pending ? "Sending…" : bank.accessState === "PENDING" ? "Pending Approval" : bank.accessState === "REJECTED" ? "Request Again" : "Request Access"}<span className="sr-only">: {bank.name}</span></button>}
+      {previewBase && <p className="mt-3 text-xs text-slate-500">Read-only preview. Access requests must be made by the student.</p>}
     </div>
     {feedback && <p role={failed ? "alert" : "status"} className={`mt-3 text-sm ${failed ? "text-rose-700 dark:text-rose-300" : "text-teal-700 dark:text-teal-200"}`}>{feedback}</p>}
   </article>;

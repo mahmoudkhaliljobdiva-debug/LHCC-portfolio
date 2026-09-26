@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { logout } from "@/actions/auth";
+import { ContextBoundaryLink } from "@/features/portal-preview/context-boundary-link";
 import { Brand } from "@/components/ui/brand";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ROLE_NAVIGATION } from "@/constants/navigation";
@@ -22,6 +23,7 @@ export function DashboardShell({
   readonly children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const NavigationLink = pathname.startsWith("/admin/view-as/") ? ContextBoundaryLink : Link;
   const [open, setOpen] = useState(false);
 
   return (
@@ -49,11 +51,16 @@ export function DashboardShell({
           <p className="text-xs font-medium text-slate-500">Current workspace</p>
           <p className="mt-1 text-sm font-semibold text-slate-900 capitalize">{role} portal</p>
         </div>
+        {role === "admin" && <nav aria-label="Admin portal switcher" className="mt-3 grid gap-1 text-sm font-medium text-slate-700">
+          <NavigationLink href="/admin" onClick={() => setOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-slate-50">Admin Portal</NavigationLink>
+          <NavigationLink href={"/admin/view-as/student" as import("next").Route} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-slate-50">View Student Portal</NavigationLink>
+          <NavigationLink href={"/admin/view-as/teacher" as import("next").Route} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-slate-50">View Teacher Portal</NavigationLink>
+        </nav>}
         <nav aria-label={`${role} navigation`} className="mt-6 grid gap-1">
           {ROLE_NAVIGATION[role].map(({ href, label, icon: Icon }) => {
             const active = pathname === href;
             return (
-              <Link
+              <NavigationLink
                 key={href}
                 href={href}
                 onClick={() => setOpen(false)}
@@ -64,14 +71,14 @@ export function DashboardShell({
               >
                 <Icon className="size-[18px]" aria-hidden="true" />
                 {label}
-              </Link>
+              </NavigationLink>
             );
           })}
         </nav>
         <div className="mt-auto rounded-2xl bg-[#304f60] p-4 text-white">
           <p className="text-sm font-semibold">Need a quick tour?</p>
           <p className="mt-1 text-xs leading-5 text-sky-100">Use the navigation to move between your workspaces.</p>
-          <Link href="/" className="mt-3 inline-block text-xs font-semibold text-teal-200">Back to website →</Link>
+          <NavigationLink href="/" className="mt-3 inline-block text-xs font-semibold text-teal-200">Back to website →</NavigationLink>
         </div>
       </aside>
 
@@ -93,9 +100,9 @@ export function DashboardShell({
               <p className="text-sm font-semibold text-slate-900">{displayName}</p>
               <p className="text-xs text-slate-500 capitalize">{role}</p>
             </div>
-            <Link href="/account/settings" aria-label="Account settings" className="hidden size-11 shrink-0 place-items-center rounded-xl bg-teal-700 text-sm font-semibold text-white min-[390px]:grid">
+            <NavigationLink href="/account/settings" aria-label="Account settings" className="hidden size-11 shrink-0 place-items-center rounded-xl bg-teal-700 text-sm font-semibold text-white min-[390px]:grid">
               {displayName.split(" ").map((part) => part[0]).join("").slice(-2).toUpperCase()}
-            </Link>
+            </NavigationLink>
             <form action={logout}>
               <button type="submit" aria-label="Sign out" title="Sign out" className="grid size-11 place-items-center rounded-xl border text-slate-600 hover:bg-slate-50">
                 <LogOut className="size-[18px]" />

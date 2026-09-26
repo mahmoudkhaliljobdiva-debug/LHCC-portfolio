@@ -4,6 +4,8 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { readAllRows } from "@/lib/supabase/pagination";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getPortalPreviewContext } from "@/lib/portal-preview/server";
 import type { AdminAccessRequest, RecordedAnswer, StudentBank, StudentQuestion } from "@/types/bank-access";
 import type { QuestionBankStoreData } from "@/types/question-bank";
 
@@ -15,10 +17,19 @@ const studentQuestionSchema = z.object({
 export async function getStudentBanks(): Promise<StudentBank[]> {
   const profile = await requireRole("STUDENT");
   const db = await createClient();
+  return readStudentBanks(db, profile.id);
+}
+
+export async function getStudentBanksForAdmin(subjectId: string) {
+  const { subject } = await getPortalPreviewContext("student", subjectId);
+  return readStudentBanks(createAdminClient(), subject.id);
+}
+
+async function readStudentBanks(db: Awaited<ReturnType<typeof createClient>>, subjectId: string): Promise<StudentBank[]> {
   const [banks, requests, grants] = await Promise.all([
     readAllRows((from, to) => db.from("question_banks").select("*").eq("status", "active").order("display_order").order("id").range(from, to)),
-    readAllRows((from, to) => db.from("user_bank_access_requests").select("*").eq("user_id", profile.id).order("requested_at", { ascending: false }).order("id").range(from, to)),
-    readAllRows((from, to) => db.from("user_bank_access").select("*").eq("user_id", profile.id).eq("status", "ACTIVE").order("id").range(from, to)),
+    readAllRows((from, to) => db.from("user_bank_access_requests").select("*").eq("user_id", subjectId).order("requested_at", { ascending: false }).order("id").range(from, to)),
+    readAllRows((from, to) => db.from("user_bank_access").select("*").eq("user_id", subjectId).eq("status", "ACTIVE").order("id").range(from, to)),
   ]);
   return banks.map((bank) => {
     const request = requests.find((item) => item.question_bank_id === bank.id);
@@ -30,7 +41,17 @@ export async function getStudentBanks(): Promise<StudentBank[]> {
 export async function getStudentCourse(bankId: string) {
   const profile = await requireRole("STUDENT");
   const db = await createClient();
-  const { data: grant, error } = await db.from("user_bank_access").select("*").eq("user_id", profile.id).eq("question_bank_id", bankId).eq("status", "ACTIVE").maybeSingle();
+  return readStudentCourse(db, profile.id, bankId);
+}
+
+export async function getStudentCourseForAdmin(subjectId: string, bankId: string) {
+  const { subject } = await getPortalPreviewContext("student", subjectId);
+  if (subject.status !== "ACTIVE") return null;
+  return readStudentCourse(createAdminClient(), subject.id, bankId);
+}
+
+async function readStudentCourse(db: Awaited<ReturnType<typeof createClient>>, subjectId: string, bankId: string) {
+  const { data: grant, error } = await db.from("user_bank_access").select("*").eq("user_id", subjectId).eq("question_bank_id", bankId).eq("status", "ACTIVE").maybeSingle();
   if (error) throw new Error("Unable to verify course access.");
   if (!grant) return null;
   const { data: bank, error: bankError } = await db.from("question_banks").select("*").eq("id", bankId).eq("status", "active").maybeSingle();
@@ -39,7 +60,7 @@ export async function getStudentCourse(bankId: string) {
   // RLS independently checks enabled student, active grant, active bank and question.
   const [questionsResult, attemptResult] = await Promise.all([
     readAllRows((from, to) => db.from("bank_questions").select("id,question_bank_id,text,status,options").eq("question_bank_id", bankId).eq("status", "active").order("created_at").order("id").range(from, to)),
-    db.from("question_attempts").select("id").eq("student_id", profile.id).eq("question_bank_id", bankId).in("status", ["IN_PROGRESS", "COMPLETED"]).order("started_at", { ascending: false }).order("id").limit(1).maybeSingle(),
+    db.from("question_attempts").select("id").eq("student_id", subjectId).eq("question_bank_id", bankId).in("status", ["IN_PROGRESS", "COMPLETED"]).order("started_at", { ascending: false }).order("id").limit(1).maybeSingle(),
   ]);
   if (attemptResult.error) throw new Error("Unable to load course progress.");
   const answerResult = attemptResult.data

@@ -1,6 +1,9 @@
 import "server-only";
 
 import { requireRole } from "@/lib/auth/server";
+import { getPortalPreviewContext } from "@/lib/portal-preview/server";
+import type { Profile } from "@/types/profile";
+import type { PreviewRole } from "@/types/portal-preview";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { readAllRows } from "@/lib/supabase/pagination";
@@ -29,22 +32,61 @@ export interface TeacherBankSummary {
 export async function getDashboardData(role: AppUserRole): Promise<DashboardData> {
   const profile = await requireRole(dbRoles[role]);
   const db = await createClient();
+  return readDashboardData(role, profile, db, false);
+}
+
+export async function getDashboardDataForAdmin(role: PreviewRole, subjectId: string): Promise<DashboardData> {
+  const { subject } = await getPortalPreviewContext(role, subjectId);
+  return readDashboardData(role, subject, createAdminClient(), true);
+}
+
+async function readDashboardData(role: AppUserRole, profile: Profile, db: Awaited<ReturnType<typeof createClient>>, preview: boolean): Promise<DashboardData> {
+  const previewStudent = preview && role === "student";
+  const previewScope = previewStudent ? await Promise.all([
+    readAllRows((from, to) => db.from("question_attempts").select("id").eq("student_id", profile.id).order("id").range(from, to)),
+    readAllRows((from, to) => db.from("user_bank_access").select("question_bank_id").eq("user_id", profile.id).eq("status", "ACTIVE").order("id").range(from, to)),
+  ]) : null;
   // Learning queries use the caller's session and RLS. Only verified admins
   // request the profile directory (own-profile RLS) or the guarded wallet RPC.
   const [profiles, banks, questions, attempts, answers, requests, access, wallet, portfolio] = await Promise.all([
     role === "admin" ? readAllRows((from, to) => createAdminClient().from("profiles").select("id,full_name,role,status,expiration_date,created_at").order("id").range(from, to)) : [],
-    readAllRows((from, to) => db.from("question_banks").select("id,name,description,status,display_order").order("display_order").order("id").range(from, to)),
-    readAllRows((from, to) => db.from("bank_questions").select("id,question_bank_id,status").order("id").range(from, to)),
+    readAllRows((from, to) => {
+      const query = db.from("question_banks").select("id,name,description,status,display_order").order("display_order").order("id");
+      return (preview ? query.eq("status", "active") : query).range(from, to);
+    }),
+    readAllRows((from, to) => {
+      const query = db.from("bank_questions").select("id,question_bank_id,status").order("id");
+      return (previewStudent ? query.eq("status", "active").in("question_bank_id", previewScope![1].map(item => item.question_bank_id)) : query).range(from, to);
+    }),
     readAllRows((from, to) => {
       const query = db.from("question_attempts").select(attemptFields).order("id");
       return (role === "student" ? query.eq("student_id", profile.id) : query).range(from, to);
     }),
-    readAllRows((from, to) => db.from("question_attempt_answers").select("attempt_id,question_id,is_correct,answered_at").order("id").range(from, to)),
-    role === "teacher" ? [] : readAllRows((from, to) => db.from("user_bank_access_requests").select("id,user_id,question_bank_id,status,requested_at,reviewed_at").order("id").range(from, to)),
-    role === "teacher" ? [] : readAllRows((from, to) => db.from("user_bank_access").select("id,user_id,question_bank_id,status").order("id").range(from, to)),
+    readAllRows((from, to) => {
+      const query = db.from("question_attempt_answers").select("attempt_id,question_id,is_correct,answered_at").order("id");
+      return (previewStudent ? query.in("attempt_id", previewScope![0].map(item => item.id)) : query).range(from, to);
+    }),
+    role === "teacher" ? [] : readAllRows((from, to) => {
+      const query = db.from("user_bank_access_requests").select("id,user_id,question_bank_id,status,requested_at,reviewed_at").order("id");
+      return (previewStudent ? query.eq("user_id", profile.id) : query).range(from, to);
+    }),
+    role === "teacher" ? [] : readAllRows((from, to) => {
+      const query = db.from("user_bank_access").select("id,user_id,question_bank_id,status").order("id");
+      return (previewStudent ? query.eq("user_id", profile.id) : query).range(from, to);
+    }),
     role === "admin" ? getAdminWalletTransactions() : [],
     role === "admin" ? readAllRows((from, to) => db.from("portfolio_content").select("section_key,revision,updated_at").order("section_key").range(from, to)) : [],
   ]);
+  // Privileged preview reads must explicitly reproduce the subject's RLS scope.
+  if (preview && role === "student") {
+    const ownedIds = new Set(attempts.map(item => item.id));
+    answers.splice(0, answers.length, ...answers.filter(item => ownedIds.has(item.attempt_id)));
+    requests.splice(0, requests.length, ...requests.filter(item => item.user_id === profile.id));
+    access.splice(0, access.length, ...access.filter(item => item.user_id === profile.id));
+    const grantedIds = new Set(access.filter(item => item.status === "ACTIVE").map(item => item.question_bank_id));
+    const visible = profile.status === "ACTIVE";
+    questions.splice(0, questions.length, ...questions.filter(item => visible && item.status === "active" && grantedIds.has(item.question_bank_id) && banks.some(bank => bank.id === item.question_bank_id && bank.status === "active")));
+  }
   const completed = attempts.filter((item) => item.status === "COMPLETED");
   const reporting = getScoreReporting(completed);
   const activeBanks = banks.filter((bank) => bank.status === "active");
@@ -95,6 +137,15 @@ export async function getDashboardData(role: AppUserRole): Promise<DashboardData
 export async function getTeacherBankSummaries(): Promise<readonly TeacherBankSummary[]> {
   await requireRole("TEACHER");
   const db = await createClient();
+  return readTeacherBankSummaries(db);
+}
+
+export async function getTeacherBankSummariesForAdmin(subjectId: string) {
+  await getPortalPreviewContext("teacher", subjectId);
+  return readTeacherBankSummaries(createAdminClient());
+}
+
+async function readTeacherBankSummaries(db: Awaited<ReturnType<typeof createClient>>): Promise<readonly TeacherBankSummary[]> {
   const [banks, questions, attempts] = await Promise.all([
     readAllRows((from, to) => db.from("question_banks").select("id,name,description").eq("status", "active").order("display_order").order("id").range(from, to)),
     readAllRows((from, to) => db.from("bank_questions").select("id,question_bank_id").eq("status", "active").order("id").range(from, to)),
