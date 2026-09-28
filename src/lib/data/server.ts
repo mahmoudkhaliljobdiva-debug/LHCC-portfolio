@@ -142,18 +142,19 @@ export async function getTeacherBankSummaries(): Promise<readonly TeacherBankSum
 
 export async function getTeacherBankSummariesForAdmin(subjectId: string) {
   await getPortalPreviewContext("teacher", subjectId);
-  return readTeacherBankSummaries(createAdminClient());
+  const db = createAdminClient();
+  const { data, error } = await db.from("teacher_bank_assignments").select("question_bank_id").eq("teacher_id", subjectId);
+  if (error) throw new Error("Unable to load teacher assignments.");
+  return readTeacherBankSummaries(db, data.map(item => item.question_bank_id));
 }
 
-async function readTeacherBankSummaries(db: Awaited<ReturnType<typeof createClient>>): Promise<readonly TeacherBankSummary[]> {
-  const [banks, questions, attempts] = await Promise.all([
-    readAllRows((from, to) => db.from("question_banks").select("id,name,description").eq("status", "active").order("display_order").order("id").range(from, to)),
-    readAllRows((from, to) => db.from("bank_questions").select("id,question_bank_id").eq("status", "active").order("id").range(from, to)),
-    readAllRows((from, to) => db.from("question_attempts").select("question_bank_id,score_percentage,started_at,submitted_at").eq("status", "COMPLETED").order("id").range(from, to)),
+async function readTeacherBankSummaries(db: Awaited<ReturnType<typeof createClient>>, bankIds?: readonly string[]): Promise<readonly TeacherBankSummary[]> {
+  const [banks, questions] = await Promise.all([
+    readAllRows((from, to) => { const query = db.from("question_banks").select("id,name,description").eq("status", "active").order("display_order").order("id"); return (bankIds ? query.in("id", [...bankIds]) : query).range(from, to); }),
+    readAllRows((from, to) => { const query = db.from("bank_questions").select("id,question_bank_id").order("id"); return (bankIds ? query.in("question_bank_id", [...bankIds]) : query).range(from, to); }),
   ]);
   return banks.map((bank) => {
-    const completed = attempts.filter((item) => item.question_bank_id === bank.id);
-    return { id: bank.id, name: bank.name, description: bank.description, questionCount: questions.filter((item) => item.question_bank_id === bank.id).length, attempts: completed.length, averageScore: getScoreReporting(completed).averageScore };
+    return { id: bank.id, name: bank.name, description: bank.description, questionCount: questions.filter((item) => item.question_bank_id === bank.id).length, attempts: 0, averageScore: 0 };
   });
 }
 

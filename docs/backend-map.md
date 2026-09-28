@@ -15,7 +15,7 @@ Form drafts, filters, open dialogs, and feedback are transient UI state.
 | Feature / UI | Tables | Read path | Write path | Authorization and RLS |
 | --- | --- | --- | --- | --- |
 | Login, signup, logout, recovery: `/login`, `/signup`, `/auth/callback` | `auth.users`, `profiles` | Auth claims and own profile in `lib/auth/server.ts` | `actions/auth.ts`: Supabase Auth calls; profile provisioning trigger | Verified Supabase identity; trusted DB role and effective status. Signup metadata cannot choose an elevated role. |
-| Profile/settings: student profile, admin settings, portal shells | `profiles` | `requireRole` and own-profile SELECT | Admin user actions; password updates through Supabase Auth | Own-profile RLS; no client role changes. No unrelated dashboard query required for profile rendering. |
+| Profile/settings: `/account/settings`, role profile/settings screens | `profiles` | Own-profile SELECT, authenticated account settings; portal role guards retained | `saveOwnProfile`: verified Auth actor ID, server-only personal-field allowlist | All roles may edit themselves, not another user or their permissions. Direct profile writes remain denied. |
 | Admin users: `/admin/users` | `auth.users`, `profiles` | `listUsers` joins paged Auth users with paged profile rows on the server | `createUser`, `updateUser`, `deactivateUser`, `reactivateStudent`, `reactivateTeacher` | `authorizeActiveAdmin` before the server-only administrative client. Admin account protection remains. |
 | Student banks: `/student/question-banks` | `question_banks`, `user_bank_access_requests`, `user_bank_access` | `getStudentBanks` in `lib/bank-access/server.ts`; ordered pagination | `requestBankAccess` | Active STUDENT; active catalog, own requests/grants via RLS. Latest request plus actual grant derives access state. |
 | Admin banks/questions: `/admin/question-banks/**` | `question_banks`, `bank_questions`, `private.question_solutions` | `getAdminBankData` → `admin_bank_data` RPC | `manageBankContent` → `manage_bank_content` RPC | ADMIN/status checked in action and private RPC. Correct answers are returned only by the admin RPC. |
@@ -24,7 +24,7 @@ Form drafts, filters, open dialogs, and feedback are transient UI state.
 | Approved course: `/student/banks/[bankId]` | banks, questions, grants, attempts, answers | `getStudentCourse` checks grant and active bank, then loads safe questions and most recent active/completed attempt | `submitBankAnswer` → `submit_bank_answer` | STUDENT/status and grant checked server-side and inside RPC/RLS. In-progress and completed answer feedback reloads from saved rows. |
 | Attempts and answers | `question_attempts`, `question_attempt_answers`, private solutions | Own attempts/answers through RLS; authorized staff reporting | First answer creates an attempt; selected option is validated and graded by backend; last answer completes and scores it | No direct client writes. Student cannot write a score or inspect another student's attempts. One in-progress attempt per student/bank; one answer per attempt/question. |
 | Student progress/dashboard/analytics: `/student`, `/student/analytics` | own attempts/answers, active banks, own requests/grants, allowed questions | `getDashboardData("student")` → session client, paged RLS queries → pure reporting functions | Derived from answer and access operations | No administrative client for students. Accuracy/score and counts come from stored records. Progress counts unique active questions rather than repeated answers. |
-| Teacher banks/dashboard/analytics: `/teacher`, `/teacher/question-banks`, `/teacher/analytics`, `/teacher/students` | published banks/questions, attempts/answers | `getDashboardData("teacher")`, `getTeacherBankSummaries` use session client and existing teacher RLS | No teacher mutation workflow is added | Existing active-teacher policy supports bank/question and learning-report reads. Metric is participating learners from attempts; no profile directory or wallet is read. `/teacher/students` presents cohort analytics, not an invented roster. |
+| Teacher questions: `/teacher`, `/teacher/questions`, `/teacher/question-banks`, `/teacher/question-banks/[bankId]` | `teacher_bank_assignments`, active banks, questions | Session client + assignment-scoped RLS; `getTeacherBank` | `addTeacherQuestion` → insert-only `teacher_add_question` RPC | Active teacher + assigned active bank required. No existing-question editing/deletion, answer-key reads, or institution-wide reporting. |
 | Admin dashboard: `/admin` | profiles, banks/questions, requests/grants, attempts/answers, portfolio, ledger | `getDashboardData("admin")`; learning data through RLS, verified admin profile directory read, guarded wallet RPC | Derived from real operations | ADMIN required before reads. Active teacher count excludes expired activation periods. All totals are based on database rows. |
 | Admin student activity: `/admin/users/[userId]/activity` | Auth/profiles, banks, selected student's attempts | `getStudentActivityData`; `getAdminUserUsageSummaries` | Derived from real attempts | ADMIN guard. Query selects only requested student's attempts, never all students' answer rows. Last activity uses backend update time. |
 | Wallet: `/admin/wallet` | `wallet_transactions` with profile/bank/access links | `getAdminWalletTransactions` → `admin_wallet_data` RPC | `createWalletTicket`, `updateWalletTicket`, `deleteWalletTicket` → `manage_wallet_transaction`; paid approval creates sale | ADMIN/status required twice. Table has no browser grants and deny policy. Balance is signed SUM(amount), with no independent balance field. |
@@ -78,7 +78,7 @@ private functions with a fixed empty search path.
 | Action / RPC | Caller and input | Effects/result |
 | --- | --- | --- |
 | `login({email,password})` | Valid credentials | Supabase password sign-in, effective profile check, role portal redirect; disabled accounts signed out. |
-| `registerAccount(profile,password,...)` | Public, validated signup form | Supabase signup and trusted profile trigger; ACTIVE STUDENT without bank grants. |
+| `registerAccount(profile,password,...)` | Public, validated signup form | Supabase signup and trusted profile trigger; ACTIVE STUDENT without bank grants. Retains session and enters homepage directly. |
 | `logout`, `requestPasswordReset`, `updatePassword` | Auth session or recovery flow as applicable | Supabase sign-out/recovery/password update. No application password storage. |
 | `listUsers` | Active ADMIN | Paged real Auth/profile join; server-result error on failure. |
 | `createUser` | Active ADMIN, validated user fields | Auth invitation and profile update; existing compensation cleanup on profile failure. No invitations are sent by the audit tests. |
@@ -104,8 +104,8 @@ separate product rules.
 | Table | Policies/restrictions reviewed |
 | --- | --- |
 | `profiles` | Own-profile SELECT only; administrative directory/writes use server-only client after trusted active ADMIN authorization. |
-| `question_banks` | `bank_catalog`: active banks for enabled students/teachers; admin catalog. |
-| `bank_questions` | `approved_questions`: student needs active account/bank/grant; existing teacher/admin read rules. |
+| `question_banks` | `bank_catalog`: active catalog for students; assigned active banks for teachers; full admin catalog. |
+| `bank_questions` | `approved_questions`: student needs active account/bank/grant; teacher needs active assigned bank; admin reads unchanged. |
 | `private.question_solutions` | `no_direct_solution_reads`; correct keys never serialized to student before answer submission. |
 | `user_bank_access_requests` | `own_requests`, `own_pending_request`; own active-student pending insert only, no client review/update permission. |
 | `user_bank_access` | `own_access`; own active-student read or admin; no client grants. |
@@ -207,9 +207,9 @@ automatically imported into trusted production data.
 
 ## Remaining supported boundaries
 
-Exams/assignments and teacher cohort management are explicitly unconfigured;
-teacher reporting uses existing allowed data. Account settings currently show
-profile information; profile changes remain admin-managed. Retake controls,
+Exams and teacher cohort management remain unconfigured. Teachers now have
+explicit bank assignments and add/view-only authoring; profile editing is
+self-service for personal fields. Retake controls,
 question versioning within an active attempt, full historical audit logs,
 refund/price-adjustment workflows, and a database aggregate reporting service
 for high data volume are separate future work. Current reports exhaust paged

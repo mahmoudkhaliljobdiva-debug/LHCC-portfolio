@@ -4,7 +4,8 @@
 
 The public homepage's existing portal cards are role-aware. For ADMIN, Student
 portal opens `/admin/users?role=STUDENT`, Teacher portal opens
-`/admin/users?role=TEACHER`, and Admin portal opens `/admin`. Student/teacher own
+`/admin/users?role=TEACHER`. The redundant Admin portal card is removed; the global
+Dashboard link still opens `/admin` for admins. Student/teacher own
 portal links and anonymous login behavior are unchanged. The global Dashboard
 button always returns to the authenticated actor's own dashboard.
 
@@ -40,8 +41,9 @@ Refresh revalidates server-side from the route, not browser storage.
 Student data is scoped to the subject's attempts, answers, requests, and grants;
 question visibility requires active bank/question and an active grant. Question
 content uses the existing safe allowlist, never private solution data. Inactive
-or expired subjects get an access-state message. Teacher reporting remains
-institution-wide, as in the existing teacher portal; no assignments are invented.
+or expired subjects get an access-state message. Teachers see only assigned active
+banks and their questions. Admin teacher previews can inspect those questions but
+cannot use the teacher's add form. Institution-wide teacher reporting is removed.
 
 Personal requests and answer submission are disabled with read-only explanations.
 Existing backend guards reject such writes by the real ADMIN actor, regardless

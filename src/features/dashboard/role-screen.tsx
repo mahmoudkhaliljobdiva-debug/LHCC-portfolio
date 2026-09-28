@@ -2,11 +2,13 @@ import { Award, BookOpen, CircleDollarSign, Clock3, FileQuestion, GraduationCap,
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
+import { notFound } from "next/navigation";
 
 import { PerformanceChart } from "@/components/charts/performance-chart";
 import { Progress } from "@/components/ui/progress";
 import { MetricCard } from "@/features/dashboard/metric-card";
 import { PortfolioEditor } from "@/features/portfolio-content/portfolio-editor";
+import { OwnProfileEditor } from "@/features/users/own-profile-editor";
 import { TeacherQuestionBankGrid } from "@/features/question-banks/teacher-question-bank-grid";
 import { getDashboardData, getTeacherBankSummaries } from "@/lib/data/server";
 import { getPortfolioContent } from "@/lib/portfolio/server";
@@ -18,6 +20,10 @@ const sectionTitles: Record<string, string> = { "question-banks": "Question bank
 const icons: Record<DashboardMetric["icon"], LucideIcon> = { users: Users, students: GraduationCap, banks: BookOpen, wallet: CircleDollarSign, score: Target, answers: BookOpen, attempts: Award, pending: Clock3 };
 
 export async function RoleScreen({ role, section }: { readonly role: UserRole; readonly section: string | undefined }) {
+  if (role === "teacher" && section !== "profile" && section !== "settings") {
+    if (section && !["questions", "question-banks"].includes(section)) notFound();
+    return <Page title="Assigned question banks" subtitle="View and add questions in the banks assigned by your administrator."><TeacherQuestionBankGrid banks={await getTeacherBankSummaries()} /></Page>;
+  }
   if (section === "portfolio" && role === "admin") {
     await requireRole("ADMIN");
     const content = await getPortfolioContent();
@@ -25,10 +31,9 @@ export async function RoleScreen({ role, section }: { readonly role: UserRole; r
   }
   if (section === "exams") return <RealFeatureState title="Exams & assessments" message="Exams are not configured for this platform yet." />;
   if (section === "questions") return <RealFeatureState title="Question management" message={role === "teacher" ? "Explore published questions and learning performance by question bank." : "Manage published questions from their question bank."} href={role === "admin" ? "/admin/question-banks" : "/teacher/question-banks"} action="Open question banks" />;
-  if (section === "question-banks" && role === "teacher") return <Page title="Question banks" subtitle="Published courses and learner performance."><TeacherQuestionBankGrid banks={await getTeacherBankSummaries()} /></Page>;
   if (section === "profile" || section === "settings") {
     const profile = await requireRole(role === "admin" ? "ADMIN" : role === "teacher" ? "TEACHER" : "STUDENT");
-    return <ProfilePage title={section === "settings" ? "Account settings" : "Your profile"} role={role} displayName={profile.full_name} />;
+    return <Page title={section === "settings" ? "Account settings" : "Your profile"} subtitle="Your account information."><OwnProfileEditor profile={profile} /></Page>;
   }
   const data = await getDashboardData(role);
   const title = section ? sectionTitles[section] ?? "Workspace" : role === "admin" ? "Platform overview" : `Welcome, ${data.displayName}`;
@@ -54,7 +59,6 @@ export function DashboardHome({ role, data }: { readonly role: UserRole; readonl
 export function AnalyticsPage({ title, data }: { readonly title: string; readonly data: DashboardData }) { return <Page title={title} subtitle="Performance reporting from completed attempts."><MetricGrid metrics={data.metrics} /><div className="mt-6 grid gap-6 xl:grid-cols-2"><section className="rounded-2xl border bg-white p-6 shadow-sm"><h2 className="font-semibold text-slate-950">Score trend</h2><p className="mt-1 text-xs text-slate-500">Average performance by month</p><div className="mt-5">{data.scoreTrend.length ? <PerformanceChart data={data.scoreTrend} /> : <EmptyText>No completed attempts yet.</EmptyText>}</div></section><section className="rounded-2xl border bg-white p-6 shadow-sm"><h2 className="font-semibold text-slate-950">Score distribution</h2><p className="mt-1 text-xs text-slate-500">Completed attempts grouped by score range</p><div className="mt-5"><PerformanceChart variant="histogram" data={data.scoreDistribution} /></div></section></div></Page>; }
 
 function MetricGrid({ metrics }: { readonly metrics: readonly DashboardMetric[] }) { return <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{metrics.map((metric) => <MetricCard key={metric.label} label={metric.label} value={metric.value} helper={metric.helper} icon={icons[metric.icon]} />)}</div>; }
-function ProfilePage({ title, role, displayName }: { readonly title: string; readonly role: UserRole; readonly displayName: string }) { return <Page title={title} subtitle="Your account information."><section className="max-w-2xl rounded-2xl border bg-white p-6 shadow-sm"><dl className="grid gap-5 sm:grid-cols-2"><div><dt className="text-xs font-medium text-slate-500">Full name</dt><dd className="mt-2 font-semibold text-slate-900">{displayName}</dd></div><div><dt className="text-xs font-medium text-slate-500">Role</dt><dd className="mt-2 font-semibold capitalize text-slate-900">{role}</dd></div></dl><p className="mt-6 border-t pt-5 text-sm text-slate-500">Profile changes are managed by an administrator.</p></section></Page>; }
 function RealFeatureState({ title, message, href, action }: { readonly title: string; readonly message: string; readonly href?: string; readonly action?: string }) { return <Page title={title} subtitle="Your learning workspace."><section className="rounded-2xl border border-dashed bg-white px-6 py-16 text-center"><FileQuestion className="mx-auto size-9 text-slate-400" /><h2 className="mt-4 font-semibold text-slate-900">{message}</h2>{href && action && <Link href={href as Route} className="mt-5 inline-flex rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white">{action}</Link>}</section></Page>; }
 function EmptyText({ children }: { readonly children: React.ReactNode }) { return <p className="py-10 text-center text-sm text-slate-500">{children}</p>; }
 function formatDate(value: string) { return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)); }

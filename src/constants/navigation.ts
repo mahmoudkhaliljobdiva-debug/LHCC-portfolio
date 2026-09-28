@@ -27,9 +27,7 @@ export const ROLE_NAVIGATION = {
     { label: "Dashboard", href: ROUTES.teacher.dashboard, icon: Gauge },
     { label: "Questions", href: ROUTES.teacher.questions, icon: FileQuestion },
     { label: "Question Banks", href: ROUTES.teacher.questionBanks, icon: BookOpen },
-    { label: "Exams", href: ROUTES.teacher.exams, icon: ClipboardCheck },
-    { label: "Students", href: ROUTES.teacher.students, icon: Users },
-    { label: "Analytics", href: ROUTES.teacher.analytics, icon: BarChart3 },
+    { label: "Profile", href: "/teacher/profile", icon: UserCircle },
   ],
   admin: [
     { label: "Access Requests", href: "/admin/access-requests", icon: ClipboardCheck },

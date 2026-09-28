@@ -308,6 +308,49 @@ export type Database = {
           },
         ]
       }
+      teacher_bank_assignments: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          question_bank_id: string
+          teacher_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          question_bank_id: string
+          teacher_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          question_bank_id?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_bank_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_bank_assignments_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_bank_assignments_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_bank_access: {
         Row: {
           created_at: string
@@ -523,6 +566,7 @@ export type Database = {
     }
     Functions: {
       admin_bank_data: { Args: never; Returns: Json }
+      admin_update_managed_profile: { Args: { payload: Json }; Returns: Json }
       admin_wallet_data: { Args: never; Returns: Json }
       is_profile_access_active: {
         Args: {
@@ -551,6 +595,10 @@ export type Database = {
       submit_bank_answer: {
         Args: { option_id: string; question_id: string }
         Returns: Json
+      }
+      teacher_add_question: {
+        Args: { item_id: string; payload: Json }
+        Returns: undefined
       }
     }
     Enums: {

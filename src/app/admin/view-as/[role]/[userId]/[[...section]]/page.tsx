@@ -7,6 +7,8 @@ import { ContextBoundaryLink } from "@/features/portal-preview/context-boundary-
 import { CourseQuestions } from "@/features/question-banks/course-questions";
 import { QuestionBankGrid } from "@/features/question-banks/question-bank-grid";
 import { TeacherQuestionBankGrid } from "@/features/question-banks/teacher-question-bank-grid";
+import { TeacherBankView } from "@/features/question-banks/teacher-bank-view";
+import { getTeacherBankForAdmin } from "@/lib/teacher/server";
 import { getStudentBanksForAdmin, getStudentCourseForAdmin } from "@/lib/bank-access/server";
 import { getDashboardDataForAdmin, getTeacherBankSummariesForAdmin } from "@/lib/data/server";
 import { getEffectiveProfileStatus } from "@/lib/auth/server";
@@ -19,15 +21,21 @@ export default async function PortalPreview({ params }: { readonly params: Promi
   const base = `/admin/view-as/${role}/${context.subject.id}`;
   const section = values.section?.[0] ?? "dashboard";
   const label = role === "student" ? "Student" : "Teacher";
-  const sections = role === "student" ? ["dashboard", "question-banks", "exams", "analytics", "profile"] : ["dashboard", "questions", "question-banks", "exams", "students", "analytics"];
-  if (!sections.includes(section) && !(role === "student" && section === "banks" && values.section?.length === 2)) notFound();
+  const sections = role === "student" ? ["dashboard", "question-banks", "exams", "analytics", "profile"] : ["dashboard", "questions", "question-banks", "profile"];
+  if (!sections.includes(section) && !(section === "banks" && values.section?.length === 2)) notFound();
   if (section !== "banks" && (values.section?.length ?? 0) > 1) notFound();
   const status = await getEffectiveProfileStatus(context.subject);
   let content: React.ReactNode;
   if (status !== "ACTIVE") {
     content = <p className="rounded-2xl border bg-white p-6 text-slate-600">This account is {status.toLowerCase()}. Its normal portal is unavailable. No learning actions are available.</p>;
+  } else if (role === "teacher" && section === "banks") {
+    const course = await getTeacherBankForAdmin(context.subject.id, values.section![1]!);
+    if (!course) notFound();
+    content = <TeacherBankView course={course} readOnly />;
+  } else if (role === "teacher" && ["dashboard", "question-banks", "questions"].includes(section)) {
+    content = <><div className="mb-7"><h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Assigned question banks</h1><p className="mt-2 text-sm text-slate-500">View and add questions in the banks assigned by your administrator.</p></div><TeacherQuestionBankGrid banks={await getTeacherBankSummariesForAdmin(context.subject.id)} previewBase={base} /></>;
   } else if (section === "question-banks" || section === "questions") {
-    content = role === "student" ? <QuestionBankGrid banks={await getStudentBanksForAdmin(context.subject.id)} previewBase={base} /> : <TeacherQuestionBankGrid banks={await getTeacherBankSummariesForAdmin(context.subject.id)} />;
+    content = <QuestionBankGrid banks={await getStudentBanksForAdmin(context.subject.id)} previewBase={base} />;
   } else if (section === "banks") {
     const course = await getStudentCourseForAdmin(context.subject.id, values.section![1]!);
     content = course ? <><h1 className="mb-6 text-2xl font-semibold text-slate-950">{course.bank.name}</h1><CourseQuestions questions={course.questions} recordedAnswers={course.recordedAnswers} readOnly /></> : <p className="rounded-2xl border bg-white p-6 text-slate-600">This course is unavailable to the selected student.</p>;

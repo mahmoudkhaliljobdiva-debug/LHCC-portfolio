@@ -268,7 +268,7 @@ function StandardPageFields({ section, content, errors, onFieldChange, onItemCha
         <div className="mt-5 grid gap-4">
           {content.items.map((item, index) => (
             <div key={item.id} className="rounded-xl border bg-slate-50 p-4">
-              <div className="mb-4 flex items-center justify-between"><p className="text-sm font-semibold text-slate-800">Item {index + 1}</p><button type="button" onClick={() => onRemoveItem(section, index)} aria-label={`Remove item ${index + 1}`} className="rounded-lg p-2 text-rose-700 hover:bg-rose-50"><Trash2 className="size-4" /></button></div>
+              <div className="mb-4 flex items-center justify-between"><p className="text-sm font-semibold text-slate-800">Item {index + 1}</p><button type="button" onClick={() => onRemoveItem(section, index)} aria-label={`Remove item ${index + 1}`} className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg p-2 text-rose-700 hover:bg-rose-50"><Trash2 className="size-4" /></button></div>
               <div className="grid gap-4">
                 <FormField label="Item title" value={item.title} error={errors[`${section}.items.${index}.title`]} onChange={(value) => onItemChange(section, index, "title", value)} />
                 <FormField label="Item description" value={item.description} error={errors[`${section}.items.${index}.description`]} multiline onChange={(value) => onItemChange(section, index, "description", value)} />

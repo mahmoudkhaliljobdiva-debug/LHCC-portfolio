@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 
 import { authorizeActiveAdmin } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { readAllRows } from "@/lib/supabase/pagination";
-import type { Database } from "@/lib/supabase/database.types";
+import type { Database, Json } from "@/lib/supabase/database.types";
 import { calculateActivationPeriod, getServerDate } from "@/lib/users/activation";
 import {
   managedUserSchema,
@@ -27,19 +28,20 @@ export async function listUsers(): Promise<ServerResult<readonly PlatformUser[]>
 
   try {
     const admin = createAdminClient();
-    const [authUsers, profiles] = await Promise.all([
+    const [authUsers, profiles, assignments] = await Promise.all([
       listAllAuthUsers(admin),
       readAllRows((from, to) => admin
         .from("profiles")
         .select("*")
         .in("role", ["STUDENT", "TEACHER"])
         .order("created_at", { ascending: false }).order("id").range(from, to)),
+      readAllRows((from, to) => admin.from("teacher_bank_assignments").select("teacher_id,question_bank_id").order("teacher_id").order("question_bank_id").range(from, to)),
     ]);
 
     const authById = new Map(authUsers.map((user) => [user.id, user]));
     const users = profiles.flatMap((profile) => {
       const authUser = authById.get(profile.id);
-      return authUser?.email ? [mapPlatformUser(profile, authUser.email)] : [];
+      return authUser?.email ? [mapPlatformUser(profile, authUser.email, assignments.filter(item => item.teacher_id === profile.id).map(item => item.question_bank_id))] : [];
     });
 
     return { ok: true, data: users };
@@ -85,9 +87,7 @@ export async function createUser(input: PlatformUserInput): Promise<ServerResult
       return authMutationFailure(invitationError?.message, "Unable to invite this user.");
     }
 
-    const { data: profile, error: profileError } = await admin
-      .from("profiles")
-      .upsert({
+    const { data: profile, error: profileError } = await persistManagedProfile({
         id: invitation.user.id,
         full_name: parsed.data.fullName,
         phone: parsed.data.phone || null,
@@ -102,9 +102,8 @@ export async function createUser(input: PlatformUserInput): Promise<ServerResult
         created_by: authorization.data.id,
         deactivated_at: parsed.data.status === "inactive" ? new Date().toISOString() : null,
         reactivated_at: null,
-      }, { onConflict: "id" })
-      .select("*")
-      .single();
+        teacherBankIds: parsed.data.role === "teacher" ? parsed.data.teacherBankIds : [],
+      });
 
     if (profileError || !profile) {
       const { error: cleanupError } = await admin.auth.admin.deleteUser(invitation.user.id);
@@ -113,7 +112,7 @@ export async function createUser(input: PlatformUserInput): Promise<ServerResult
     }
 
     revalidateUsers();
-    return { ok: true, data: mapPlatformUser(profile, parsed.data.email) };
+    return { ok: true, data: mapPlatformUser(profile, parsed.data.email, parsed.data.role === "teacher" ? parsed.data.teacherBankIds : []) };
   } catch {
     return failure("INTERNAL_ERROR", "Unable to create the user right now.");
   }
@@ -157,9 +156,7 @@ export async function updateUser(input: UpdateManagedUserInput): Promise<ServerR
     const now = new Date().toISOString();
     const wasEffectivelyActive = target.data.status === "ACTIVE"
       && (target.data.role === "ADMIN" || Boolean(target.data.expiration_date && target.data.expiration_date > now));
-    const { data: profile, error: profileError } = await admin
-      .from("profiles")
-      .update({
+    const { data: profile, error: profileError } = await persistManagedProfile({
         full_name: parsed.data.fullName,
         phone: parsed.data.phone || null,
         age: parsed.data.age,
@@ -176,10 +173,9 @@ export async function updateUser(input: UpdateManagedUserInput): Promise<ServerR
         reactivated_at: parsed.data.status === "active" && !wasEffectivelyActive
           ? now
           : target.data.reactivated_at,
-      })
-      .eq("id", parsed.data.userId)
-      .select("*")
-      .single();
+        id: parsed.data.userId,
+        teacherBankIds: parsed.data.role === "teacher" ? parsed.data.teacherBankIds : [],
+      });
 
     if (profileError || !profile) {
       if (emailChanged) {
@@ -192,7 +188,7 @@ export async function updateUser(input: UpdateManagedUserInput): Promise<ServerR
     }
 
     revalidateUsers();
-    return { ok: true, data: mapPlatformUser(profile, parsed.data.email) };
+    return { ok: true, data: mapPlatformUser(profile, parsed.data.email, parsed.data.role === "teacher" ? parsed.data.teacherBankIds : []) };
   } catch {
     return failure("INTERNAL_ERROR", "Unable to update the user right now.");
   }
@@ -222,7 +218,7 @@ export async function deactivateUser(input: UserIdInput): Promise<ServerResult<P
     if (error || !profile) return failure("INTERNAL_ERROR", "Unable to deactivate the user.");
 
     revalidateUsers();
-    return { ok: true, data: mapPlatformUser(profile, authData.user.email) };
+    return { ok: true, data: mapPlatformUser(profile, authData.user.email, await teacherAssignments(admin, profile.id)) };
   } catch {
     return failure("INTERNAL_ERROR", "Unable to deactivate the user right now.");
   }
@@ -276,7 +272,7 @@ async function reactivateUser(
     if (error || !profile) return failure("INTERNAL_ERROR", "Unable to reactivate the user.");
 
     revalidateUsers();
-    return { ok: true, data: mapPlatformUser(profile, authData.user.email) };
+    return { ok: true, data: mapPlatformUser(profile, authData.user.email, await teacherAssignments(admin, profile.id)) };
   } catch {
     return failure("INTERNAL_ERROR", "Unable to reactivate the user right now.");
   }
@@ -303,8 +299,21 @@ async function listAllAuthUsers(admin: AdminClient): Promise<readonly User[]> {
   return users;
 }
 
-function mapPlatformUser(profile: ProfileRow, email: string): PlatformUser {
+async function persistManagedProfile(payload: Database["public"]["Tables"]["profiles"]["Update"] & { readonly teacherBankIds: readonly string[] }) {
+  const db = await createClient();
+  const { data, error } = await db.rpc("admin_update_managed_profile", { payload: { ...payload, teacherBankIds: [...payload.teacherBankIds] } as Json });
+  return { data: data as unknown as ProfileRow | null, error };
+}
+
+async function teacherAssignments(admin: AdminClient, teacherId: string): Promise<string[]> {
+  const { data, error } = await admin.from("teacher_bank_assignments").select("question_bank_id").eq("teacher_id", teacherId);
+  if (error) throw new Error("Unable to load teacher assignments.");
+  return data.map(item => item.question_bank_id);
+}
+
+function mapPlatformUser(profile: ProfileRow, email: string, teacherBankIds: readonly string[] = []): PlatformUser {
   return {
+    teacherBankIds,
     id: profile.id,
     fullName: profile.full_name,
     email,
@@ -391,4 +400,5 @@ function failure(code: ServerErrorCode, message: string): ServerResult<never> {
 function revalidateUsers(): void {
   revalidatePath("/admin/users");
   revalidatePath("/admin");
+  revalidatePath("/teacher", "layout");
 }

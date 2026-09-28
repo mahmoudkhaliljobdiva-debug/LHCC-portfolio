@@ -5,6 +5,7 @@ export type UserAccountStatus = "active" | "inactive" | "expired";
 export type EffectiveUserStatus = UserAccountStatus | "expiring-soon";
 
 export interface PlatformUser {
+  readonly teacherBankIds?: readonly string[];
   readonly id: string;
   readonly fullName: string;
   readonly email: string;
@@ -35,6 +36,7 @@ export interface StudentBankUsage {
 }
 
 export interface PlatformUserInput {
+  readonly teacherBankIds?: readonly string[];
   readonly fullName: string;
   readonly email: string;
   readonly phone?: string;

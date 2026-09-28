@@ -17,7 +17,7 @@ async function fingerprint() {
 }
 const before = await fingerprint();
 const browser = await startBrowser(base);
-const body = page => page.evaluate(`(() => {const node=document.querySelector('main').cloneNode(true);node.querySelector('[aria-label="View-as mode"]')?.remove();return node.textContent.replace(/Read-only preview\\. Access requests must be made by the student\\./g,'').replace(/\\s+/g,' ').trim();})()`);
+const body = page => page.evaluate(`(() => {const node=document.querySelector('main').cloneNode(true);node.querySelector('[aria-label="View-as mode"]')?.remove();return node.textContent.replace(/Read-only preview\\. Access requests must be made by the student\\./g,'').replace(/View \\/ Add Questions/g,'View Questions').replace(/\\s+/g,' ').trim();})()`);
 const path = (role,key,section='') => `/admin/view-as/${role}/${m.users[key].id}${section ? '/'+section : ''}`;
 async function clickRoute(page,label,destination) {
  await page.click(label);
@@ -30,9 +30,9 @@ try {
   const role = key==='teacher' ? 'teacher' : 'student';
   const page = await browser.page(); await login(page,m.users[key],'/'+role);
   expected[key] = {dashboard:await body(page)};
-  await page.goto('/'+role+'/analytics'); expected[key].analytics=await body(page);
+  await page.goto('/'+role+(role==='teacher'?'/questions':'/analytics')); expected[key].analytics=await body(page);
   await page.goto('/'+role+'/question-banks');
-  expected[key].banks=await page.evaluate("[...document.querySelectorAll('main article')].map(el=>el.textContent.replace(/\\s+/g,' ').trim())");
+  expected[key].banks=await page.evaluate("[...document.querySelectorAll('main article')].map(el=>el.textContent.replace(/View \\/ Add Questions/g,'View Questions').replace(/\\s+/g,' ').trim())");
   await page.goto(path('student','completed'));assert(await page.evaluate("location.pathname==='/unauthorized'"),'non-admin route denied');
   await page.goto('/');
   assert(await page.evaluate(`[...document.querySelectorAll('main a')].find(el=>el.textContent.trim()===${JSON.stringify(role==='student'?'Student portal':'Teacher portal')}).getAttribute('href')===${JSON.stringify('/'+role)}`),'normal own portal unchanged');
@@ -92,14 +92,16 @@ try {
   await clickRoute(page,'Dashboard','/admin');
   console.log('PASS '+role+': selector/search, subject data, change/exit, refresh, actor/session, responsive light/dark');
  }
- await page.goto('/');await clickRoute(page,'Admin portal','/admin');
- assert((await page.text()).includes('Platform overview'),'homepage Admin portal dashboard');
+ await page.goto('/');
+ assert(!await page.evaluate("[...document.querySelectorAll('main a')].some(el=>el.textContent.trim()==='Admin portal')"),'homepage Admin portal card removed');
+ await clickRoute(page,'Dashboard','/admin');
+ assert((await page.text()).includes('Platform overview'),'global Admin Dashboard');
  for(const key of ['approved','completed','locked','pending','rejected','teacher']) {
   const role=key==='teacher'?'teacher':'student';
   await page.goto(path(role,key));assert.equal(await body(page),expected[key].dashboard,key+' dashboard data');
-  await page.goto(path(role,key,'analytics'));assert.equal(await body(page),expected[key].analytics,key+' analytics data');
+  await page.goto(path(role,key,role==='teacher'?'questions':'analytics'));assert.equal(await body(page),expected[key].analytics,key+' portal data');
   await page.goto(path(role,key,'question-banks'));
-  const cards=await page.evaluate("[...document.querySelectorAll('main article')].map(el=>el.textContent.replace(/Read-only preview\\. Access requests must be made by the student\\./g,'').replace(/\\s+/g,' ').trim())");
+  const cards=await page.evaluate("[...document.querySelectorAll('main article')].map(el=>el.textContent.replace(/Read-only preview\\. Access requests must be made by the student\\./g,'').replace(/View \\/ Add Questions/g,'View Questions').replace(/\\s+/g,' ').trim())");
   assert.deepEqual(cards,expected[key].banks,key+' bank grants/requests');
   assert(await page.evaluate("[...document.querySelectorAll('main article button')].every(el=>el.disabled)"),'no access-request writes');
  }

@@ -74,9 +74,14 @@ export function SignupForm({ countryOptions }: { readonly countryOptions: readon
         return;
       }
 
-      setSuccess(result.data.message);
       setPassword("");
       setConfirmPassword("");
+      if (result.data.destination) {
+        // Reload the public layout with the newly issued server Auth cookies.
+        window.location.replace(result.data.destination);
+        return;
+      }
+      setSuccess(result.data.message);
     } catch {
       setError("Registration is temporarily unavailable. Please try again.");
     } finally {
@@ -93,7 +98,7 @@ export function SignupForm({ countryOptions }: { readonly countryOptions: readon
       <p className="mt-8 text-sm font-semibold text-teal-700">Account registration</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Create Account</h1>
       <p className="mt-3 text-sm leading-6 text-slate-500">
-        Create your student account, then sign in to browse courses and request access.
+        Create your student account to enter the website and request access to courses.
       </p>
 
       {error && <div role="alert" className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</div>}

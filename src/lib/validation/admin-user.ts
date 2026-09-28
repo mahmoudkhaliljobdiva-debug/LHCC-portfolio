@@ -24,6 +24,10 @@ export const managedUserSchema = z.object({
   status: z.enum(["active", "inactive"]),
   activationStartDate: dateOnlySchema,
   activationMonths: z.number().int().min(1).max(MAX_TEACHER_ACTIVATION_MONTHS),
+  teacherBankIds: z.array(z.string().trim().min(1).max(200)).max(100).default([]),
+}).superRefine((value, context) => {
+  if (value.role === "teacher" && value.teacherBankIds.length === 0) context.addIssue({ code: "custom", path: ["teacherBankIds"], message: "Assign at least one question bank to the teacher." });
+  if (new Set(value.teacherBankIds).size !== value.teacherBankIds.length) context.addIssue({ code: "custom", path: ["teacherBankIds"], message: "Select each bank only once." });
 });
 
 export const updateManagedUserSchema = managedUserSchema.and(z.object({ userId: z.string().uuid() }));

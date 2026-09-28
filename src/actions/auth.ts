@@ -71,7 +71,7 @@ export async function login(input: LoginInput): Promise<ServerResult<{ destinati
 
 export async function registerAccount(
   input: AccountRegistrationInput,
-): Promise<ServerResult<{ message: string }>> {
+): Promise<ServerResult<{ message: string; destination: "/" | null }>> {
   const parsed = accountRegistrationSchema.safeParse(input);
   if (!parsed.success) return validationFailure(parsed.error.flatten().fieldErrors);
 
@@ -108,13 +108,11 @@ export async function registerAccount(
 
     if (!data.session) {
       // Configuration drift must not report a committed registration as failure.
-      return { ok: true, data: { message: "Registration received. If email verification is requested, check your inbox before signing in." } };
+      return { ok: true, data: { message: "Registration received. If email verification is requested, check your inbox before signing in.", destination: null } };
     }
 
-    // Account creation is separate from course approval. Return to normal sign in.
-    await supabase.auth.signOut();
-
-    return { ok: true, data: { message: "Account created successfully. You can now sign in and request access to courses." } };
+    // Keep the signup session/cookies. Course access still requires approval.
+    return { ok: true, data: { message: "Account created successfully.", destination: "/" } };
   } catch {
     return failure("INTERNAL_ERROR", "Registration is temporarily unavailable. Please try again.");
   }

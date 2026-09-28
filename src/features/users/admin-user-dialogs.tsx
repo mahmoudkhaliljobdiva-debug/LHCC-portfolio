@@ -19,12 +19,12 @@ export type UserDialogState =
 interface UserFormDialogProps {
   readonly state: UserDialogState;
   readonly users: readonly PlatformUser[];
-  readonly bankNames: readonly string[];
+  readonly banks: readonly { readonly id: string; readonly name: string }[];
   readonly onCancel: () => void;
   readonly onSave: (input: PlatformUserInput) => Promise<ServerResult<PlatformUser>>;
 }
 
-export function UserFormDialog({ state, users, onCancel, onSave }: UserFormDialogProps) {
+export function UserFormDialog({ state, users, banks, onCancel, onSave }: UserFormDialogProps) {
   const editing = state.mode === "edit" ? state.user : undefined;
   const [fullName, setFullName] = useState(editing?.fullName ?? "");
   const [email, setEmail] = useState(editing?.email ?? "");
@@ -33,6 +33,7 @@ export function UserFormDialog({ state, users, onCancel, onSave }: UserFormDialo
   const [gender, setGender] = useState<ProfileGender | "">(editing?.gender ?? "");
   const [homeAddress, setHomeAddress] = useState(editing?.homeAddress ?? "");
   const [role, setRole] = useState<ManagedUserRole>(editing?.role ?? "student");
+  const [teacherBankIds, setTeacherBankIds] = useState<readonly string[]>(editing?.teacherBankIds ?? []);
   const [start, setStart] = useState(editing?.activationStartDate ?? getTodayDate());
   const [months, setMonths] = useState(editing?.role === "teacher" ? (editing.activationMonths ?? 1) : 1);
   const [status, setStatus] = useState<Exclude<UserAccountStatus, "expired">>(editing?.status === "inactive" ? "inactive" : "active");
@@ -48,6 +49,7 @@ export function UserFormDialog({ state, users, onCancel, onSave }: UserFormDialo
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = "Enter a valid email address.";
     if (users.some((user) => user.id !== editing?.id && user.email.trim().toLocaleLowerCase() === email.trim().toLocaleLowerCase())) next.email = "This email address is already in use.";
     if (role === "teacher" && !start) next.activationStartDate = "Activation start date is required.";
+    if (role === "teacher" && teacherBankIds.length === 0) next.teacherBankIds = "Select at least one question bank.";
     if (role === "teacher" && (!Number.isInteger(months) || months < 1 || months > 36)) next.activationMonths = "Choose between 1 and 36 months.";
     if (phone.trim().length > 50) next.phone = "Phone number is too long.";
     if (age !== "" && (!Number.isInteger(Number(age)) || Number(age) < MIN_PROFILE_AGE || Number(age) > MAX_PROFILE_AGE)) next.age = `Age must be a whole number between ${MIN_PROFILE_AGE} and ${MAX_PROFILE_AGE}.`;
@@ -66,6 +68,7 @@ export function UserFormDialog({ state, users, onCancel, onSave }: UserFormDialo
         gender: gender || null,
         homeAddress: homeAddress.trim(),
         role,
+        teacherBankIds: role === "teacher" ? teacherBankIds : [],
         status,
         activationStartDate: start,
         activationMonths: role === "student" ? 1 : months,
@@ -113,7 +116,7 @@ export function UserFormDialog({ state, users, onCancel, onSave }: UserFormDialo
             {role === "student" ? <p className="text-sm text-slate-600">Enabled students can sign in. Course approval is managed separately.</p> : <TextField label="Activation duration in months" type="number" min={1} max={36} value={String(months)} error={errors.activationMonths} onChange={(value) => setMonths(Number(value))} />}
           </div>
           {role === "teacher" && <div className="rounded-xl border bg-teal-50 p-4 text-sm"><p className="text-xs font-medium text-slate-500">Preview only — server recalculates expiration</p><p className="mt-1 font-semibold text-slate-900">{expiration ? formatDate(expiration) : "Select a valid date"}</p></div>}
-          <section className="border-t pt-5"><h3 className="font-semibold text-slate-950">Question Bank Access</h3><p className="mt-2 text-sm text-slate-500">Account changes do not grant courses.</p><Link href="/admin/access-requests" className="mt-3 inline-block text-sm font-semibold text-teal-700">Review course access requests</Link></section>
+          {role === "teacher" ? <fieldset className="border-t pt-5"><legend className="font-semibold text-slate-950">Assigned question banks</legend><p className="mt-2 text-sm text-slate-500">Teachers can view and add questions only in these banks. They cannot edit or delete questions.</p><div className="mt-4 grid gap-3 sm:grid-cols-2">{banks.map(bank => <label key={bank.id} className="flex items-center gap-3 rounded-xl border p-3 text-sm text-slate-700"><input type="checkbox" checked={teacherBankIds.includes(bank.id)} disabled={isSaving} onChange={event => setTeacherBankIds(current => event.target.checked ? [...current, bank.id] : current.filter(id => id !== bank.id))} className="size-4 shrink-0 accent-teal-700" />{bank.name}</label>)}</div>{!banks.length && <p className="mt-3 text-sm text-slate-500">Create a question bank before assigning a teacher.</p>}{errors.teacherBankIds && <p role="alert" className="mt-2 text-sm text-rose-700">{errors.teacherBankIds}</p>}</fieldset> : <section className="border-t pt-5"><h3 className="font-semibold text-slate-950">Question Bank Access</h3><p className="mt-2 text-sm text-slate-500">Account changes do not grant courses.</p><Link href="/admin/access-requests" className="mt-3 inline-block text-sm font-semibold text-teal-700">Review course access requests</Link></section>}
         </div>
         <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" disabled={isSaving} onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50">Cancel</button><button type="submit" disabled={isSaving} className="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? "Saving…" : editing ? "Save Changes" : "Send Invitation"}</button></div>
       </form>

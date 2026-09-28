@@ -179,7 +179,6 @@ export default async function HomePage() {
             {[
               { href: profile?.role === "ADMIN" ? "/admin/users?role=STUDENT" : "/student", label: "Student portal" },
               { href: profile?.role === "ADMIN" ? "/admin/users?role=TEACHER" : "/teacher", label: "Teacher portal" },
-              { href: "/admin" as const, label: "Admin portal" },
             ].map((portal) => (
               <Link key={portal.href} href={portal.href as Route} className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50">
                 {portal.label}
