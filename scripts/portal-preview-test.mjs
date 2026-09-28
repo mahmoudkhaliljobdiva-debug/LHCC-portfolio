@@ -106,7 +106,9 @@ try {
   assert(await page.evaluate("[...document.querySelectorAll('main article button')].every(el=>el.disabled)"),'no access-request writes');
  }
  await page.goto(path('student','completed','banks/'+m.banks[0].id));
- assert(await page.evaluate("document.querySelectorAll('main form fieldset').length>0 && [...document.querySelectorAll('main form button,main form fieldset')].every(el=>el.disabled)"),'no answer writes');
+ assert(await page.evaluate("![...document.querySelectorAll('main button')].some(el=>/Start Exam|Submit Exam/.test(el.textContent))"),'no exam mutations from preview bank');
+ const inspect=await page.evaluate("[...document.querySelectorAll('main a')].find(el=>el.textContent.trim()==='Inspect Exam')?.getAttribute('href')");
+ if(inspect){await page.goto(inspect);assert(await page.evaluate("document.querySelectorAll('fieldset').length>0 && [...document.querySelectorAll('fieldset')].every(el=>el.disabled)"),'preview exam selections disabled');}
  for(const invalid of ['/admin/view-as/student/random-id',path('student','teacher'),path('teacher','approved')]) {
   await page.goto(invalid);assert((await page.text()).includes('Page not found'),'invalid target safely rejected');
  }

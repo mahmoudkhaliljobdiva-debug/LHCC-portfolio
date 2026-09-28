@@ -106,6 +106,10 @@ async function readDashboardData(role: AppUserRole, profile: Profile, db: Awaite
     completedAttempts: completed.length,
     answers: answers.length,
     averageScore: reporting.averageScore,
+    correctAnswers: completed.reduce((sum,a) => sum+a.correct_answers,0),
+    accuracy: completed.length ? Math.round(completed.reduce((sum,a) => sum+a.correct_answers,0)*100/completed.reduce((sum,a) => sum+a.total_questions,0)*100)/100 : 0,
+    bestScore: completed.length ? Math.max(...completed.map(a => Number(a.score_percentage))) : null,
+    lastAttempt: attempts.map(a => a.started_at).sort().at(-1) ?? null,
     walletBalance: getWalletSummary(wallet).currentBalance,
   });
 
@@ -161,15 +165,21 @@ async function readTeacherBankSummaries(db: Awaited<ReturnType<typeof createClie
 export async function getAdminUserUsageSummaries(): Promise<readonly UserUsageSummary[]> {
   await requireRole("ADMIN");
   const db = await createClient();
-  const data = await readAllRows((from, to) => db.from("question_attempts").select("student_id,correct_answers,incorrect_answers,updated_at").order("id").range(from, to));
-  const groups = new Map<string, { correct: number; incorrect: number; attempts: number; last: string | null }>();
+  const [data, answers] = await Promise.all([
+    readAllRows((from, to) => db.from("question_attempts").select("id,student_id,correct_answers,incorrect_answers,updated_at").order("id").range(from, to)),
+    readAllRows((from, to) => db.from("question_attempt_answers").select("attempt_id").order("id").range(from, to)),
+  ]);
+  const answerCounts = new Map<string, number>();
+  for (const answer of answers) answerCounts.set(answer.attempt_id,(answerCounts.get(answer.attempt_id) ?? 0)+1);
+  const groups = new Map<string, { correct: number; incorrect: number; answered: number; attempts: number; last: string | null }>();
   for (const item of data) {
-    const group = groups.get(item.student_id) ?? { correct: 0, incorrect: 0, attempts: 0, last: null };
+    const group = groups.get(item.student_id) ?? { correct: 0, incorrect: 0, answered: 0, attempts: 0, last: null };
     group.correct += item.correct_answers; group.incorrect += item.incorrect_answers; group.attempts += 1;
+    group.answered += answerCounts.get(item.id) ?? 0;
     group.last = !group.last || item.updated_at > group.last ? item.updated_at : group.last;
     groups.set(item.student_id, group);
   }
-  return [...groups.entries()].map(([studentId, item]) => ({ studentId, questionsAnswered: item.correct + item.incorrect, attemptsCount: item.attempts, accuracy: item.correct + item.incorrect ? Math.round(item.correct * 100 / (item.correct + item.incorrect)) : 0, lastActivityAt: item.last }));
+  return [...groups.entries()].map(([studentId, item]) => ({ studentId, questionsAnswered: item.answered, attemptsCount: item.attempts, accuracy: item.correct + item.incorrect ? Math.round(item.correct * 100 / (item.correct + item.incorrect)) : 0, lastActivityAt: item.last }));
 }
 
 export async function getStudentActivityData(userId: string): Promise<StudentActivityData> {
@@ -185,23 +195,30 @@ export async function getStudentActivityData(userId: string): Promise<StudentAct
   if (profileResult.error || (authResult.error && authResult.error.status !== 404)) throw new Error("Student activity could not be loaded.");
   const profile = profileResult.data;
   if (!profile || profile.role !== "STUDENT") return { student: null, usage: [], bankNames: {} };
+  const answerRows = await readAllRows((from,to) => db.from("question_attempt_answers")
+    .select("attempt_id,question_attempts!inner(student_id)").eq("question_attempts.student_id",userId).order("id").range(from,to));
   const usage: StudentBankUsage[] = banks.map((bank) => {
     const bankAttempts = attempts.filter((attempt) => attempt.question_bank_id === bank.id);
     const correct = bankAttempts.reduce((sum, item) => sum + item.correct_answers, 0);
     const incorrect = bankAttempts.reduce((sum, item) => sum + item.incorrect_answers, 0);
-    return { studentId: userId, bankId: bank.id, questionsAnswered: correct + incorrect, correctAnswers: correct, incorrectAnswers: incorrect, attemptsCount: bankAttempts.length, lastActivityAt: bankAttempts.map((attempt) => attempt.updated_at).sort().at(-1) ?? null };
+    const attemptIds = new Set(bankAttempts.map(attempt => attempt.id));
+    return { studentId: userId, bankId: bank.id, questionsAnswered: answerRows.filter(answer => attemptIds.has(answer.attempt_id)).length, correctAnswers: correct, incorrectAnswers: incorrect, attemptsCount: bankAttempts.length, lastActivityAt: bankAttempts.map((attempt) => attempt.updated_at).sort().at(-1) ?? null };
   }).filter((item) => item.attemptsCount > 0);
   return { student: { id: profile.id, fullName: profile.full_name, email: authResult.data.user?.email ?? "" }, usage, bankNames: Object.fromEntries(banks.map((bank) => [bank.id, bank.name])) };
 }
 
 function money(value: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value); }
 
-function createMetrics(role: AppUserRole, value: { totalUsers: number; activeStudents: number; activeTeachers: number; participatingStudents: number; banks: number; questions: number; pending: number; approved: number; attempts: number; completedAttempts: number; answers: number; averageScore: number; walletBalance: number }): readonly DashboardMetric[] {
+function createMetrics(role: AppUserRole, value: { totalUsers: number; activeStudents: number; activeTeachers: number; participatingStudents: number; banks: number; questions: number; pending: number; approved: number; attempts: number; completedAttempts: number; answers: number; averageScore: number; walletBalance: number; correctAnswers: number; accuracy: number; bestScore: number | null; lastAttempt: string | null }): readonly DashboardMetric[] {
   if (role === "student") return [
     { label: "Average score", value: `${value.averageScore}%`, helper: "Completed attempts", icon: "score" },
     { label: "Questions answered", value: String(value.answers), helper: "Recorded answers", icon: "answers" },
     { label: "Attempts", value: String(value.attempts), helper: "Across all banks", icon: "attempts" },
     { label: "Approved banks", value: String(value.approved), helper: `${value.pending} pending · ${Math.max(0, value.banks - value.approved - value.pending)} locked`, icon: "banks" },
+    { label: "Correct answers", value: String(value.correctAnswers), helper: "Completed attempts", icon: "answers" },
+    { label: "Accuracy", value: `${value.accuracy}%`, helper: "Completed question totals", icon: "score" },
+    { label: "Best score", value: value.bestScore === null ? "—" : `${value.bestScore.toFixed(2)}%`, helper: "Completed attempts", icon: "score" },
+    { label: "Last attempt", value: value.lastAttempt ? value.lastAttempt.slice(0,10) : "—", helper: "Most recently started · UTC", icon: "attempts" },
   ];
   if (role === "teacher") return [
     { label: "Participating students", value: String(value.participatingStudents), helper: "Learners with recorded attempts", icon: "students" },

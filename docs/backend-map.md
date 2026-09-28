@@ -1,6 +1,6 @@
 # Backend map and production data audit
 
-Updated: 2026-09-20. Baseline: `9465fbe` on `main`.
+Updated: 2026-09-28. Historical baseline: `9465fbe`; current exam architecture below.
 Production: https://lhcc-lb.com (also https://lhcc-portfolio.vercel.app).
 Supabase: `lcazjsmmegwwnmuupsko`. Vercel: `lhcc-portfolio`.
 
@@ -21,8 +21,8 @@ Form drafts, filters, open dialogs, and feedback are transient UI state.
 | Admin banks/questions: `/admin/question-banks/**` | `question_banks`, `bank_questions`, `private.question_solutions` | `getAdminBankData` → `admin_bank_data` RPC | `manageBankContent` → `manage_bank_content` RPC | ADMIN/status checked in action and private RPC. Correct answers are returned only by the admin RPC. |
 | Question options | `bank_questions.options` JSONB; `private.question_solutions` | Student allowlist contains only option id/text; admin RPC merges answer keys | Same question management RPC | Existing canonical schema uses JSONB options, not separate `questions` or `question_options` tables. No duplicate concepts added. |
 | Access review: `/admin/access-requests` | requests, grants, banks, profiles, wallet ledger | `getAdminRequests` → `list_bank_access_requests` RPC | `approveBankAccessRequest` / `rejectBankAccessRequest` → `review_bank_access` | Admin-only; row locking, pending-state check, active student/bank checks; trusted bank price. |
-| Approved course: `/student/banks/[bankId]` | banks, questions, grants, attempts, answers | `getStudentCourse` checks grant and active bank, then loads safe questions and most recent active/completed attempt | `submitBankAnswer` → `submit_bank_answer` | STUDENT/status and grant checked server-side and inside RPC/RLS. In-progress and completed answer feedback reloads from saved rows. |
-| Attempts and answers | `question_attempts`, `question_attempt_answers`, private solutions | Own attempts/answers through RLS; authorized staff reporting | First answer creates an attempt; selected option is validated and graded by backend; last answer completes and scores it | No direct client writes. Student cannot write a score or inspect another student's attempts. One in-progress attempt per student/bank; one answer per attempt/question. |
+| Approved bank and exams: `/student/banks/[bankId]`, `/student/exams/**` | banks, grants, attempts, answers, ordered snapshots, private frozen solutions | `getExamBank` / `getExamAttempt` → safe read RPCs | `startExam`, `saveExamAnswer`, `submitExam` → secured RPCs | Active STUDENT + approved bank; fixed up-to-30 random exam, saved selections, submission-only grading. See `docs/student-exams.md`. |
+| Attempts and answers | `question_attempts`, `question_attempt_answers`, `question_attempt_questions`, private frozen keys | Own authorized exam/history; active ADMIN read-only preview | Atomic start/save/submit RPCs | One in-progress attempt per bank/student; unique selections; frozen text/options/keys; no correctness before submit; two-decimal idempotent grading. |
 | Student progress/dashboard/analytics: `/student`, `/student/analytics` | own attempts/answers, active banks, own requests/grants, allowed questions | `getDashboardData("student")` → session client, paged RLS queries → pure reporting functions | Derived from answer and access operations | No administrative client for students. Accuracy/score and counts come from stored records. Progress counts unique active questions rather than repeated answers. |
 | Teacher questions: `/teacher`, `/teacher/questions`, `/teacher/question-banks`, `/teacher/question-banks/[bankId]` | `teacher_bank_assignments`, active banks, questions | Session client + assignment-scoped RLS; `getTeacherBank` | `addTeacherQuestion` → insert-only `teacher_add_question` RPC | Active teacher + assigned active bank required. No existing-question editing/deletion, answer-key reads, or institution-wide reporting. |
 | Admin dashboard: `/admin` | profiles, banks/questions, requests/grants, attempts/answers, portfolio, ledger | `getDashboardData("admin")`; learning data through RLS, verified admin profile directory read, guarded wallet RPC | Derived from real operations | ADMIN required before reads. Active teacher count excludes expired activation periods. All totals are based on database rows. |
@@ -31,7 +31,7 @@ Form drafts, filters, open dialogs, and feedback are transient UI state.
 | Portfolio editor: `/admin/portfolio` | `portfolio_content` | `getPortfolioContent` → published DB content | `savePortfolioContent` / `resetPortfolioContent` → RPCs | ADMIN guarded server action and private function; validation in TypeScript and database. Draft state is not persistence. |
 | Public portfolio: `/about`, `/services`, `/platform`, `/contact` | `portfolio_content` | Server component → `getPortfolioContent` | None for public visitors | Public column-limited SELECT of published rows. Defaults/audit columns not exposed. Empty content gets a coming-soon state; malformed/incomplete content or failure gets error boundary. |
 | Recent activity | existing timestamped rows above | Attempts, requests/reviews; admins also see new profiles, wallet entries, edited portfolio rows | No second event store | Role-visible records only, sorted by event timestamp. Not a complete historical audit log: portfolio keeps latest revision only. |
-| Exams | No implemented exam table | Explicit not-configured state | None | No fabricated exam dates, records, counts, or new teacher permissions. |
+| Exam history and results | Same canonical attempts/answers/snapshots | `/student/exams`, completed result/review; dashboard reporting | Existing exam operations only | Own completed results retained after grant revocation; unfinished exams require current access; no separate exam source of truth. |
 | Homepage | Static editorial content only | Server-rendered marketing labels; no personal statistics | Code change for homepage copy | Fixed bank count removed. No fake users/scores/transactions. CMS scope remains the four public portfolio pages. |
 
 ## Database relationship map
@@ -86,18 +86,15 @@ private functions with a fixed empty search path.
 | `requestBankAccess(bankId)` → `request_bank_access` | Active STUDENT, active ungranted bank | New PENDING request; duplicate pending prevented; prior decisions retained. |
 | approve/reject → `review_bank_access(request_id,decision,reason)` | Active ADMIN | Reviewed timestamp/reviewer; approval activates grant and inserts one BANK_SALE for paid access in one transaction. Retry cannot create duplicate sale. |
 | `manageBankContent(operation,id,input)` → `manage_bank_content` | Active ADMIN; save/delete bank or question | Persistent content with QCU validation; FK-protected deletion respects existing history. |
-| `submitBankAnswer(questionId,optionId)` → `submit_bank_answer` | Active STUDENT with approved active bank | Serializes attempt creation, validates option, grades via private key, stores answer and score; returns correctness, attempt id, completion flag, score. In-progress and completed retries return the saved result. |
+| `startExam`, `saveExamAnswer`, `submitExam` | Active STUDENT, validated IDs/options | Backend freezes up to 30 eligible questions/order, persists ungraded selections, then grades frozen keys atomically. Old immediate-feedback RPC retired. |
 | `savePortfolioContent(input)` → `save_portfolio_content(payload)` | Active ADMIN; complete validated four-section model | Atomic content/revision update and cache revalidation; returns persisted published content. |
 | `resetPortfolioContent()` → `reset_portfolio_content` | Active ADMIN, UI confirmation | Restores DB `default_content`, increments revision and revalidates. No frontend default import. |
 | `createWalletTicket` / `updateWalletTicket` / `deleteWalletTicket` → `manage_wallet_transaction` | Active ADMIN; manual income/expense id, amount/date/text | Writes only manual types; automatic transactions are read-only through this operation. |
 | `admin_bank_data`, `list_bank_access_requests`, `admin_wallet_data` | Active ADMIN | Guarded read RPCs with safe result shaping for admin controls. |
 
-There are no separate `startAttempt`/`completeAttempt` actions: the answer
-submission RPC owns those transitions. There is currently no explicit retake UI.
-The latest active or completed attempt is reused, so sequential and concurrent
-retries cannot create a second completed attempt. Changing the question set
-during an attempt, an explicit retake workflow, and full exam scheduling need
-separate product rules.
+The current exam lifecycle has explicit start/save/submit operations and retakes.
+Earlier immediate-feedback practice behavior is retired; stored history remains.
+See `docs/student-exams.md` for snapshot, revocation, scoring and security rules.
 
 ## RLS, constraints, and secret review
 
@@ -114,10 +111,10 @@ separate product rules.
 | `wallet_transactions` | `no_direct_wallet_access`, no browser table grants; guarded RPC only. |
 | `portfolio_content` | `published_portfolio_content`; only published rows and explicit safe columns public. Writes guarded. |
 
-All nine public application tables and the private solution table have RLS.
-Existing own-history policies permit a suspended student to read their *own*
-historical attempts via direct API, while app access and question submission are
-denied. This is the existing policy, not broadened in this task.
+All public application tables and private solution tables have RLS. Attempt reads
+now require an active student owning the record or an active ADMIN. In-progress
+EXAM access additionally requires an active bank grant. Completed results remain
+available to their active student owner after grant revocation.
 
 Constraints checked: profile/Auth one-to-one, valid enums and activation bundle,
 nonnegative bank/access price, unique user-bank grant, unique pending request,

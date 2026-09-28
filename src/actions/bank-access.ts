@@ -6,15 +6,8 @@ import { authorizeActiveAdmin } from "@/lib/auth/admin";
 import { getAuthenticatedProfile, getEffectiveProfileStatus } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import type { ServerResult } from "@/types/server-result";
-import type { AnswerSubmission } from "@/types/bank-access";
 
 const idSchema = z.string().trim().min(1).max(200);
-const answerSubmissionSchema = z.object({
-  correct: z.boolean(),
-  attemptId: z.uuid(),
-  completed: z.boolean(),
-  scorePercentage: z.coerce.number().min(0).max(100),
-});
 const failure = (message: string): ServerResult<never> => ({ ok: false, error: { code: "FORBIDDEN", message } });
 
 async function studentAuthorized() {
@@ -54,18 +47,6 @@ async function review(requestId: string, decision: "APPROVED" | "REJECTED", reas
 export async function approveBankAccessRequest(requestId: string) { return review(requestId, "APPROVED", null); }
 export async function rejectBankAccessRequest(requestId: string, reason: string) { return review(requestId, "REJECTED", reason); }
 
-export async function submitBankAnswer(questionId: string, optionId: string): Promise<ServerResult<AnswerSubmission>> {
-  try {
-    if (!idSchema.safeParse(questionId).success || !idSchema.safeParse(optionId).success || !await studentAuthorized()) return failure("Student access required.");
-    const db = await createClient();
-    const { data, error } = await db.rpc("submit_bank_answer", { question_id: questionId, option_id: optionId });
-    if (error) return failure("Unable to submit this answer. Check your course access and try again.");
-    const parsed = answerSubmissionSchema.safeParse(data);
-    if (!parsed.success) return failure("Unable to read the saved answer result.");
-    revalidatePath("/student", "layout");
-    return { ok: true, data: parsed.data };
-  } catch { return failure("Unable to submit your answer."); }
-}
 
 function refreshAccess() {
   revalidatePath("/student", "layout");

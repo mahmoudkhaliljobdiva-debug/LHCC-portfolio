@@ -4,12 +4,16 @@ import { notFound } from "next/navigation";
 
 import { AnalyticsPage, DashboardHome } from "@/features/dashboard/role-screen";
 import { ContextBoundaryLink } from "@/features/portal-preview/context-boundary-link";
-import { CourseQuestions } from "@/features/question-banks/course-questions";
+import { ExamBankDetails } from "@/features/exams/bank-details";
+import { ExamForm } from "@/features/exams/exam-form";
+import { ExamResult } from "@/features/exams/exam-result";
+import { getExamBank, getExamAttempt } from "@/lib/exams/server";
+import { ExamHistory } from "@/features/exams/exam-history";
 import { QuestionBankGrid } from "@/features/question-banks/question-bank-grid";
 import { TeacherQuestionBankGrid } from "@/features/question-banks/teacher-question-bank-grid";
 import { TeacherBankView } from "@/features/question-banks/teacher-bank-view";
 import { getTeacherBankForAdmin } from "@/lib/teacher/server";
-import { getStudentBanksForAdmin, getStudentCourseForAdmin } from "@/lib/bank-access/server";
+import { getStudentBanksForAdmin } from "@/lib/bank-access/server";
 import { getDashboardDataForAdmin, getTeacherBankSummariesForAdmin } from "@/lib/data/server";
 import { getEffectiveProfileStatus } from "@/lib/auth/server";
 import { getPortalPreviewContext, parsePreviewRole } from "@/lib/portal-preview/server";
@@ -23,7 +27,8 @@ export default async function PortalPreview({ params }: { readonly params: Promi
   const label = role === "student" ? "Student" : "Teacher";
   const sections = role === "student" ? ["dashboard", "question-banks", "exams", "analytics", "profile"] : ["dashboard", "questions", "question-banks", "profile"];
   if (!sections.includes(section) && !(section === "banks" && values.section?.length === 2)) notFound();
-  if (section !== "banks" && (values.section?.length ?? 0) > 1) notFound();
+  if (section !== "banks" && section !== "exams" && (values.section?.length ?? 0) > 1) notFound();
+  if (section === "exams" && ((values.section?.length ?? 0) > 3 || (values.section?.length === 3 && values.section[2] !== "result"))) notFound();
   const status = await getEffectiveProfileStatus(context.subject);
   let content: React.ReactNode;
   if (status !== "ACTIVE") {
@@ -37,12 +42,16 @@ export default async function PortalPreview({ params }: { readonly params: Promi
   } else if (section === "question-banks" || section === "questions") {
     content = <QuestionBankGrid banks={await getStudentBanksForAdmin(context.subject.id)} previewBase={base} />;
   } else if (section === "banks") {
-    const course = await getStudentCourseForAdmin(context.subject.id, values.section![1]!);
-    content = course ? <><h1 className="mb-6 text-2xl font-semibold text-slate-950">{course.bank.name}</h1><CourseQuestions questions={course.questions} recordedAnswers={course.recordedAnswers} readOnly /></> : <p className="rounded-2xl border bg-white p-6 text-slate-600">This course is unavailable to the selected student.</p>;
+    const course = await getExamBank(values.section![1]!, context.subject.id);
+    content = course ? <ExamBankDetails bank={course} previewBase={base} /> : <p className="rounded-2xl border bg-white p-6 text-slate-600">This course is unavailable to the selected student.</p>;
   } else if (section === "profile") {
     content = <section className="rounded-2xl border bg-white p-6"><h1 className="text-2xl font-semibold text-slate-950">Your profile</h1><dl className="mt-5 grid gap-4 text-sm text-slate-700"><div><dt>Full name</dt><dd className="font-semibold">{context.subject.full_name}</dd></div><div><dt>Email</dt><dd>{context.email}</dd></div><div><dt>Role</dt><dd>{context.subject.role}</dd></div></dl></section>;
   } else if (section === "exams") {
-    content = <p className="rounded-2xl border bg-white p-6 text-slate-600">Exams are not configured for this platform yet.</p>;
+    if (values.section?.[1]) {
+      const exam = await getExamAttempt(values.section[1], context.subject.id);
+      if (!exam || exam.status === "ABANDONED") notFound();
+      content = exam.status === "COMPLETED" ? <ExamResult exam={exam} previewBase={base} /> : <ExamForm key={exam.id} exam={exam} readOnly />;
+    } else content = <ExamHistory subjectId={context.subject.id} previewBase={base} />;
   } else {
     const data = await getDashboardDataForAdmin(role, context.subject.id);
     content = section === "dashboard" ? <><DashboardHome role={role} data={data} />{role === "student" && <section className="mt-7"><h2 className="mb-4 text-xl font-semibold text-slate-950">Explore courses</h2><QuestionBankGrid banks={await getStudentBanksForAdmin(context.subject.id)} previewBase={base} /></section>}</> : <AnalyticsPage title={section === "students" ? "Student cohorts" : "Performance analytics"} data={data} />;

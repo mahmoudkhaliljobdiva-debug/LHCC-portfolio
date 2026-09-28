@@ -162,7 +162,7 @@ export type Database = {
           attempt_id: string
           created_at: string
           id: string
-          is_correct: boolean
+          is_correct: boolean | null
           question_id: string
           selected_option_id: string
         }
@@ -171,7 +171,7 @@ export type Database = {
           attempt_id: string
           created_at?: string
           id?: string
-          is_correct: boolean
+          is_correct?: boolean | null
           question_id: string
           selected_option_id: string
         }
@@ -180,7 +180,7 @@ export type Database = {
           attempt_id?: string
           created_at?: string
           id?: string
-          is_correct?: boolean
+          is_correct?: boolean | null
           question_id?: string
           selected_option_id?: string
         }
@@ -201,12 +201,56 @@ export type Database = {
           },
         ]
       }
+      question_attempt_questions: {
+        Row: {
+          attempt_id: string
+          created_at: string
+          display_order: number
+          options: Json
+          question_id: string
+          text: string
+        }
+        Insert: {
+          attempt_id: string
+          created_at?: string
+          display_order: number
+          options: Json
+          question_id: string
+          text: string
+        }
+        Update: {
+          attempt_id?: string
+          created_at?: string
+          display_order?: number
+          options?: Json
+          question_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_attempt_questions_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "question_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_attempt_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "bank_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       question_attempts: {
         Row: {
+          bank_name_snapshot: string | null
           correct_answers: number
           created_at: string
           id: string
           incorrect_answers: number
+          mode: string
           question_bank_id: string
           score_percentage: number
           started_at: string
@@ -217,10 +261,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bank_name_snapshot?: string | null
           correct_answers?: number
           created_at?: string
           id?: string
           incorrect_answers?: number
+          mode?: string
           question_bank_id: string
           score_percentage?: number
           started_at?: string
@@ -231,10 +277,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bank_name_snapshot?: string | null
           correct_answers?: number
           created_at?: string
           id?: string
           incorrect_answers?: number
+          mode?: string
           question_bank_id?: string
           score_percentage?: number
           started_at?: string
@@ -568,6 +616,14 @@ export type Database = {
       admin_bank_data: { Args: never; Returns: Json }
       admin_update_managed_profile: { Args: { payload: Json }; Returns: Json }
       admin_wallet_data: { Args: never; Returns: Json }
+      exam_bank_data: {
+        Args: { bank_id: string; subject_id?: string }
+        Returns: Json
+      }
+      exam_data: {
+        Args: { attempt_id: string; subject_id?: string }
+        Returns: Json
+      }
       is_profile_access_active: {
         Args: {
           profile_expiration_date: string
@@ -591,11 +647,17 @@ export type Database = {
         Args: { decision: string; reason?: string; request_id: string }
         Returns: undefined
       }
+      save_exam_answer: {
+        Args: { attempt_id: string; option_id: string; question_id: string }
+        Returns: undefined
+      }
       save_portfolio_content: { Args: { payload: Json }; Returns: undefined }
+      start_exam: { Args: { bank_id: string }; Returns: string }
       submit_bank_answer: {
         Args: { option_id: string; question_id: string }
         Returns: Json
       }
+      submit_exam: { Args: { attempt_id: string }; Returns: string }
       teacher_add_question: {
         Args: { item_id: string; payload: Json }
         Returns: undefined

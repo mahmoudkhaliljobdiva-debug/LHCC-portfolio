@@ -1,0 +1,18 @@
+import Link from "next/link";
+import type { Route } from "next";
+import type { ExamBank } from "@/types/exam";
+import { StartExamButton } from "@/features/exams/start-exam-button";
+
+export function ExamBankDetails({ bank, previewBase }: { bank: ExamBank; previewBase?: string }) {
+  const unfinished = bank.attempts.find(a => a.mode === "EXAM" && a.status === "IN_PROGRESS");
+  const completed = bank.attempts.filter(a => a.status === "COMPLETED");
+  const best = completed.length ? Math.max(...completed.map(a => a.score ?? 0)) : null;
+  const examUrl = (id: string) => `${previewBase ?? "/student"}/exams/${id}` as Route;
+  return <div className="space-y-6"><header><h1 className="text-2xl font-semibold text-slate-950 sm:text-3xl">{bank.name}</h1><p className="mt-3 text-slate-600">{bank.description}</p></header>
+    <section className="rounded-2xl border bg-white p-5 sm:p-7"><h2 className="text-lg font-semibold text-slate-950">Question Bank Exam</h2><dl className="mt-5 grid grid-cols-2 gap-5 text-sm sm:grid-cols-4">{[["Available questions",bank.available],["Exam questions",bank.examCount],["Completed attempts",completed.length],["Best score",best === null ? "—" : `${best.toFixed(2)}%`]].map(([label,value]) => <div key={label}><dt className="text-slate-500">{label}</dt><dd className="mt-2 text-xl font-semibold text-slate-950">{value}</dd></div>)}</dl>
+      <p className="mt-6 text-sm text-slate-600">{unfinished ? `Your unfinished exam contains ${unfinished.totalQuestions} questions.` : bank.examCount ? `This exam contains ${bank.examCount} questions. Answers are saved as you go; grading happens after submission.` : "No questions are currently available for this question bank."}</p>
+      <div className="mt-5">{unfinished ? <Link className="inline-flex rounded-xl bg-teal-700 px-5 py-3 font-semibold text-white" href={examUrl(unfinished.id)}>{previewBase ? "Inspect Exam" : "Continue Exam"}</Link> : previewBase ? <p className="text-sm text-slate-600">Read-only preview. Administrators cannot start exams as this student.</p> : <StartExamButton bankId={bank.id} disabled={!bank.examCount} />}</div>
+    </section>
+    <section className="rounded-2xl border bg-white p-5 sm:p-7"><h2 className="text-lg font-semibold text-slate-950">Previous Attempts</h2>{!bank.attempts.length ? <p className="mt-4 text-sm text-slate-500">No attempts yet.</p> : <ul className="mt-4 divide-y">{bank.attempts.map(a => <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm"><div><p className="font-medium text-slate-950">{new Date(a.submittedAt ?? a.startedAt).toLocaleString("en-GB", { timeZone: "UTC" })} UTC</p><p className="mt-1 text-slate-500">{a.totalQuestions} questions · {a.status.replaceAll("_", " ").toLowerCase()} {a.mode === "PRACTICE" ? "· Previous practice" : ""}</p></div>{a.score !== null && <span className="font-semibold text-teal-700 dark:text-teal-200">{a.score.toFixed(2)}%</span>}{a.mode === "EXAM" && a.status !== "ABANDONED" && <Link className="rounded-lg border px-4 py-3 font-semibold text-slate-700" href={examUrl(a.id)}>{a.status === "COMPLETED" ? "View Result" : previewBase ? "Inspect Exam" : "Continue Exam"}</Link>}</li>)}</ul>}</section>
+  </div>;
+}
