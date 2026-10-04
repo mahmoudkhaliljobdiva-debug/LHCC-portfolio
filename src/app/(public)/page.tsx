@@ -13,6 +13,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import type { Metadata } from "next";
 import { getAuthenticatedProfile, portalForRole } from "@/lib/auth/server";
+import { HomeHeroEntrance } from "@/features/marketing/home-hero-entrance";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -48,9 +49,9 @@ export default async function HomePage() {
     <>
       <section className="relative overflow-hidden bg-white">
         <div className="absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_70%_20%,#f5ddd6_0,transparent_42%)]" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-14 sm:py-20 lg:min-h-[690px] lg:grid-cols-[1.04fr_.96fr] lg:gap-14 lg:px-8">
-          <div>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-teal-800">
+        <HomeHeroEntrance>
+          <div className="lhcc-hero-copy">
+            <div className="lhcc-connected-pill mb-6 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-teal-800">
               <Sparkles className="size-3.5" />
               Healthcare learning, connected
             </div>
@@ -84,44 +85,44 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-xl">
-            <div className="absolute -inset-3 rounded-3xl bg-coral-100/70 sm:-inset-5 sm:rounded-[36px]" />
-            <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_30px_80px_-30px_rgba(15,52,75,.35)] sm:rounded-[28px] sm:p-7">
+          <div className="lhcc-hero-panel relative mx-auto w-full max-w-xl">
+            <div aria-hidden="true" className="lhcc-aurora-frame absolute -inset-3 rounded-3xl sm:-inset-5 sm:rounded-[36px]" />
+            <div className="lhcc-hero-card relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_30px_80px_-30px_rgba(15,52,75,.35)] sm:rounded-[28px] sm:p-7">
               <div className="flex items-center justify-between border-b border-slate-100 pb-5">
                 <div>
                   <p className="text-xs font-semibold tracking-wide text-teal-700 uppercase">Today&apos;s focus</p>
                   <h2 className="mt-1 text-xl font-semibold text-slate-950">Clinical mastery</h2>
                 </div>
-                <span className="grid size-11 place-items-center rounded-full bg-teal-50 text-teal-700">
+                <span className="lhcc-heart-mark grid size-11 place-items-center rounded-full bg-teal-50 text-teal-700">
                   <HeartPulse />
                 </span>
               </div>
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl bg-[#0d3852] p-5 text-white">
+                <div className="lhcc-analytics-card rounded-2xl bg-[#0d3852] p-5 text-white">
                   <p className="text-sm text-sky-100">Performance analytics</p>
                   <p className="mt-2 text-4xl font-semibold">Live</p>
                   <p className="mt-6 text-xs text-sky-100">Calculated from completed attempts</p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 p-5">
+                <div className="lhcc-progress-card rounded-2xl border border-slate-200 p-5">
                   <p className="text-sm text-slate-500">Learning progress</p>
                   <p className="mt-2 text-4xl font-semibold text-slate-950">Saved</p>
                   <p className="mt-6 text-xs text-slate-500">Available after every sign-in</p>
                 </div>
               </div>
-              <div className="mt-4 rounded-2xl border border-slate-200 p-5">
+              <div className="lhcc-continue-row mt-4 rounded-2xl border border-slate-200 p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-900">Continue learning</p>
                     <p className="mt-1 text-sm text-slate-500">Resume an approved question bank on any device</p>
                   </div>
-                  <span className="grid size-10 place-items-center rounded-full bg-teal-600 text-white">
+                  <span className="lhcc-continue-arrow grid size-10 place-items-center rounded-full bg-teal-600 text-white">
                     <ArrowRight className="size-4" />
                   </span>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </HomeHeroEntrance>
       </section>
 
       <section className="border-y border-slate-200 bg-slate-50 py-16 sm:py-20">

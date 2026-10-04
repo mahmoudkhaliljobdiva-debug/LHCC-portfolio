@@ -188,6 +188,186 @@ select { appearance: none; padding-right: 2.5rem !important; background-image: u
   }
 }
 
+/* Home hero: motion stays on decorative layers, not on the reading surface. */
+.lhcc-aurora-frame {
+  overflow: hidden;
+  background: #24556b;
+  box-shadow: 0 0 19px 2px rgb(52 182 201 / 0.2);
+  animation: lhcc-aurora-glow 12s ease-in-out infinite;
+}
+
+.lhcc-aurora-frame::before {
+  position: absolute;
+  inset: -50%;
+  content: "";
+  background: conic-gradient(from 0deg, #0f4c5c, #168aad 22%, #34b6c9 39%, #6c63b5 57%, #b56f8c 73%, #d5b7a8 84%, #0f4c5c);
+  animation: lhcc-aurora-turn 12s linear infinite;
+}
+
+.lhcc-hero-card {
+  background-image: radial-gradient(circle at 82% 15%, rgb(52 182 201 / 0.045), transparent 42%),
+    radial-gradient(circle at 10% 86%, rgb(108 99 181 / 0.035), transparent 45%);
+  background-size: 160% 160%;
+  animation: lhcc-ambient-drift 18s ease-in-out infinite alternate;
+}
+
+.dark .lhcc-hero-card {
+  background-image: radial-gradient(circle at 82% 15%, rgb(52 182 201 / 0.075), transparent 42%),
+    radial-gradient(circle at 10% 86%, rgb(108 99 181 / 0.055), transparent 45%);
+}
+
+.lhcc-connected-pill {
+  animation: lhcc-pill-highlight 12s ease-in-out infinite;
+}
+
+.lhcc-heart-mark {
+  animation: lhcc-heart-breathe 3.8s ease-in-out infinite;
+}
+
+.lhcc-analytics-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.lhcc-analytics-card::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: "";
+  background: linear-gradient(105deg, transparent 18%, rgb(87 199 218 / 0.11) 50%, transparent 82%);
+  transform: translateX(-115%);
+  animation: lhcc-analytics-glint 12s ease-in-out infinite;
+}
+
+.lhcc-analytics-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.lhcc-progress-card {
+  animation: lhcc-progress-highlight 12s ease-in-out infinite;
+}
+
+.lhcc-continue-arrow,
+.lhcc-continue-arrow svg {
+  transition: transform 280ms ease, box-shadow 280ms ease;
+}
+
+.lhcc-hero-waiting > .lhcc-hero-copy,
+.lhcc-hero-waiting > .lhcc-hero-panel {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.lhcc-hero-entered > .lhcc-hero-copy {
+  animation: lhcc-hero-arrive 720ms cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.lhcc-hero-entered > .lhcc-hero-panel {
+  animation: lhcc-hero-arrive 820ms cubic-bezier(.22, 1, .36, 1) 90ms both;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lhcc-hero-panel:hover .lhcc-hero-card {
+    transform: translateY(-2px);
+  }
+
+  .lhcc-hero-panel:hover .lhcc-aurora-frame {
+    box-shadow: 0 0 24px 3px rgb(52 182 201 / 0.28);
+  }
+
+  .lhcc-hero-card {
+    transition: transform 300ms ease;
+  }
+
+  .lhcc-continue-row:hover .lhcc-continue-arrow {
+    transform: scale(1.05);
+    box-shadow: 0 0 16px rgb(52 182 201 / 0.3);
+  }
+
+  .lhcc-continue-row:hover .lhcc-continue-arrow svg {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes lhcc-aurora-turn {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes lhcc-aurora-glow {
+  0%, 100% { box-shadow: 0 0 19px 2px rgb(52 182 201 / 0.2); }
+  40% { box-shadow: 0 0 21px 2px rgb(48 108 172 / 0.22); }
+  70% { box-shadow: 0 0 20px 2px rgb(108 99 181 / 0.18); }
+}
+
+@keyframes lhcc-ambient-drift {
+  from { background-position: 0% 0%; }
+  to { background-position: 70% 50%; }
+}
+
+@keyframes lhcc-pill-highlight {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(52 182 201 / 0); }
+  35% { box-shadow: 0 0 0 2px rgb(52 182 201 / 0.14); }
+  70% { box-shadow: 0 0 0 1px rgb(108 99 181 / 0.12); }
+}
+
+@keyframes lhcc-heart-breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgb(52 182 201 / 0); }
+  50% { transform: scale(1.04); box-shadow: 0 0 15px rgb(52 182 201 / 0.16); }
+}
+
+@keyframes lhcc-analytics-glint {
+  0%, 18%, 100% { transform: translateX(-115%); }
+  48%, 65% { transform: translateX(115%); }
+}
+
+@keyframes lhcc-progress-highlight {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgb(52 182 201 / 0); }
+  58% { box-shadow: inset 0 0 0 1px rgb(52 182 201 / 0.18); }
+}
+
+@keyframes lhcc-hero-arrive {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (hover: none) {
+  .lhcc-hero-card,
+  .lhcc-connected-pill,
+  .lhcc-analytics-card::before,
+  .lhcc-progress-card {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lhcc-aurora-frame,
+  .lhcc-aurora-frame::before,
+  .lhcc-hero-card,
+  .lhcc-connected-pill,
+  .lhcc-heart-mark,
+  .lhcc-analytics-card::before,
+  .lhcc-progress-card,
+  .lhcc-hero-entered > .lhcc-hero-copy,
+  .lhcc-hero-entered > .lhcc-hero-panel {
+    animation: none !important;
+  }
+
+  .lhcc-hero-waiting > .lhcc-hero-copy,
+  .lhcc-hero-waiting > .lhcc-hero-panel,
+  .lhcc-hero-panel:hover .lhcc-hero-card,
+  .lhcc-continue-row:hover .lhcc-continue-arrow,
+  .lhcc-continue-row:hover .lhcc-continue-arrow svg {
+    opacity: 1;
+    transform: none;
+  }
+
+  .lhcc-analytics-card::before {
+    display: none;
+  }
+}
+
 ::selection {
   background: #f3d4cb;
   color: #203e50;
