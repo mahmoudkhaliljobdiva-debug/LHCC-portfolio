@@ -14,7 +14,7 @@ import type { AdminQuestion, AdminQuestionBank, QuestionAnswer, QuestionBankStat
 
 type EditableAnswer = QuestionAnswer;
 
-export function AdminQuestionForm({ bankId, questionId }: { readonly bankId: string; readonly questionId?: string | undefined }) {
+export function AdminQuestionForm({ bankId, questionId, initialSectionId }: { readonly bankId: string; readonly questionId?: string | undefined; readonly initialSectionId?: string | undefined }) {
   const store = useAdminQuestionBanks();
   const bank = store.getQuestionBankById(bankId);
   const existingQuestion = questionId ? store.getQuestionById(questionId) : undefined;
@@ -23,13 +23,18 @@ export function AdminQuestionForm({ bankId, questionId }: { readonly bankId: str
   if (!bank) return <MissingState title="Question bank not found" href={"/admin/question-banks" as Route} label="Back to Question Banks" />;
   if (questionId && (!existingQuestion || existingQuestion.bankId !== bankId)) return <MissingState title="Question not found in this bank" href={`/admin/question-banks/${bankId}` as Route} label={`Back to ${bank.name}`} />;
 
-  return <ReadyAdminQuestionForm bank={bank} existingQuestion={existingQuestion} />;
+  return <ReadyAdminQuestionForm bank={bank} existingQuestion={existingQuestion} initialSectionId={initialSectionId} />;
 }
 
-function ReadyAdminQuestionForm({ bank, existingQuestion }: { readonly bank: AdminQuestionBank; readonly existingQuestion: AdminQuestion | undefined }) {
+function ReadyAdminQuestionForm({ bank, existingQuestion, initialSectionId }: { readonly bank: AdminQuestionBank; readonly existingQuestion: AdminQuestion | undefined; readonly initialSectionId?: string | undefined }) {
   const router = useRouter();
   const store = useAdminQuestionBanks();
   const bankId = bank.id;
+  const sections = useMemo(() => [...store.getSectionsByBankId(bankId)].sort((a,b) => a.displayOrder - b.displayOrder), [store, bankId]);
+  const initialSection = existingQuestion?.sectionId ?? (sections.some((section) => section.id === initialSectionId) ? initialSectionId! : "");
+  const [sectionId, setSectionId] = useState(initialSection);
+  const nextOrder = Math.max(0, ...store.getQuestionsByBankId(bankId).filter((question) => question.sectionId === (initialSection || null)).map((question) => question.displayOrder ?? 0)) + 1;
+  const [displayOrder, setDisplayOrder] = useState(String(existingQuestion?.displayOrder ?? nextOrder));
   const initialAnswers = useMemo<readonly EditableAnswer[]>(() => existingQuestion?.answers ?? [
     { id: "new-answer-1", text: "", isCorrect: false },
     { id: "new-answer-2", text: "", isCorrect: false },
@@ -40,7 +45,7 @@ function ReadyAdminQuestionForm({ bank, existingQuestion }: { readonly bank: Adm
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const isEdit = Boolean(existingQuestion);
-  const isDirty = text !== (existingQuestion?.text ?? "") || status !== (existingQuestion?.status ?? "active") || JSON.stringify(answers) !== JSON.stringify(initialAnswers);
+  const isDirty = text !== (existingQuestion?.text ?? "") || status !== (existingQuestion?.status ?? "active") || sectionId !== initialSection || displayOrder !== String(existingQuestion?.displayOrder ?? nextOrder) || JSON.stringify(answers) !== JSON.stringify(initialAnswers);
 
   useEffect(() => {
     function warn(event: BeforeUnloadEvent) { if (isDirty) event.preventDefault(); }
@@ -66,12 +71,14 @@ function ReadyAdminQuestionForm({ bank, existingQuestion }: { readonly bank: Adm
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const validationErrors = validateQuestion(text, answers);
+    if (!Number.isInteger(Number(displayOrder)) || Number(displayOrder) < 1) validationErrors.displayOrder = "Order must be a whole number greater than zero.";
+    if (sectionId && !sections.some((section) => section.id === sectionId)) validationErrors.sectionId = "Select a case from this bank.";
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
 
     setIsSaving(true);
     const normalizedAnswers = answers.filter((answer) => answer.text.trim()).map((answer) => ({ ...answer, text: answer.text.trim() }));
-    const input: QuestionInput = { text: text.trim(), status, answers: normalizedAnswers };
+    const input: QuestionInput = { text: text.trim(), status, answers: normalizedAnswers, sectionId: sectionId || null, displayOrder: Number(displayOrder) };
     try {
       if (existingQuestion) await store.updateQuestion(existingQuestion.id, input);
       else await store.addQuestion(bankId, input);
@@ -90,6 +97,7 @@ function ReadyAdminQuestionForm({ bank, existingQuestion }: { readonly bank: Adm
         <section className="rounded-2xl border bg-white p-5 shadow-sm sm:p-7">
           <h2 className="font-semibold text-slate-950">Question details</h2>
           <div className="mt-5 grid gap-5">
+            <div className="grid gap-5 sm:grid-cols-2"><label className="grid gap-2 text-sm font-medium text-slate-700">Clinical case<Select value={sectionId} onChange={(event) => { setSectionId(event.target.value); setDisplayOrder(String(Math.max(0, ...store.getQuestionsByBankId(bankId).filter((question) => question.sectionId === (event.target.value || null)).map((question) => question.displayOrder ?? 0)) + 1)); }} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="">Unassigned</option>{sections.map((section) => <option key={section.id} value={section.id}>{section.title}</option>)}</Select>{errors.sectionId && <span className="text-xs text-rose-700">{errors.sectionId}</span>}</label><label className="grid gap-2 text-sm font-medium text-slate-700">Question order<input type="number" min={1} step={1} value={displayOrder} onChange={(event) => setDisplayOrder(event.target.value)} className="h-11 rounded-xl border bg-slate-50 px-3" />{errors.displayOrder && <span className="text-xs text-rose-700">{errors.displayOrder}</span>}</label></div>
             <label className="grid gap-2 text-sm font-medium text-slate-700">Question text <span className="sr-only">required</span><textarea rows={5} value={text} onChange={(event) => { setText(event.target.value); setErrors((current) => ({ ...current, text: "" })); }} aria-invalid={Boolean(errors.text)} className={cn("rounded-xl border bg-slate-50 px-3.5 py-3 text-sm", errors.text && "border-rose-400")} />{errors.text && <span className="text-xs text-rose-700">{errors.text}</span>}</label>
             <label className="grid max-w-xs gap-2 text-sm font-medium text-slate-700">Status<Select value={status} onChange={(event) => setStatus(event.target.value as QuestionBankStatus)} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="active">Active</option><option value="inactive">Inactive</option></Select></label>
           </div>

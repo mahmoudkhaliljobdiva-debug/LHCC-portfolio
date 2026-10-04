@@ -7,6 +7,7 @@ export const examSchema = z.object({
   totalQuestions: z.number().int().min(1).max(30), startedAt: z.string(), submittedAt: z.string().nullable(),
   result: z.object({ correct: z.number(), incorrect: z.number(), score: z.number() }).nullable(),
   questions: z.array(z.object({ id: contentId, text: z.string(), order: z.number().int(),
+    caseTitle: z.string().nullable(), caseDescription: z.string().nullable(),
     options: z.array(z.object({ id: contentId, text: z.string() })), selectedOptionId: z.string().nullable(), outcome: z.boolean().optional(),
   })),
 }).superRefine((exam,context) => {
@@ -16,6 +17,7 @@ export const examSchema = z.object({
 });
 export const examBankSchema = z.object({
   id: contentId, name: z.string(), description: z.string(), available: z.number().int(), examCount: z.number().int().min(0).max(30),
+  cases: z.array(z.object({ id: contentId, title: z.string(), description: z.string(), displayOrder: z.number().int(), questionCount: z.number().int().min(0) })),
   attempts: z.array(z.object({ id: examId, status: z.enum(["IN_PROGRESS", "COMPLETED", "ABANDONED"]), mode: z.enum(["PRACTICE", "EXAM"]),
     startedAt: z.string(), submittedAt: z.string().nullable(), totalQuestions: z.number(), score: z.number().nullable(),
   })),

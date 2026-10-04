@@ -17,32 +17,45 @@ export type Database = {
       bank_questions: {
         Row: {
           created_at: string
+          display_order: number | null
           id: string
           options: Json
           question_bank_id: string
+          section_id: string | null
           status: string
           text: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          display_order?: number | null
           id?: string
           options: Json
           question_bank_id: string
+          section_id?: string | null
           status?: string
           text: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          display_order?: number | null
           id?: string
           options?: Json
           question_bank_id?: string
+          section_id?: string | null
           status?: string
           text?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bank_questions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "question_sections"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bank_questions_question_bank_id_fkey"
             columns: ["question_bank_id"]
@@ -156,6 +169,44 @@ export type Database = {
         }
         Relationships: []
       }
+      question_sections: {
+        Row: {
+          created_at: string
+          description: string
+          display_order: number
+          id: string
+          question_bank_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          display_order?: number
+          id?: string
+          question_bank_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          display_order?: number
+          id?: string
+          question_bank_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_sections_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       question_attempt_answers: {
         Row: {
           answered_at: string
@@ -204,26 +255,35 @@ export type Database = {
       question_attempt_questions: {
         Row: {
           attempt_id: string
+          case_description_snapshot: string | null
+          case_title_snapshot: string | null
           created_at: string
           display_order: number
           options: Json
           question_id: string
+          section_id_snapshot: string | null
           text: string
         }
         Insert: {
           attempt_id: string
+          case_description_snapshot?: string | null
+          case_title_snapshot?: string | null
           created_at?: string
           display_order: number
           options: Json
           question_id: string
+          section_id_snapshot?: string | null
           text: string
         }
         Update: {
           attempt_id?: string
+          case_description_snapshot?: string | null
+          case_title_snapshot?: string | null
           created_at?: string
           display_order?: number
           options?: Json
           question_id?: string
+          section_id_snapshot?: string | null
           text?: string
         }
         Relationships: [

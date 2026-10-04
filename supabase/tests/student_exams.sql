@@ -17,10 +17,14 @@ insert into auth.users(id,email,raw_user_meta_data) values
  (current_setting('exam.a')::uuid,current_setting('exam.a')||'@example.invalid','{"full_name":"Exam rollback A"}'),
  (current_setting('exam.b')::uuid,current_setting('exam.b')||'@example.invalid','{"full_name":"Exam rollback B"}');
 insert into public.question_banks(id,name,description,status) select current_setting('exam.prefix')||'-'||n,'[TEST] Exam '||n,'Rollback fixture','active' from unnest(array[40,30,12,0]) n;
+insert into public.question_sections(id,question_bank_id,title,description,display_order) values
+  (current_setting('exam.prefix')||'-case',current_setting('exam.prefix')||'-40','[TEST] Clinical case','Frozen clinical description',1);
 insert into public.bank_questions(id,question_bank_id,text,status,options)
  select current_setting('exam.prefix')||'-'||n||'-q'||i,current_setting('exam.prefix')||'-'||n,'Question '||i,'active','[{"id":"a","text":"First"},{"id":"b","text":"Second"}]'::jsonb
  from unnest(array[40,30,12]) n cross join lateral generate_series(1,n) i;
 insert into private.question_solutions(question_id,correct_option_id) select id,'a' from public.bank_questions where id like current_setting('exam.prefix')||'%';
+update public.bank_questions set section_id=current_setting('exam.prefix')||'-case',display_order=1
+  where question_bank_id=current_setting('exam.prefix')||'-40';
 insert into public.user_bank_access(user_id,question_bank_id,status,granted_by) select current_setting('exam.a')::uuid,id,'ACTIVE',current_setting('exam.admin')::uuid from public.question_banks where id like current_setting('exam.prefix')||'%';
 set local role authenticated;
 select set_config('request.jwt.claims',jsonb_build_object('sub',current_setting('exam.a'),'role','authenticated')::text,true);
@@ -32,7 +36,9 @@ select pg_temp.check_exam(public.start_exam(current_setting('exam.prefix')||'-40
 select set_config('exam.original',public.exam_data(current_setting('exam.attempt')::uuid)::text,true);
 select pg_temp.check_exam(current_setting('exam.original')::jsonb=public.exam_data(current_setting('exam.attempt')::uuid),'refresh freezes payload');
 select pg_temp.check_exam(current_setting('exam.original') !~ 'is_correct|correct_option_id|answer_key|outcome','no pre-submit correctness');
+select pg_temp.check_exam((public.exam_data(current_setting('exam.attempt')::uuid)->'questions'->0->>'caseDescription')='Frozen clinical description','case context frozen at start');
 select pg_temp.check_exam((public.exam_bank_data(current_setting('exam.prefix')||'-40')->'examCount')::integer=30,'bank count capped');
+select pg_temp.check_exam(public.exam_bank_data(current_setting('exam.prefix')||'-40')->'cases'->0->>'description'='Frozen clinical description','bank case details visible');
 select set_config('exam.question',(select question_id from public.question_attempt_questions where attempt_id=current_setting('exam.attempt')::uuid order by display_order limit 1),true);
 select public.save_exam_answer(current_setting('exam.attempt')::uuid,current_setting('exam.question'),'b');
 select public.save_exam_answer(current_setting('exam.attempt')::uuid,current_setting('exam.question'),'a');
@@ -55,6 +61,7 @@ select pg_temp.check_exam(public.exam_data(current_setting('exam.attempt')::uuid
 select pg_temp.denied('select public.start_exam(current_setting(''exam.prefix'')||''-40'')','admin cannot start as student');
 select pg_temp.denied('select public.save_exam_answer(current_setting(''exam.attempt'')::uuid,current_setting(''exam.question''),''a'')','admin cannot answer as student');
 reset role;
+update public.question_sections set title='Edited case',description='Edited after start' where id=current_setting('exam.prefix')||'-case';
 update public.bank_questions set text='Edited after start',options='[{"id":"x","text":"Changed"},{"id":"y","text":"Changed"}]',status='inactive' where id=current_setting('exam.question');
 update private.question_solutions set correct_option_id='y' where question_id=current_setting('exam.question');
 update public.user_bank_access set status='REVOKED',revoked_at=now() where user_id=current_setting('exam.a')::uuid and question_bank_id=current_setting('exam.prefix')||'-40';
@@ -66,6 +73,7 @@ reset role;
 update public.user_bank_access set status='ACTIVE',revoked_at=null where user_id=current_setting('exam.a')::uuid and question_bank_id=current_setting('exam.prefix')||'-40';
 set local role authenticated;
 select pg_temp.check_exam(public.exam_data(current_setting('exam.attempt')::uuid)->'questions'->0->>'text'<>'Edited after start','frozen question survives edit and deactivation');
+select pg_temp.check_exam(public.exam_data(current_setting('exam.attempt')::uuid)->'questions'->0->>'caseDescription'='Frozen clinical description','case edit does not alter attempt snapshot');
 select public.submit_exam(current_setting('exam.attempt')::uuid);
 select pg_temp.check_exam((select status='COMPLETED' and correct_answers=1 and incorrect_answers=29 and score_percentage=3.33 from public.question_attempts where id=current_setting('exam.attempt')::uuid),'frozen grading and unanswered count');
 select set_config('exam.result',public.exam_data(current_setting('exam.attempt')::uuid)::text,true);

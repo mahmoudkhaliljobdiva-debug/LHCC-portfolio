@@ -21,6 +21,8 @@ export interface QuestionAnswer {
 export interface AdminQuestion {
   readonly id: string;
   readonly bankId: string;
+  readonly sectionId: string | null;
+  readonly displayOrder: number | null;
   readonly text: string;
   readonly type: "QCU";
   readonly status: QuestionBankStatus;
@@ -29,8 +31,21 @@ export interface AdminQuestion {
   readonly updatedAt: string;
 }
 
+export interface QuestionSection {
+  readonly id: string;
+  readonly bankId: string;
+  readonly title: string;
+  readonly description: string;
+  readonly displayOrder: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export type QuestionSectionInput = Pick<QuestionSection, "bankId" | "title" | "description" | "displayOrder">;
+
 export interface QuestionBankStoreData {
   readonly banks: readonly AdminQuestionBank[];
+  readonly sections: readonly QuestionSection[];
   readonly questions: readonly AdminQuestion[];
 }
 
@@ -40,4 +55,4 @@ export type QuestionBankInput = Pick<AdminQuestionBank, "name" | "description" |
   readonly price: number;
 };
 
-export type QuestionInput = Pick<AdminQuestion, "text" | "status" | "answers">;
+export type QuestionInput = Pick<AdminQuestion, "text" | "status" | "answers"> & Partial<Pick<AdminQuestion, "sectionId" | "displayOrder">>;
