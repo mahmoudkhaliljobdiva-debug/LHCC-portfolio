@@ -3,17 +3,13 @@ import type { Metadata } from "next";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://lhcc-lb.com"),
   title: {
     default: "L.H.C.C | Healthcare Learning",
     template: "%s | L.H.C.C",
   },
   description:
     "Lebanese Health & Competence Center — healthcare learning for students, educators, and institutions.",
-  icons: {
-    icon: [{ url: "/images/lhcc-logo-round.png", type: "image/png", sizes: "512x512" }],
-    shortcut: "/images/lhcc-logo-round.png",
-    apple: "/images/lhcc-logo-round.png",
-  },
 };
 
 const themeScript = `

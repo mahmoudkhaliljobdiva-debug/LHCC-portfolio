@@ -6,6 +6,7 @@ import { countryOptions } from "@/data/countries";
 export const metadata: Metadata = {
   title: "Create account | L.H.C.C",
   description: "Create your L.H.C.C student account and explore healthcare courses.",
+  alternates: { canonical: "/signup" },
 };
 
 export default function SignupPage() {

@@ -18,6 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const content = isPortfolioSection(slug) ? await getPortfolioContent() : null;
   return {
     title: content && isPortfolioSection(slug) ? content[slug].title : "Page",
+    ...(isPortfolioSection(slug) ? { alternates: { canonical: `/${slug}` } } : {}),
   };
 }
 

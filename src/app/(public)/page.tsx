@@ -11,7 +11,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
+import type { Metadata } from "next";
 import { getAuthenticatedProfile, portalForRole } from "@/lib/auth/server";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const capabilities = [
   {
