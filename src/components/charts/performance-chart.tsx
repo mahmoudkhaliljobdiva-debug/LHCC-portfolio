@@ -27,15 +27,15 @@ export function PerformanceChart({
   const xKey = isHistogram ? "range" : "period";
 
   return (
-    <div className="h-72 w-full" aria-label={`${variant} performance chart`}>
+    <div className="h-72 min-w-0 w-full" aria-label={`${variant} performance chart`}>
       <ResponsiveContainer width="100%" height="100%">
         {isHistogram ? (
           <BarChart data={chartData} margin={{ top: 10, right: 4, bottom: 0, left: -24 }}>
-            <CartesianGrid vertical={false} stroke="#e5edf4" />
-            <XAxis dataKey={xKey} axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
-            <Tooltip cursor={{ fill: "#f1f5f9" }} />
-            <Bar dataKey={dataKey} name="Attempts" fill="#e59a88" radius={[6, 6, 0, 0]} />
+            <CartesianGrid vertical={false} stroke="var(--color-border)" />
+            <XAxis dataKey={xKey} axisLine={false} tickLine={false} tick={{ fill: "var(--chart-label)", fontSize: 12 }} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--chart-label)", fontSize: 11 }} />
+            <Tooltip contentStyle={{ background: "var(--color-surface)", color: "var(--color-foreground)", borderColor: "var(--color-border)", borderRadius: 12 }} labelStyle={{ color: "var(--color-foreground)" }} cursor={{ fill: "var(--color-surface-muted)" }} />
+            <Bar isAnimationActive={false} dataKey={dataKey} name="Attempts" fill="#e59a88" radius={[6, 6, 0, 0]} />
           </BarChart>
         ) : (
           <AreaChart data={chartData} margin={{ top: 10, right: 4, bottom: 0, left: -24 }}>
@@ -45,11 +45,11 @@ export function PerformanceChart({
                 <stop offset="100%" stopColor="#52798a" stopOpacity={0.02} />
               </linearGradient>
             </defs>
-            <CartesianGrid vertical={false} stroke="#e5edf4" />
-            <XAxis dataKey={xKey} axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
-            <Tooltip />
-            <Area type="monotone" dataKey={dataKey} stroke="#3f6577" strokeWidth={2.5} fill={`url(#chart-fill-${variant})`} />
+            <CartesianGrid vertical={false} stroke="var(--color-border)" />
+            <XAxis dataKey={xKey} axisLine={false} tickLine={false} tick={{ fill: "var(--chart-label)", fontSize: 12 }} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--chart-label)", fontSize: 11 }} />
+            <Tooltip contentStyle={{ background: "var(--color-surface)", color: "var(--color-foreground)", borderColor: "var(--color-border)", borderRadius: 12 }} labelStyle={{ color: "var(--color-foreground)" }} />
+            <Area isAnimationActive={false} type="monotone" dataKey={dataKey} stroke="var(--chart-line)" strokeWidth={2.5} fill={`url(#chart-fill-${variant})`} />
           </AreaChart>
         )}
       </ResponsiveContainer>

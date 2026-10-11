@@ -2,7 +2,7 @@
 
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Brand } from "@/components/ui/brand";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -17,9 +17,15 @@ const links = [
 
 export function PublicHeader({ displayName, dashboardHref }: { readonly displayName?: string | undefined; readonly dashboardHref?: "/admin" | "/teacher" | "/student" | undefined }) {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", escape);
+    return () => window.removeEventListener("keydown", escape);
+  }, [open]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
+    <header className="public-header sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
       <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 lg:px-8">
         <Brand />
         <nav aria-label="Primary navigation" className="hidden items-center gap-6 lg:flex xl:gap-8">
@@ -55,6 +61,7 @@ export function PublicHeader({ displayName, dashboardHref }: { readonly displayN
           className="grid size-11 place-items-center rounded-xl text-slate-700 hover:bg-slate-50 lg:hidden"
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
+          aria-controls="public-mobile-navigation"
           onClick={() => setOpen((current) => !current)}
         >
           {open ? <X /> : <Menu />}
@@ -62,8 +69,9 @@ export function PublicHeader({ displayName, dashboardHref }: { readonly displayN
         </div>
       </div>
       <div
+        id="public-mobile-navigation"
         className={cn(
-          "border-t border-slate-100 bg-white px-5 py-5 lg:hidden",
+          "max-h-[calc(100dvh-72px-env(safe-area-inset-top))] overflow-y-auto overscroll-contain border-t border-slate-100 bg-white px-5 py-5 lg:hidden",
           !open && "hidden",
         )}
       >

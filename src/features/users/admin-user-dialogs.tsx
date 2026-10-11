@@ -1,6 +1,7 @@
 "use client";
 
 import { Select } from "@/components/ui/select";
+import { ModalPanel } from "@/components/ui/modal-panel";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -88,8 +89,8 @@ export function UserFormDialog({ state, users, banks, onCancel, onSave }: UserFo
   }
 
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-slate-950/55 p-4">
-      <form onSubmit={submit} role="dialog" aria-modal="true" aria-labelledby="user-form-title" className="my-4 w-full max-w-3xl rounded-2xl border bg-white p-5 shadow-2xl sm:my-6 sm:p-7">
+    <ModalPanel labelledBy="user-form-title" onCancel={onCancel} busy={isSaving}>
+      <form onSubmit={submit} className="w-full p-5 sm:p-7">
         <h2 id="user-form-title" className="text-xl font-semibold text-slate-950">{editing ? "Edit user" : "Add user"}</h2>
         <p className="mt-2 text-sm text-slate-500">{editing ? "Changes are applied to Supabase Auth and the linked profile." : "The user receives an email invitation to set a private password."}</p>
         {generalError && <div role="alert" className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{generalError}</div>}
@@ -120,7 +121,7 @@ export function UserFormDialog({ state, users, banks, onCancel, onSave }: UserFo
         </div>
         <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" disabled={isSaving} onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50">Cancel</button><button type="submit" disabled={isSaving} className="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? "Saving…" : editing ? "Save Changes" : "Send Invitation"}</button></div>
       </form>
-    </div>
+    </ModalPanel>
   );
 }
 

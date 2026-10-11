@@ -7,7 +7,7 @@ export default async function PublicLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const profile = await getAuthenticatedProfile();
   return (
-    <>
+    <div className="public-shell">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -24,6 +24,6 @@ export default async function PublicLayout({
       <PublicHeader displayName={profile?.full_name} dashboardHref={profile ? portalForRole(profile.role) : undefined} />
       <main>{children}</main>
       <PublicFooter />
-    </>
+    </div>
   );
 }

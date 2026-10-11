@@ -5,7 +5,7 @@ export default function AuthLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <main className="grid min-h-screen min-h-dvh bg-white lg:grid-cols-[.9fr_1.1fr]">
+    <main className="auth-shell grid min-h-screen min-h-dvh bg-white lg:grid-cols-[.9fr_1.1fr]">
       <div className="flex min-w-0 flex-col px-5 py-5 sm:px-12 sm:py-6 lg:px-16">
         <div className="flex items-center justify-between">
           <Brand />
