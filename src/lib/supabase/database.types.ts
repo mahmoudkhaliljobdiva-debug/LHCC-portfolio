@@ -422,6 +422,7 @@ export type Database = {
           question_bank_id: string
           score_percentage: number
           setup_signature: Json | null
+          shared_exam_id: string | null
           source_kind: string
           started_at: string
           status: string
@@ -445,6 +446,7 @@ export type Database = {
           question_bank_id: string
           score_percentage?: number
           setup_signature?: Json | null
+          shared_exam_id?: string | null
           source_kind?: string
           started_at?: string
           status?: string
@@ -468,6 +470,7 @@ export type Database = {
           question_bank_id?: string
           score_percentage?: number
           setup_signature?: Json | null
+          shared_exam_id?: string | null
           source_kind?: string
           started_at?: string
           status?: string
@@ -492,6 +495,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "question_attempts_shared_exam_id_fkey"
+            columns: ["shared_exam_id"]
+            isOneToOne: false
+            referencedRelation: "shared_exams"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "question_attempts_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
@@ -510,6 +520,7 @@ export type Database = {
           image_url: string | null
           name: string
           price: number
+          specialty_id: string | null
           status: string
           updated_at: string
         }
@@ -522,6 +533,7 @@ export type Database = {
           image_url?: string | null
           name: string
           price?: number
+          specialty_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -534,6 +546,7 @@ export type Database = {
           image_url?: string | null
           name?: string
           price?: number
+          specialty_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -543,6 +556,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_banks_specialty_id_fkey"
+            columns: ["specialty_id"]
+            isOneToOne: false
+            referencedRelation: "specialties"
             referencedColumns: ["id"]
           },
         ]
@@ -584,6 +604,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shared_exams: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          question_bank_id: string
+          question_count: number
+          status: string
+          time_limit_minutes: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id: string
+          question_bank_id: string
+          question_count: number
+          status?: string
+          time_limit_minutes?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          question_bank_id?: string
+          question_count?: number
+          status?: string
+          time_limit_minutes?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_exams_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_exams_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      specialties: {
+        Row: {
+          description: string
+          display_order: number
+          icon: string
+          id: string
+          name: string
+          published: boolean
+          slug: string
+        }
+        Insert: {
+          description?: string
+          display_order?: number
+          icon?: string
+          id?: string
+          name: string
+          published?: boolean
+          slug: string
+        }
+        Update: {
+          description?: string
+          display_order?: number
+          icon?: string
+          id?: string
+          name?: string
+          published?: boolean
+          slug?: string
+        }
+        Relationships: []
       }
       teacher_bank_assignments: {
         Row: {
@@ -844,8 +942,16 @@ export type Database = {
     Functions: {
       admin_bank_data: { Args: never; Returns: Json }
       admin_past_exams: { Args: { bank_id: string }; Returns: Json }
+      admin_shared_exams: {
+        Args: { bank_id: string; page_number?: number }
+        Returns: Json
+      }
       admin_update_managed_profile: { Args: { payload: Json }; Returns: Json }
       admin_wallet_data: { Args: never; Returns: Json }
+      assign_bank_specialty: {
+        Args: { bank_id: string; specialty_id?: string }
+        Returns: undefined
+      }
       check_practice_answer: {
         Args: { attempt_id: string; question_id: string }
         Returns: Json
@@ -858,6 +964,7 @@ export type Database = {
         Args: { attempt_id: string; subject_id?: string }
         Returns: Json
       }
+      generate_shared_exam: { Args: { payload: Json }; Returns: string }
       is_profile_access_active: {
         Args: {
           profile_expiration_date: string
@@ -866,6 +973,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      learning_catalog: { Args: never; Returns: Json }
       learning_progress: { Args: never; Returns: Json }
       list_bank_access_requests: { Args: never; Returns: Json }
       manage_bank_content: {
@@ -889,6 +997,8 @@ export type Database = {
       }
       save_past_exam: { Args: { payload: Json }; Returns: string }
       save_portfolio_content: { Args: { payload: Json }; Returns: undefined }
+      save_shared_exam: { Args: { payload: Json }; Returns: undefined }
+      save_specialty: { Args: { payload: Json }; Returns: string }
       start_exam: { Args: { bank_id: string }; Returns: string }
       start_learning_exam: { Args: { config: Json }; Returns: string }
       submit_bank_answer: {

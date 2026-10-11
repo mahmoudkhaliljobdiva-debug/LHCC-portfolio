@@ -255,6 +255,7 @@ function StandardPageFields({ section, content, errors, onFieldChange, onItemCha
         <FormField label="Page title" value={content.title} error={errors[`${section}.title`]} onChange={(value) => onFieldChange(section, "title", value)} />
       </div>
       <FormField label="Main description" value={content.description} error={errors[`${section}.description`]} multiline onChange={(value) => onFieldChange(section, "description", value)} />
+      {section === "services" && <><FormField label="Learning catalog heading" value={content.catalogHeading ?? ""} error={errors["services.catalogHeading"]} onChange={value=>onFieldChange(section,"catalogHeading",value)}/><FormField label="Learning catalog description" value={content.catalogDescription ?? ""} multiline error={errors["services.catalogDescription"]} onChange={value=>onFieldChange(section,"catalogDescription",value)}/></>}
       <div className="grid gap-5 md:grid-cols-2">
         <FormField label="Section heading" value={content.sectionHeading} error={errors[`${section}.sectionHeading`]} onChange={(value) => onFieldChange(section, "sectionHeading", value)} />
         <FormField label="Button label" value={content.buttonLabel} error={errors[`${section}.buttonLabel`]} onChange={(value) => onFieldChange(section, "buttonLabel", value)} />
@@ -332,6 +333,8 @@ function validatePortfolioContent(content: PortfolioContent): Record<string, str
   }
 
   const contact = content.contact;
+  required("services.catalogHeading", content.services.catalogHeading ?? "");
+  required("services.catalogDescription", content.services.catalogDescription ?? "");
   for (const field of ["subtitle", "title", "description", "sectionHeading", "buttonLabel", "email", "phone", "address"] as const) {
     required(`contact.${field}`, contact[field]);
   }

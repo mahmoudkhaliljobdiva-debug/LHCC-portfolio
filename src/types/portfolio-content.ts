@@ -9,6 +9,8 @@ export interface PortfolioContentItem {
 }
 
 export interface PortfolioPageContent {
+  readonly catalogHeading?: string;
+  readonly catalogDescription?: string;
   readonly subtitle: string;
   readonly title: string;
   readonly description: string;

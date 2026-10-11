@@ -56,7 +56,11 @@ export async function submitExam(attemptId: string): Promise<ServerResult<string
     const db = await createClient();
     const { data, error } = await db.rpc("submit_exam", { attempt_id: attemptId });
     if (error || !data) return failure("Unable to submit. Check your exam access and try again.");
-    revalidatePath("/student", "layout"); revalidatePath("/admin", "layout");
+    // Keep the submitting form mounted until its response navigates to results.
+    // Revalidating its entire layout can stream a completed-page redirect first.
+    revalidatePath(`/student/exams/${attemptId}/result`);
+    revalidatePath("/student"); revalidatePath("/student/exams"); revalidatePath("/student/analytics");
+    revalidatePath("/admin", "layout");
     return { ok: true, data };
   } catch { return failure("Submission failed. Your saved answers are retained; please retry."); }
 }

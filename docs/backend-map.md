@@ -12,6 +12,20 @@ Form drafts, filters, open dialogs, and feedback are transient UI state.
 
 ## Feature map
 
+### Specialty catalog and shared definitions
+
+See [learning-platform.md](learning-platform.md) for the three-experience upgrade
+and current verification. `specialties` organizes existing banks through
+`question_banks.specialty_id`; Nursing Colloquium belongs to Nursing, separate
+from Medical/Dentistry. `learning_catalog` exposes published summary fields only.
+Admin-only specialty/assignment and shared generation/review/publication actions
+use guarded private RPCs; shared snapshots/keys remain private, published sets
+are immutable and definitions are paged. `shared_exam_id` references fixed shared
+definitions in canonical student attempts. Private historical snapshots preserve
+original text/options/case context/keys. All modes reuse approved-bank guards,
+frozen attempts, answer persistence and server scoring. Public Services/program
+pages and student specialty routes read real catalog records, not mock data.
+
 ### Yearly archive extension
 
 See [yearly-exams.md](yearly-exams.md) for the additive archive/import model,

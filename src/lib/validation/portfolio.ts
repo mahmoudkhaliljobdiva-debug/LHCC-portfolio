@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { learningCatalogCopy } from "@/data/learning-copy";
 
 const itemSchema = z.object({
   id: z.string().trim().min(1).max(200),
@@ -23,7 +24,7 @@ const contactSchema = pageSchema.omit({ items: true }).extend({
 
 export const portfolioContentSchema = z.object({
   about: pageSchema,
-  services: pageSchema,
+  services: pageSchema.extend({ catalogHeading: z.string().trim().min(1).max(300).default(learningCatalogCopy.heading), catalogDescription: z.string().trim().min(1).max(5000).default(learningCatalogCopy.description) }),
   platform: pageSchema,
   contact: contactSchema,
 });

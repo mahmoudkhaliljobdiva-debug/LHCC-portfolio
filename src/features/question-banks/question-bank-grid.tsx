@@ -27,8 +27,8 @@ function BankCard({ bank, previewBase }: { readonly bank: StudentBank; readonly 
       } catch { setFailed(true); setFeedback("Unable to send your request. Please try again."); }
     });
   }
-  return <article className="rounded-2xl border bg-white p-5 shadow-sm">
-    <div className="flex flex-wrap items-start justify-between gap-3"><span className="grid size-11 place-items-center rounded-xl bg-teal-50 text-teal-700 dark:text-teal-200"><BookOpen className="size-5" aria-hidden="true" /></span><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${bank.accessState === "APPROVED" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-700"}`}>{labels[bank.accessState]}</span></div>
+  return <article className="learning-card rounded-2xl border bg-white p-5 shadow-sm">
+    <div className="flex flex-wrap items-start justify-between gap-3"><span className="learning-icon grid size-11 place-items-center rounded-xl bg-teal-50 text-teal-700 dark:text-teal-200"><BookOpen className="size-5" aria-hidden="true" /></span><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${bank.accessState === "APPROVED" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-700"}`}>{labels[bank.accessState]}</span></div>
     <h2 className="mt-5 font-semibold text-slate-950">{bank.name}</h2>
     <p className="mt-2 min-h-10 text-sm leading-6 text-slate-500">{bank.description}</p>
     <p className="mt-3 text-sm font-semibold text-slate-800">{bank.price > 0 ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(bank.price) : "Free access"}</p>

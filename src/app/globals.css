@@ -402,6 +402,22 @@ select { appearance: none; padding-right: 2.5rem !important; background-image: u
   color: #203e50;
 }
 
+/* Brief, event-driven motion only; no icon/player dependency or continuous loop. */
+.learning-card { transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
+.learning-icon { transition: transform 180ms ease; }
+.learning-card:focus-visible { border-color: var(--color-primary); }
+.learning-card:active { transform: scale(.995); }
+@media (hover: hover) and (pointer: fine) {
+  .learning-card:hover { transform: translateY(-2px); border-color: var(--color-primary); box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary) 12%, transparent); }
+  .learning-card:hover .learning-icon { transform: rotate(-4deg); }
+}
+@keyframes feedback-confirm { from { opacity: .5; transform: scale(.8); } to { opacity: 1; transform: scale(1); } }
+.answer-feedback-mark { animation: feedback-confirm 200ms ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .learning-card, .learning-icon { transition: none; transform: none !important; }
+  .answer-feedback-mark { animation: none; }
+}
+
 /* Theme surface mappings keep shared components consistent without duplicating
    dark-mode classes in every feature screen. */
 .dark body,

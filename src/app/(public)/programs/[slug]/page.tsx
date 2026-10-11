@@ -1,0 +1,8 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getLearningCatalog } from "@/lib/learning/server";
+import { SpecialtyIcon } from "@/components/ui/specialty-icon";
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const {slug}=await params;const specialty=(await getLearningCatalog()).find(s=>s.slug===slug);if(!specialty)notFound();
+  return <section className="mx-auto max-w-7xl px-5 py-12 md:px-8"><Link href="/services" className="inline-flex min-h-11 items-center font-semibold text-teal-700">Back to services</Link><span className="mt-6 grid size-12 place-items-center rounded-xl bg-teal-50 text-teal-700"><SpecialtyIcon icon={specialty.icon}/></span><h1 className="mt-4 text-3xl font-semibold text-slate-950">{specialty.name}</h1>{specialty.description && <p className="mt-3 max-w-3xl text-slate-600">{specialty.description}</p>}<h2 className="mt-8 text-xl font-semibold text-slate-950">Available Materials</h2><div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{specialty.materials.map(m=><article key={m.id} className="learning-card min-w-0 rounded-2xl border bg-white p-6"><h3 className="font-semibold text-slate-950">{m.name}</h3><p className="mt-3 break-words text-sm leading-6 text-slate-600">{m.description}</p><p className="mt-3 text-xs text-slate-500">Questions and exams require approved material access.</p><Link href="/student/question-banks" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white">Sign In / Request Access</Link></article>)}</div>{!specialty.materials.length&&<p className="mt-5 rounded-xl border p-6 text-slate-600">No materials published yet.</p>}</section>;
+}

@@ -1,5 +1,11 @@
 # Student question-bank exams
 
+The specialty/three-experience extension is documented in
+[learning-platform.md](learning-platform.md): independent Nursing/Medical/
+Dentistry, personal random, historical frozen definitions, and immutable shared
+random definitions with independent student attempts. It reuses this engine,
+adds authorized green/red feedback, and preserves existing grants/scoring.
+
 The 2026-10-11 yearly-archive extension is documented in [yearly-exams.md](yearly-exams.md).
 It adds fixed past exams, all/case practice, setup/timers and authorized checked
 feedback while preserving the canonical engine described below. Earlier
