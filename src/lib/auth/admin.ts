@@ -1,27 +1,18 @@
 import "server-only";
 
-import { getEffectiveProfileStatus } from "@/lib/auth/server";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser, getAuthenticatedProfile, getEffectiveProfileStatus } from "@/lib/auth/server";
 import type { Profile } from "@/types/profile";
 import type { ServerResult } from "@/types/server-result";
 
 export async function authorizeActiveAdmin(): Promise<ServerResult<Profile>> {
   try {
-    const supabase = await createClient();
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
-    const userId = claimsData?.claims.sub;
-
-    if (claimsError || !userId) {
+    const user = await getAuthenticatedUser();
+    if (!user) {
       return failure("UNAUTHENTICATED", "Sign in as an administrator to continue.");
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle();
-
-    if (profileError || !profile) {
+    const profile = await getAuthenticatedProfile();
+    if (!profile) {
       return failure("PROFILE_MISSING", "The administrator profile is unavailable.");
     }
 
@@ -29,7 +20,7 @@ export async function authorizeActiveAdmin(): Promise<ServerResult<Profile>> {
       return failure("FORBIDDEN", "Administrator access is required.");
     }
 
-    const effectiveStatus = await getEffectiveProfileStatus(profile, supabase);
+    const effectiveStatus = await getEffectiveProfileStatus(profile);
     if (effectiveStatus !== "ACTIVE") {
       return failure(
         effectiveStatus === "INACTIVE" ? "ACCOUNT_INACTIVE" : "ACCOUNT_EXPIRED",

@@ -21,7 +21,6 @@ import {
   UserFormDialog,
   type UserDialogState,
 } from "@/features/users/admin-user-dialogs";
-import { useAdminQuestionBanks } from "@/features/question-banks/admin-question-bank-provider";
 import { cn } from "@/lib/cn";
 import type { ServerResult } from "@/types/server-result";
 import type { EffectiveUserStatus, ManagedUserRole, PlatformUser, PlatformUserInput, UserUsageSummary } from "@/types/user-management";
@@ -30,15 +29,15 @@ import { getEffectiveUserStatus, getRemainingDays } from "@/utils/user-activatio
 type SortKey = "name" | "role" | "status" | "expiration";
 
 interface AdminUsersPageProps {
+  readonly banks: readonly { readonly id: string; readonly name: string }[];
   readonly initialUsers: readonly PlatformUser[];
   readonly initialError?: string | undefined;
   readonly usage: readonly UserUsageSummary[];
   readonly initialRole: "all" | ManagedUserRole;
 }
 
-export function AdminUsersPage({ initialUsers, initialError, usage, initialRole }: AdminUsersPageProps) {
+export function AdminUsersPage({ initialUsers, initialError, usage, initialRole, banks }: AdminUsersPageProps) {
   const router = useRouter();
-  const bankStore = useAdminQuestionBanks();
   const [users, setUsers] = useState(initialUsers);
   const [search, setSearch] = useState("");
   const roleFilter = initialRole;
@@ -49,6 +48,7 @@ export function AdminUsersPage({ initialUsers, initialError, usage, initialRole 
   const [reactivateTarget, setReactivateTarget] = useState<PlatformUser | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pageError, setPageError] = useState(initialError ?? null);
+  const usageByUser = useMemo(() => new Map(usage.map(item => [item.studentId, item])), [usage]);
 
   const rows = useMemo(() => users.map((user) => ({
     user,
@@ -176,12 +176,12 @@ export function AdminUsersPage({ initialUsers, initialError, usage, initialRole 
           <div className="px-6 py-16 text-center"><Users className="mx-auto size-9 text-slate-400" /><h2 className="mt-4 font-semibold text-slate-900">{pageError ? "Users could not be loaded." : roleFilter === "student" ? "No students match the selected filters." : "No users found."}</h2></div>
         ) : (
           <>
-            <div className="table-scroll-region" role="region" aria-label="Users table, scroll horizontally for actions" tabIndex={0}><table className="w-full min-w-[1520px] text-left text-sm"><caption className="sr-only">Student and teacher account management</caption><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["User", "Email", "Role", "Status", "Activation", "Expiration", "Remaining", "Usage", "Actions"].map((heading, index) => <th scope="col" key={heading} className={cn("whitespace-nowrap px-5 py-3 font-medium", index === 0 && "sticky left-0 z-20 w-[200px] min-w-[200px] bg-slate-50")}>{heading}</th>)}</tr></thead><tbody>{rows.map((row) => <UserTableRow key={row.user.id} row={row} usage={usage.find((item) => item.studentId === row.user.id)} onEdit={() => setDialog({ mode: "edit", user: row.user })} onActivate={() => setReactivateTarget(row.user)} onDeactivate={() => setDeactivateTarget(row.user)} />)}</tbody></table></div>
+            <div className="table-scroll-region" role="region" aria-label="Users table, scroll horizontally for actions" tabIndex={0}><table className="w-full min-w-[1520px] text-left text-sm"><caption className="sr-only">Student and teacher account management</caption><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["User", "Email", "Role", "Status", "Activation", "Expiration", "Remaining", "Usage", "Actions"].map((heading, index) => <th scope="col" key={heading} className={cn("whitespace-nowrap px-5 py-3 font-medium", index === 0 && "sticky left-0 z-20 w-[200px] min-w-[200px] bg-slate-50")}>{heading}</th>)}</tr></thead><tbody>{rows.map((row) => <UserTableRow key={row.user.id} row={row} usage={usageByUser.get(row.user.id)} onEdit={() => setDialog({ mode: "edit", user: row.user })} onActivate={() => setReactivateTarget(row.user)} onDeactivate={() => setDeactivateTarget(row.user)} />)}</tbody></table></div>
           </>
         )}
       </section>
 
-      {dialog && <UserFormDialog state={dialog} users={users} banks={bankStore.banks} onCancel={() => setDialog(null)} onSave={saveUser} />}
+      {dialog && <UserFormDialog state={dialog} users={users} banks={banks} onCancel={() => setDialog(null)} onSave={saveUser} />}
       {deactivateTarget && <DeactivateDialog user={deactivateTarget} onCancel={() => setDeactivateTarget(null)} onConfirm={confirmDeactivation} />}
       {reactivateTarget && <ReactivateDialog user={reactivateTarget} onCancel={() => setReactivateTarget(null)} onConfirm={confirmReactivation} />}
     </div>
@@ -193,7 +193,7 @@ interface RowActions { readonly row: UserRowData; readonly usage?: UserUsageSumm
 
 function UserTableRow(props: RowActions) {
   const { row } = props;
-  return <tr className="users-table-row group border-t bg-white hover:bg-slate-50 aria-selected:bg-teal-50"><td className="users-sticky-cell sticky left-0 z-10 w-[200px] min-w-[200px] max-w-[200px] bg-white px-5 py-4 font-semibold whitespace-normal break-normal text-slate-900 group-hover:bg-slate-50 group-aria-selected:bg-teal-50">{row.user.fullName}</td><td className="min-w-64 whitespace-nowrap px-5 py-4 text-slate-600" title={row.user.email}>{row.user.email}</td><td className="whitespace-nowrap px-5 py-4"><RoleBadge role={row.user.role} /></td><td className="whitespace-nowrap px-5 py-4"><StatusBadge status={row.effectiveStatus} /></td><td className="whitespace-nowrap px-5 py-4 text-slate-600">{formatDate(row.user.activationStartDate)}</td><td className="whitespace-nowrap px-5 py-4 text-slate-600">{formatDate(row.user.expirationDate)}</td><td className="whitespace-nowrap px-5 py-4 text-slate-600">{remainingLabel(row.user, row.effectiveStatus)}</td><td className="px-5 py-4"><UsageSummary usage={props.usage} /></td><td className="min-w-[240px] px-5 py-4"><Actions {...props} /></td></tr>;
+  return <tr className="users-table-row group border-t bg-white hover:bg-slate-50 aria-selected:bg-teal-50"><td className="users-sticky-cell sticky left-0 z-10 w-[200px] min-w-[200px] max-w-[200px] bg-white px-5 py-4 font-semibold whitespace-normal break-normal text-slate-900 group-hover:bg-slate-50 group-aria-selected:bg-teal-50">{row.user.fullName}</td><td className="min-w-64 whitespace-nowrap px-5 py-4 text-slate-600" title={row.user.email}>{row.user.email}</td><td className="whitespace-nowrap px-5 py-4"><RoleBadge role={row.user.role} /></td><td className="whitespace-nowrap px-5 py-4"><StatusBadge status={row.effectiveStatus} /></td><td className="whitespace-nowrap px-5 py-4 text-slate-600">{formatDate(row.user.activationStartDate)}</td><td className="whitespace-nowrap px-5 py-4 text-slate-600">{formatDate(row.user.expirationDate)}</td><td className="whitespace-nowrap px-5 py-4 text-slate-600">{remainingLabel(row.user, row.effectiveStatus)}</td><td className="min-w-[180px] whitespace-nowrap px-5 py-4"><UsageSummary usage={props.usage} /></td><td className="min-w-[240px] px-5 py-4"><Actions {...props} /></td></tr>;
 }
 
 function RoleBadge({ role }: { readonly role: ManagedUserRole }) { return <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold capitalize text-sky-700">{role}</span>; }

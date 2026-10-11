@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import { requireRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
@@ -9,10 +10,16 @@ import type { AdminAccessRequest, StudentBank } from "@/types/bank-access";
 import type { QuestionBankStoreData } from "@/types/question-bank";
 
 
-export async function getStudentBanks(): Promise<StudentBank[]> {
+export const getStudentBanks = cache(async (): Promise<StudentBank[]> => {
   const profile = await requireRole("STUDENT");
   const db = await createClient();
   return readStudentBanks(db, profile.id);
+});
+
+export async function getAdminBankOptions(): Promise<readonly { id: string; name: string }[]> {
+  await requireRole("ADMIN");
+  const db = await createClient();
+  return readAllRows((from, to) => db.from("question_banks").select("id,name").order("display_order").order("id").range(from, to));
 }
 
 export async function getStudentBanksForAdmin(subjectId: string) {

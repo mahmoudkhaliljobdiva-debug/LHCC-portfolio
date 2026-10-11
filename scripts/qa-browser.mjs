@@ -11,11 +11,10 @@ export async function waitFor(fn, label, timeout = 45000) {
   while (Date.now() < deadline) { if (await fn()) return; await pause(200); }
   throw new Error("Timed out: " + label);
 }
-export async function startBrowser(base) {
+export async function startBrowser(base, { executable = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", port = Number(process.env.LHCC_QA_DEBUG_PORT ?? 9341) } = {}) {
   assert(["localhost", "lhcc-lb.com", "lhcc-portfolio.vercel.app"].includes(new URL(base).hostname));
-  const port = 9341;
   const profile = await mkdtemp(join(tmpdir(), "lhcc-backend-qa-"));
-  const browser = spawn("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "about:blank"], { windowsHide: true, stdio: "ignore" });
+  const browser = spawn(executable, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "about:blank"], { windowsHide: true, stdio: "ignore" });
   let endpoint;
   await waitFor(async () => { try { endpoint = (await (await fetch(`http://127.0.0.1:${port}/json/version`)).json()).webSocketDebuggerUrl; return Boolean(endpoint); } catch { return false; } }, "Edge startup");
   const socket = new WebSocket(endpoint);
@@ -55,6 +54,7 @@ export async function startBrowser(base) {
       return result.result.value;
     };
     return {
+      cdp: (method, params = {}) => command(method, params, sessionId),
       evaluate,
       async confirmDialogs(enabled = true) { if (enabled) confirmSessions.add(sessionId); else confirmSessions.delete(sessionId); },
       async goto(path) {
