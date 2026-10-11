@@ -19,7 +19,7 @@ export const ROLE_NAVIGATION = {
   student: [
     { label: "Dashboard", href: ROUTES.student.dashboard, icon: Gauge },
     { label: "Question Banks", href: ROUTES.student.questionBanks, icon: BookOpen },
-    { label: "Exams", href: ROUTES.student.exams, icon: ClipboardCheck },
+    { label: "My Progress", href: ROUTES.student.exams, icon: ClipboardCheck },
     { label: "Analytics", href: ROUTES.student.analytics, icon: BarChart3 },
     { label: "Profile", href: ROUTES.student.profile, icon: UserCircle },
   ],

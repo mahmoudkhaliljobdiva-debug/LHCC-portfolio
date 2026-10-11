@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           display_order: number | null
           id: string
+          include_in_complete_bank: boolean
           options: Json
           question_bank_id: string
           section_id: string | null
@@ -30,6 +31,7 @@ export type Database = {
           created_at?: string
           display_order?: number | null
           id?: string
+          include_in_complete_bank?: boolean
           options: Json
           question_bank_id: string
           section_id?: string | null
@@ -41,6 +43,7 @@ export type Database = {
           created_at?: string
           display_order?: number | null
           id?: string
+          include_in_complete_bank?: boolean
           options?: Json
           question_bank_id?: string
           section_id?: string | null
@@ -50,17 +53,155 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "bank_questions_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bank_questions_section_id_fkey"
             columns: ["section_id"]
             isOneToOne: false
             referencedRelation: "question_sections"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      exam_sources: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          question_bank_id: string
+          sha256: string
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id: string
+          question_bank_id: string
+          sha256: string
+          storage_path: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          question_bank_id?: string
+          sha256?: string
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "bank_questions_question_bank_id_fkey"
+            foreignKeyName: "exam_sources_question_bank_id_fkey"
             columns: ["question_bank_id"]
             isOneToOne: false
             referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_sources_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      past_exam_questions: {
+        Row: {
+          exam_id: string
+          position: number
+          question_id: string
+          source_number: string
+        }
+        Insert: {
+          exam_id: string
+          position: number
+          question_id: string
+          source_number: string
+        }
+        Update: {
+          exam_id?: string
+          position?: number
+          question_id?: string
+          source_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "past_exam_questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "past_exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "past_exam_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "bank_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      past_exams: {
+        Row: {
+          created_at: string
+          exam_year: number | null
+          id: string
+          provenance: string
+          question_bank_id: string
+          session: string
+          source_id: string | null
+          status: string
+          time_limit_minutes: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          exam_year?: number | null
+          id: string
+          provenance: string
+          question_bank_id: string
+          session?: string
+          source_id?: string | null
+          status?: string
+          time_limit_minutes?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          exam_year?: number | null
+          id?: string
+          provenance?: string
+          question_bank_id?: string
+          session?: string
+          source_id?: string | null
+          status?: string
+          time_limit_minutes?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "past_exams_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "past_exams_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "exam_sources"
             referencedColumns: ["id"]
           },
         ]
@@ -169,44 +310,6 @@ export type Database = {
         }
         Relationships: []
       }
-      question_sections: {
-        Row: {
-          created_at: string
-          description: string
-          display_order: number
-          id: string
-          question_bank_id: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description: string
-          display_order?: number
-          id?: string
-          question_bank_id: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string
-          display_order?: number
-          id?: string
-          question_bank_id?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "question_sections_question_bank_id_fkey"
-            columns: ["question_bank_id"]
-            isOneToOne: false
-            referencedRelation: "question_banks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       question_attempt_answers: {
         Row: {
           answered_at: string
@@ -308,11 +411,18 @@ export type Database = {
           bank_name_snapshot: string | null
           correct_answers: number
           created_at: string
+          deadline_at: string | null
+          exam_title_snapshot: string | null
+          exam_year_snapshot: number | null
           id: string
           incorrect_answers: number
+          learning_mode: string
           mode: string
+          past_exam_id: string | null
           question_bank_id: string
           score_percentage: number
+          setup_signature: Json | null
+          source_kind: string
           started_at: string
           status: string
           student_id: string
@@ -324,11 +434,18 @@ export type Database = {
           bank_name_snapshot?: string | null
           correct_answers?: number
           created_at?: string
+          deadline_at?: string | null
+          exam_title_snapshot?: string | null
+          exam_year_snapshot?: number | null
           id?: string
           incorrect_answers?: number
+          learning_mode?: string
           mode?: string
+          past_exam_id?: string | null
           question_bank_id: string
           score_percentage?: number
+          setup_signature?: Json | null
+          source_kind?: string
           started_at?: string
           status?: string
           student_id: string
@@ -340,11 +457,18 @@ export type Database = {
           bank_name_snapshot?: string | null
           correct_answers?: number
           created_at?: string
+          deadline_at?: string | null
+          exam_title_snapshot?: string | null
+          exam_year_snapshot?: number | null
           id?: string
           incorrect_answers?: number
+          learning_mode?: string
           mode?: string
+          past_exam_id?: string | null
           question_bank_id?: string
           score_percentage?: number
+          setup_signature?: Json | null
+          source_kind?: string
           started_at?: string
           status?: string
           student_id?: string
@@ -353,6 +477,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "question_attempts_past_exam_id_fkey"
+            columns: ["past_exam_id"]
+            isOneToOne: false
+            referencedRelation: "past_exams"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "question_attempts_question_bank_id_fkey"
             columns: ["question_bank_id"]
@@ -412,6 +543,44 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_sections: {
+        Row: {
+          created_at: string
+          description: string
+          display_order: number
+          id: string
+          question_bank_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          display_order?: number
+          id?: string
+          question_bank_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          display_order?: number
+          id?: string
+          question_bank_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_sections_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
             referencedColumns: ["id"]
           },
         ]
@@ -674,8 +843,13 @@ export type Database = {
     }
     Functions: {
       admin_bank_data: { Args: never; Returns: Json }
+      admin_past_exams: { Args: { bank_id: string }; Returns: Json }
       admin_update_managed_profile: { Args: { payload: Json }; Returns: Json }
       admin_wallet_data: { Args: never; Returns: Json }
+      check_practice_answer: {
+        Args: { attempt_id: string; question_id: string }
+        Returns: Json
+      }
       exam_bank_data: {
         Args: { bank_id: string; subject_id?: string }
         Returns: Json
@@ -692,6 +866,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      learning_progress: { Args: never; Returns: Json }
       list_bank_access_requests: { Args: never; Returns: Json }
       manage_bank_content: {
         Args: { item_id: string; operation: string; payload?: Json }
@@ -701,6 +876,7 @@ export type Database = {
         Args: { item_id: string; operation: string; payload?: Json }
         Returns: undefined
       }
+      register_exam_source: { Args: { payload: Json }; Returns: string }
       request_bank_access: { Args: { bank_id: string }; Returns: string }
       reset_portfolio_content: { Args: never; Returns: undefined }
       review_bank_access: {
@@ -711,8 +887,10 @@ export type Database = {
         Args: { attempt_id: string; option_id: string; question_id: string }
         Returns: undefined
       }
+      save_past_exam: { Args: { payload: Json }; Returns: string }
       save_portfolio_content: { Args: { payload: Json }; Returns: undefined }
       start_exam: { Args: { bank_id: string }; Returns: string }
+      start_learning_exam: { Args: { config: Json }; Returns: string }
       submit_bank_answer: {
         Args: { option_id: string; question_id: string }
         Returns: Json

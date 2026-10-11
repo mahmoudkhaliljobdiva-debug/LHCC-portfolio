@@ -1,0 +1,23 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Route } from "next";
+import { startLearningExam } from "@/actions/exams";
+import { Select } from "@/components/ui/select";
+import type { LearningSetup } from "@/types/past-exam";
+
+export function ExamSetup({ initial, title, year, available }: { initial: LearningSetup; title: string; year?: number | null; available: number }) {
+  const [setup,setSetup] = useState(initial); const [timed,setTimed] = useState(initial.timeLimitMinutes !== null);
+  const [busy,setBusy] = useState(false); const [error,setError] = useState(""); const router = useRouter();
+  async function start() {
+    if (busy) return; setBusy(true); setError("");
+    try { const result = await startLearningExam({ ...setup,timeLimitMinutes: timed ? setup.timeLimitMinutes : null }); if (result.ok) router.push(`/student/exams/${result.data}` as Route); else setError(result.error.message); }
+    catch { setError("Unable to start. Please retry."); } finally { setBusy(false); }
+  }
+  return <section className="mx-auto max-w-3xl rounded-2xl border bg-white p-5 sm:p-8"><p className="text-sm font-semibold text-teal-700 dark:text-teal-200">Prepare your session</p><h1 className="mt-2 break-words text-2xl font-semibold text-slate-950">{title}{year ? ` · ${year}` : ""}</h1><p className="mt-3 text-sm text-slate-600">{available} available questions · {initial.source === "PAST" ? "Original questions in their original order" : initial.source === "RANDOM" ? "A securely selected random set, saved for this attempt" : "Complete collection in order"}</p>
+    <div className="mt-7 grid gap-5 sm:grid-cols-2"><label className="grid gap-2 text-sm font-medium text-slate-700">Learning mode<Select value={setup.mode} onChange={e => setSetup({ ...setup,mode:e.target.value as LearningSetup["mode"] })} className="min-h-12 rounded-xl border bg-slate-50 px-3"><option value="EXAM">Exam — feedback after submission</option><option value="PRACTICE">Practice — check each answer</option></Select></label>{initial.source === "RANDOM" && <label className="grid gap-2 text-sm font-medium text-slate-700">Question count<input type="number" min={1} max={Math.min(30,available)} value={setup.count} onChange={e => setSetup({ ...setup,count:Number(e.target.value) })} className="min-h-12 w-full rounded-xl border bg-slate-50 px-3" /></label>}</div>
+    <fieldset className="mt-7"><legend className="font-semibold text-slate-950">Set your pace</legend><div className="mt-3 grid gap-3 sm:grid-cols-2">{[false,true].map(value => <label key={String(value)} className={`flex min-h-20 items-center gap-3 rounded-xl border p-4 text-sm ${timed===value ? "border-teal-600 bg-teal-50 dark:bg-slate-800" : ""}`}><input type="radio" name="timer" checked={timed===value} onChange={() => setTimed(value)} className="size-4 accent-teal-700" /><span><strong className="block text-slate-950">{value ? "Timed" : "Untimed"}</strong><span className="text-slate-600">{value ? "Server-enforced deadline" : "No countdown"}</span></span></label>)}</div></fieldset>
+    {timed && <label className="mt-5 grid gap-2 text-sm font-medium text-slate-700">Time limit (minutes)<input type="number" min={1} max={1440} value={setup.timeLimitMinutes ?? ""} placeholder="Choose a time limit" onChange={e => setSetup({ ...setup,timeLimitMinutes:e.target.value ? Number(e.target.value) : null })} className="min-h-12 w-full rounded-xl border bg-slate-50 px-3" /><span className="font-normal text-slate-500">No time limit is assumed. {initial.timeLimitMinutes ? "The initial value was configured by an administrator." : "Enter your own session limit."}</span></label>}
+    {error && <p role="alert" className="mt-5 text-sm text-rose-700 dark:text-rose-300">{error}</p>}<button disabled={busy || !available || (timed && !setup.timeLimitMinutes)} onClick={() => void start()} className="mt-7 min-h-12 rounded-xl bg-teal-700 px-5 py-3 font-semibold text-white disabled:opacity-50">{busy ? "Starting…" : "Start session"}</button><p className="mt-4 text-sm text-slate-500">Continue an unfinished attempt before starting a different session in this bank.</p>
+  </section>;
+}

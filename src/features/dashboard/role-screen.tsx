@@ -10,6 +10,8 @@ import { MetricCard } from "@/features/dashboard/metric-card";
 import { PortfolioEditor } from "@/features/portfolio-content/portfolio-editor";
 import { OwnProfileEditor } from "@/features/users/own-profile-editor";
 import { TeacherQuestionBankGrid } from "@/features/question-banks/teacher-question-bank-grid";
+import { StudentLearningOverview } from "@/features/exams/student-learning-overview";
+import { LearningProgress } from "@/features/exams/learning-progress";
 import { getDashboardData, getTeacherBankSummaries } from "@/lib/data/server";
 import { getPortfolioContent } from "@/lib/portfolio/server";
 import { requireRole } from "@/lib/auth/server";
@@ -38,15 +40,16 @@ export async function RoleScreen({ role, section }: { readonly role: UserRole; r
   const data = await getDashboardData(role);
   const title = section ? sectionTitles[section] ?? "Workspace" : role === "admin" ? "Platform overview" : `Welcome, ${data.displayName}`;
 
-  if (section === "analytics") return <AnalyticsPage title={title} data={data} />;
+  if (section === "analytics") return <><AnalyticsPage title={title} data={data} />{role === "student" && <LearningProgress />}</>;
   if (section === "students") return <AnalyticsPage title={title} data={data} />;
-  return <DashboardHome role={role} data={data} />;
+  return <DashboardHome role={role} data={data} learningOverview={role === "student" ? <StudentLearningOverview /> : null} />;
 }
 
 function Page({ title, subtitle, children }: { readonly title: string; readonly subtitle: string; readonly children: React.ReactNode }) { return <><div className="mb-7"><h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">{title}</h1><p className="mt-2 text-sm text-slate-500">{subtitle}</p></div>{children}</>; }
 
-export function DashboardHome({ role, data }: { readonly role: UserRole; readonly data: DashboardData }) {
+export function DashboardHome({ role, data, learningOverview }: { readonly role: UserRole; readonly data: DashboardData; readonly learningOverview?: React.ReactNode }) {
   return <Page title={role === "admin" ? "Platform overview" : `Welcome, ${data.displayName}`} subtitle="Your latest learning activity and performance.">
+    {learningOverview}
     <MetricGrid metrics={data.metrics} />
     <div className="mt-6 grid gap-6 xl:grid-cols-[1.55fr_.85fr]">
       <section className="rounded-2xl border bg-white p-5 shadow-sm sm:p-6"><h2 className="font-semibold text-slate-950">Performance trend</h2><p className="mt-1 text-xs text-slate-500">Average completed-attempt score by month</p><div className="mt-5">{data.scoreTrend.length ? <PerformanceChart data={data.scoreTrend} /> : <EmptyText>No completed attempts yet.</EmptyText>}</div></section>

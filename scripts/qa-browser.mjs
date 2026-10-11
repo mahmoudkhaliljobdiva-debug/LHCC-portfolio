@@ -24,8 +24,10 @@ export async function startBrowser(base) {
   const pending = new Map();
   const errors = [];
   const failedResponses = [];
+  const confirmSessions = new Set();
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
+    if (message.method === "Page.javascriptDialogOpening" && confirmSessions.has(message.sessionId)) void command("Page.handleJavaScriptDialog", { accept: true }, message.sessionId);
     if (message.method === "Runtime.exceptionThrown") errors.push(message.params.exceptionDetails.exception?.description ?? message.params.exceptionDetails.text);
     if (message.method === "Runtime.consoleAPICalled" && message.params.type === "error") errors.push(message.params.args.map((arg) => arg.value ?? arg.description ?? "").join(" "));
     if (message.method === "Network.responseReceived" && message.params.response.status >= 500) failedResponses.push({ url: message.params.response.url, status: message.params.response.status });
@@ -54,6 +56,7 @@ export async function startBrowser(base) {
     };
     return {
       evaluate,
+      async confirmDialogs(enabled = true) { if (enabled) confirmSessions.add(sessionId); else confirmSessions.delete(sessionId); },
       async goto(path) {
         // Clear the previous document first, so readyState cannot accept stale UI.
         await command("Page.navigate", { url: "about:blank" }, sessionId);

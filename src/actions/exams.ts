@@ -5,9 +5,24 @@ import { z } from "zod";
 import { getAuthenticatedProfile, getEffectiveProfileStatus } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { contentId, examId } from "@/lib/validation/exam";
+import { learningSetupSchema } from "@/lib/validation/past-exam";
 import type { ServerResult } from "@/types/server-result";
 
 const failure = (message: string): ServerResult<never> => ({ ok: false, error: { code: "FORBIDDEN", message } });
+export async function startLearningExam(input: unknown): Promise<ServerResult<string>> {
+  const parsed = learningSetupSchema.safeParse(input);
+  if (!parsed.success || !await authorized()) return failure("Check the exam setup and active bank access.");
+  const db = await createClient(); const { data, error } = await db.rpc("start_learning_exam", { config: parsed.data });
+  if (error || !data) return failure(error?.code === "23514" ? "Continue your unfinished attempt first, or check available questions and setup." : "This exam is not available. Check your approved access.");
+  revalidatePath("/student", "layout"); return { ok: true, data };
+}
+export async function checkPracticeAnswer(attemptId: string, questionId: string): Promise<ServerResult<{ outcome: boolean; correctOptionId: string }>> {
+  if (!examId.safeParse(attemptId).success || !contentId.safeParse(questionId).success || !await authorized()) return failure("Active student access is required.");
+  const db = await createClient(); const { data, error } = await db.rpc("check_practice_answer", { attempt_id: attemptId, question_id: questionId });
+  const parsed = z.object({ outcome: z.boolean(), correctOptionId: contentId }).safeParse(data);
+  if (error || !parsed.success) return failure("Save your answer first. Only an active practice attempt allows checking.");
+  revalidatePath(`/student/exams/${attemptId}`); return { ok: true, data: parsed.data };
+}
 async function authorized() {
   const profile = await getAuthenticatedProfile();
   return profile?.role === "STUDENT" && await getEffectiveProfileStatus(profile) === "ACTIVE";

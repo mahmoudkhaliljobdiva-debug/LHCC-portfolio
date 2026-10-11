@@ -1,6 +1,6 @@
 # Backend map and production data audit
 
-Updated: 2026-10-04. Historical baseline: `9465fbe`; current exam architecture below.
+Updated: 2026-10-11. Historical baseline: `9465fbe`; current exam architecture below.
 Production: https://lhcc-lb.com (also https://lhcc-portfolio.vercel.app).
 Supabase: `lcazjsmmegwwnmuupsko`. Vercel: `lhcc-portfolio`.
 
@@ -11,6 +11,22 @@ No production business records are loaded from localStorage or mock files.
 Form drafts, filters, open dialogs, and feedback are transient UI state.
 
 ## Feature map
+
+### Yearly archive extension
+
+See [yearly-exams.md](yearly-exams.md) for the additive archive/import model,
+source privacy, practice feedback and timed setup. `past_exams` and
+`past_exam_questions` organize the same canonical questions; `exam_sources`
+references original PDFs in an admin-only private bucket. Private drafts,
+import ownership and checked-practice markers are not exposed business data.
+`start_learning_exam`, `check_practice_answer`, `save_past_exam`,
+`register_exam_source`, `admin_past_exams` and `learning_progress` use guarded
+private implementations behind public invoker wrappers. Student bank/year
+access inherits existing approved-bank permissions; teacher scope is unchanged.
+The new `learning_mode` is separate from the preserved legacy attempt `mode`.
+Active EXAM keys remain hidden; only checked PRACTICE or completed sessions
+receive authorized frozen feedback. The older verification sections below
+describe their original baseline and do not claim this release passed testing.
 
 | Feature / UI | Tables | Read path | Write path | Authorization and RLS |
 | --- | --- | --- | --- | --- |
@@ -205,7 +221,8 @@ automatically imported into trusted production data.
 
 ## Remaining supported boundaries
 
-Exams and teacher cohort management remain unconfigured. Teachers now have
+Teacher cohort management remains unconfigured. Exams now include random,
+full-bank, clinical-case and published past-year sessions. Teachers have
 explicit bank assignments and add/view-only authoring; profile editing is
 self-service for personal fields. Retake controls,
 question versioning within an active attempt, full historical audit logs,

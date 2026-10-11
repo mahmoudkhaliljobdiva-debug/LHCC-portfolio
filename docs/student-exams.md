@@ -1,5 +1,10 @@
 # Student question-bank exams
 
+The 2026-10-11 yearly-archive extension is documented in [yearly-exams.md](yearly-exams.md).
+It adds fixed past exams, all/case practice, setup/timers and authorized checked
+feedback while preserving the canonical engine described below. Earlier
+verification counts in this document are historical, not the new release results.
+
 ## Architecture
 
 Approved active bank → bank details → `startExam` → atomic `start_exam` RPC →
@@ -9,7 +14,8 @@ random question selection, mock questions, or localStorage exam state.
 
 Existing `question_attempts` / `question_attempt_answers` remain canonical.
 `mode` distinguishes preserved PRACTICE history from new EXAM attempts.
-`question_attempt_questions` stores up to 30 unique questions in immutable order
+`question_attempt_questions` stores unique questions in immutable order (random
+exams default to up to 30; full-bank and past-exam sessions are not truncated)
 with safe question/option text snapshots. Private `exam_question_solutions`
 stores the corresponding frozen keys and is unavailable to clients.
 Edits/deactivation do not alter existing exams. Referenced question deletion is
@@ -32,8 +38,8 @@ Migrations: `20260928173425_student_bank_exams.sql` and
   grading, two-decimal score. Unanswered questions count as incorrect. Completed
   retry returns the original ID/result without extra completion or wallet events.
 - `exam_data` / `exam_bank_data`: guarded safe allowlists. Pre-submit responses
-  exclude outcome and all answer-key fields. Completed review shows the selected
-  answer and correctness only, never the correct option key.
+  exclude outcome and all answer-key fields except authorized checked practice
+  questions. Completed review may include frozen correct options.
 - Old `submit_bank_answer` EXECUTE permissions are revoked to prevent an
   immediate-feedback oracle. Obsolete practice UI/actions/readers were removed;
   stored practice history and reporting remain.
@@ -52,7 +58,8 @@ Routes: `/student/banks/[bankId]`, `/student/exams`,
 `/student/exams/[attemptId]`, `/student/exams/[attemptId]/result`.
 Bank details/history use backend eligible counts and real attempts; zero disables
 Start, smaller banks use all eligible questions. Completed exams can be retaken.
-Exam cards have radio selections, numbered anchor navigator, progress, per-answer
+Exam cards have radio selections, a numbered button navigator, previous/next,
+single-question presentation, progress, per-answer
 save feedback/retry, and a native keyboard-accessible confirmation dialog.
 Submission waits for saved answers; failed saves block submission. Refresh/resume
 loads the same ordered snapshots and selections. Save invalidates exam/dashboard
