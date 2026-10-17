@@ -8,8 +8,8 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   let response = NextResponse.next({ request });
 
-  // Preserve public routes when Supabase environment variables are unavailable
-  // is connected. Once authentication is migrated, these variables are required.
+  // Missing configuration never grants portal access: server guards and the
+  // database remain authoritative. Session refresh needs both public settings.
   if (!url || !anonKey) return response;
 
   const supabase = createServerClient<Database>(url, anonKey, {

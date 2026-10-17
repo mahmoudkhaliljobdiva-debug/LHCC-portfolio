@@ -1,6 +1,28 @@
 # L.H.C.C Healthcare Learning Platform — Project Handoff
 
-Last updated: September 14, 2026
+Current handoff updated: October 17, 2026. Older checkpoints below are historical.
+
+## Current production checkpoint
+
+- Production: https://lhcc-lb.com; normal Git pushes to `main` trigger Vercel.
+- Supabase is the source of truth. No mock business-data fallback or QA routes.
+- Nursing, Medical and Dentistry are independent specialties. Nursing Colloquium
+  remains under Nursing with its original 100 questions and 20 clinical cases.
+- Personal random, historical PDF and fixed shared exams reuse the canonical
+  question pool, private keys, frozen snapshots and independently owned attempts.
+- Authoritative architecture: [backend map](docs/backend-map.md) and
+  [learning-platform implementation](docs/learning-platform.md).
+- Latest cleanup/security findings: [production audit](docs/production-cleanup-audit.md).
+- Use Node 22.23.2. Keep automated tests; use isolated Supabase for mutating QA.
+- Never reset production, edit/reapply migrations, reuse archived QA credentials,
+  or delete records without explicit approval and a verified recovery plan.
+- The historical About CMS QA marker was reported, not silently removed.
+
+## Historical checkpoints (superseded; preserve as project history)
+
+The following dated checkpoints are not current architecture or setup instructions.
+Earlier mock features, migration counts and persistent QA-account descriptions
+must not be used to restore obsolete behavior. Follow the current links above.
 
 ## Current checkpoint — backend source of truth
 

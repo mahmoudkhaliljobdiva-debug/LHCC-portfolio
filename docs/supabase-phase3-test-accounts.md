@@ -1,5 +1,9 @@
 # Phase 3 Supabase test accounts
 
+Historical provisioning notes, not instructions to seed production. Use
+[current isolated QA guidance](backend-qa.md) and never recreate historical QA
+users in the live project. Real user invitation remains an Admin feature.
+
 Never commit test passwords, secret API keys, or invitation links. Supabase
 Auth remains the source of identity and `public.profiles` remains the source of
 application role and activation state.

@@ -8,11 +8,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { randomBytes } from "node:crypto";
+import { assertLocalQaTarget } from "./qa-safety.mjs";
 
 const base = process.env.LHCC_TEST_URL ?? "http://localhost:3000";
 const allowedHosts = ["localhost", "lhcc-lb.com", "lhcc-portfolio.vercel.app"];
 assert(allowedHosts.includes(new URL(base).hostname), "Use the local or established production application.");
-if (process.env.LHCC_RUN_AUTH_TESTS === "1") assert(new URL(base).hostname === "localhost", "Mutating auth tests run against the local application only.");
+if (process.env.LHCC_RUN_AUTH_TESTS === "1") {
+  assert(new URL(base).hostname === "localhost", "Mutating auth tests run against the local application only.");
+  assertLocalQaTarget(process.env.NEXT_PUBLIC_SUPABASE_URL);
+}
 const port = 9337;
 const profile = await mkdtemp(join(tmpdir(), "lhcc-course-browser-"));
 const browser = spawn("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "about:blank"], { windowsHide: true, stdio: "ignore" });

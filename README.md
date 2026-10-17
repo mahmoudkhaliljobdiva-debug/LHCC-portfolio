@@ -7,6 +7,7 @@ of truth for production business data.
 ## Architecture
 
 - Public portfolio CMS; student, teacher, and admin portals.
+- Independent specialties and materials with personal random, historical and shared exams.
 - Server Components read Supabase; Server Actions validate and authorize writes.
 - RLS and guarded database functions enforce course access and protect answer keys.
 - Attempts, progress, dashboard metrics and activity use real saved records.
@@ -51,13 +52,15 @@ npm run typecheck
 npm run lint
 npm run build
 git diff --check
-node --experimental-strip-types --test scripts/backend-reporting.test.mjs
+node --test scripts/*.test.mjs
 ```
 
-`supabase/tests/student_course_access.sql` exercises backend authorization and
-persistence in a transaction that always rolls back. The isolated headless Edge
-fallback is `scripts/course-browser-test.mjs`; public checks create no accounts.
-Authenticated test mode requires explicit opt-in and cleanup.
+Keep automated tests. `archive-db-tests.mjs` and `learning-platform-db.mjs` run
+rollback security/scoring checks only against the isolated `archive-db` container.
+For real browser PDF/exam journeys use the local archive fixtures and runners in
+[the learning-platform report](docs/learning-platform.md). Production smoke is
+read-only; legacy backend QA tools now reject remote Supabase URLs, and their
+inventory helper cannot delete records. See [QA safety](docs/backend-qa.md).
 
 ## Deployment
 
@@ -69,6 +72,9 @@ for the pushed commit; do not create a duplicate manual deployment.
 
 ## Current feature boundaries
 
-Exams and teacher cohort management are not yet configured; their UI does not
-pretend to contain real records. Teacher analytics use the existing permitted
-learning data. See the backend map for the remaining workflow limitations.
+Personal random exams and complete-bank/case practice use the real eligible
+question pool. Historical/shared exams appear only after Admin publication;
+empty archives are not populated with fabricated offerings. Teacher cohort
+management remains unconfigured; analytics use permitted real learning data.
+See [the production cleanup audit](docs/production-cleanup-audit.md) for classified
+artifacts, security findings and changes requiring separate approval.

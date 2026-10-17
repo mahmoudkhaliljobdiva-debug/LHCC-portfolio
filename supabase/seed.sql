@@ -1,4 +1,3 @@
--- Auth identities are intentionally not inserted with SQL. Create the initial
--- Admin through Supabase Auth, then follow docs/supabase-phase3-test-accounts.md.
--- All later Student and Teacher test identities should be invited through the
--- Admin Users UI so the production provisioning path is exercised.
+-- Intentionally empty: do not seed or reset production business/Auth data.
+-- Provision legitimate users through the application and trusted Admin workflow.
+-- Automated fixtures belong only to isolated local QA; see docs/backend-qa.md.

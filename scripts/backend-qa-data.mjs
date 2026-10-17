@@ -1,13 +1,13 @@
-// Controlled, opt-in Supabase QA data. Never imported by the application.
+// Isolated local Supabase QA data. Never imported by the application.
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID, createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalQaTarget } from "./qa-safety.mjs";
 
-export const projectRef = "lcazjsmmegwwnmuupsko";
-export const manifestPath = ".test-artifacts/backend-qa.private.json";
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-assert.equal(new URL(url).hostname, projectRef + ".supabase.co", "Refuse to use a different Supabase project.");
+export const projectRef = "local-backend-qa";
+export const manifestPath = ".test-artifacts/backend-qa-local.private.json";
+const url = assertLocalQaTarget(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const options = { auth: { persistSession: false, autoRefreshToken: false } };
 // Lazy initialization permits anonymous read diagnostics without an admin secret.
 let privilegedClient;
@@ -20,7 +20,12 @@ export async function checked(result, label) {
   if (error) throw new Error(label + ": " + error.code + " " + error.message);
   return data;
 }
-export const loadManifest = async () => JSON.parse(await readFile(manifestPath, "utf8"));
+export async function loadManifest() {
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  assert.equal(manifest.projectRef, projectRef, "Use an isolated local QA manifest.");
+  assert.equal(assertLocalQaTarget(manifest.url), url, "QA manifest and backend must match.");
+  return manifest;
+}
 export async function saveManifest(value) {
   await mkdir(".test-artifacts", { recursive: true });
   await writeFile(manifestPath, JSON.stringify(value, null, 2), { mode: 0o600 });
@@ -50,7 +55,7 @@ async function setup() {
     return;
   }
   const run = new Date().toISOString().slice(0, 10).replaceAll("-", "") + "-" + randomBytes(3).toString("hex");
-  const data = { projectRef, run, tag: "[TEST] QA " + run, createdAt: new Date().toISOString(), users: {}, banks: [], questions: [], walletIds: [], baseline: admin ? await snapshot() : null };
+  const data = { projectRef, url, run, tag: "[TEST] QA " + run, createdAt: new Date().toISOString(), users: {}, banks: [], questions: [], walletIds: [], baseline: admin ? await snapshot() : null };
   await saveManifest(data);
   for (const [key, role] of [["admin", "ADMIN"], ["teacher", "TEACHER"], ["locked", "STUDENT"], ["pending", "STUDENT"], ["approved", "STUDENT"], ["rejected", "STUDENT"], ["completed", "STUDENT"]]) {
     const account = { email: "lhcc-qa-" + run + "-" + key + "@example.com", password: randomBytes(24).toString("base64url"), name: data.tag + " " + key };

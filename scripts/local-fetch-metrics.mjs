@@ -1,6 +1,8 @@
 // Opt-in NODE_OPTIONS=--import=./scripts/local-fetch-metrics.mjs for LOCAL QA only.
 // Never logs headers, query parameters, credentials or response bodies.
 import { appendFileSync, mkdirSync } from 'node:fs';
+import { assertLocalQaTarget } from './qa-safety.mjs';
+assertLocalQaTarget(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const original = globalThis.fetch;
 globalThis.fetch = async (...args) => {
  const input=args[0];const url=new URL(typeof input==='string'?input:input.url??String(input));
