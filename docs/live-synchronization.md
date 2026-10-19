@@ -145,3 +145,15 @@ reports and credentials belong in ignored `.test-artifacts`, never Git.
   QA bank, with cleanup of only generated IDs/sessions. No temporary Admin account
   or changes to existing users are authorized. The final handoff records release
   SHA/READY deployment, production test result and post-cleanup preservation checks.
+- Production verification on `53cd649`: two independent Student sessions received
+  approval; an approved material opened; revocation removed loaded material and
+  denied backend access; the private Admin channel denied the Student. Admin
+  approval/revocation used the existing guarded RPC, not an authenticated Admin UI
+  session (the complete Admin UI flow was verified locally).
+- The single authorized temporary Student, empty free bank, request, grant and
+  sessions were removed after a verified private recovery backup. All 27 existing
+  Auth/business/storage inventory counts and content digests matched the original
+  snapshot. Existing users, banks, attempts, questions, CMS and ledger were unchanged.
+- A follow-up rendering correction clears request feedback when authoritative
+  access state changes, avoiding stale pending text under an approved card; the
+  isolated browser suite includes this regression assertion.

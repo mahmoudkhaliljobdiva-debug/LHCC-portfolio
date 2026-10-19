@@ -9,7 +9,8 @@ import type { StudentBank } from "@/types/bank-access";
 const labels = { LOCKED: "Locked", PENDING: "Pending Approval", APPROVED: "Access Granted", REJECTED: "Access Request Rejected" };
 export function QuestionBankGrid({ banks, previewBase }: { readonly banks: StudentBank[]; readonly previewBase?: string }) {
   if (!banks.length) return <p className="rounded-2xl border bg-white p-6 text-slate-600">No courses are currently available.</p>;
-  return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{banks.map((bank) => <BankCard key={bank.id} bank={bank} previewBase={previewBase} />)}</div>;
+  // Request feedback belongs to one access state, not a later approval/revocation.
+  return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{banks.map((bank) => <BankCard key={`${bank.id}:${bank.accessState}:${Boolean(bank.accessRevoked)}`} bank={bank} previewBase={previewBase} />)}</div>;
 }
 function BankCard({ bank, previewBase }: { readonly bank: StudentBank; readonly previewBase: string | undefined }) {
   const router = useRouter();

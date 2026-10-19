@@ -30,6 +30,7 @@ try{
  await soon(async()=>(await admin.text()).includes(user.name),'Admin receives request without navigation');latencies.push({event:'request',ms:Date.now()-started});
  started=Date.now();await admin.click('Approve',card(user.name));
  for(const p of [student,second])await soon(()=>p.evaluate(`${card(bankName)}?.innerText.includes('Access Granted')`),'same-page approval in both sessions');
+ for(const p of [student,second])assert(!await p.evaluate(`${card(bankName)}?.innerText.includes('Your request has been sent for approval.')`),'approved card must not retain pending-request feedback');
  latencies.push({event:'approval',ms:Date.now()-started});checks.push('request → Admin live queue → confirmed approval → both student sessions unlock, no reload');
  await screenshot(student,'approval');
  await student.click('Open Course',card(bankName));await soon(()=>student.evaluate(`location.pathname==='/student/banks/${bankId}'`),'open approved material');
