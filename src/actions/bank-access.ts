@@ -46,6 +46,15 @@ async function review(requestId: string, decision: "APPROVED" | "REJECTED", reas
 
 export async function approveBankAccessRequest(requestId: string) { return review(requestId, "APPROVED", null); }
 export async function rejectBankAccessRequest(requestId: string, reason: string) { return review(requestId, "REJECTED", reason); }
+export async function revokeBankAccessRequest(requestId: string): Promise<ServerResult<null>> {
+  if (!z.uuid().safeParse(requestId).success) return failure("Choose a valid approval.");
+  const auth = await authorizeActiveAdmin(); if (!auth.ok) return auth;
+  try {
+    const db = await createClient(); const { error } = await db.rpc("revoke_bank_access", { request_id: requestId });
+    if (error) return failure("This approval is no longer active or could not be revoked.");
+    refreshAccess(); return { ok:true,data:null };
+  } catch { return failure("Access was not revoked. Please retry."); }
+}
 
 
 function refreshAccess() {

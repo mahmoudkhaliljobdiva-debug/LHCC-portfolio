@@ -39,6 +39,9 @@ interface AdminUsersPageProps {
 export function AdminUsersPage({ initialUsers, initialError, usage, initialRole, banks }: AdminUsersPageProps) {
   const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
+  const [previousUsers, setPreviousUsers] = useState(initialUsers);
+  // RSC refreshes must replace confirmed data without closing an open editor.
+  if (previousUsers !== initialUsers) { setPreviousUsers(initialUsers); setUsers(initialUsers); }
   const [search, setSearch] = useState("");
   const roleFilter = initialRole;
   const [statusFilter, setStatusFilter] = useState<"all" | EffectiveUserStatus>("all");

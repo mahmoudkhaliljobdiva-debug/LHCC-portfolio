@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@keyframes live-approved { from { transform: scale(.85); opacity: .4; } to { transform: scale(1); opacity: 1; } }
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {

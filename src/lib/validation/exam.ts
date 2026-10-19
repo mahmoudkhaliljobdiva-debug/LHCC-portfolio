@@ -4,7 +4,7 @@ export const examId = z.uuid();
 export const contentId = z.string().trim().min(1).max(200);
 export const examSchema = z.object({
   id: examId, bankId: contentId, bankName: z.string(), status: z.enum(["IN_PROGRESS", "COMPLETED", "ABANDONED"]),
-  totalQuestions: z.number().int().min(1), startedAt: z.string(), submittedAt: z.string().nullable(),
+  totalQuestions: z.number().int().min(1), answerVersion: z.number().int().min(0).default(0), startedAt: z.string(), submittedAt: z.string().nullable(),
   title: z.string().optional(), year: z.number().nullable().optional(),
   learningMode: z.enum(["PRACTICE", "EXAM"]).default("EXAM"), source: z.enum(["RANDOM", "ALL", "CASE", "PAST", "SHARED"]).default("RANDOM"),
   deadlineAt: z.string().nullable().default(null), unanswered: z.number().optional(), timeTakenSeconds: z.number().nullable().optional(),

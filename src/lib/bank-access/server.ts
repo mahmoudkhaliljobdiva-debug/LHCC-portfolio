@@ -31,12 +31,13 @@ async function readStudentBanks(db: Awaited<ReturnType<typeof createClient>>, su
   const [banks, requests, grants] = await Promise.all([
     readAllRows((from, to) => db.from("question_banks").select("*").eq("status", "active").order("display_order").order("id").range(from, to)),
     readAllRows((from, to) => db.from("user_bank_access_requests").select("*").eq("user_id", subjectId).order("requested_at", { ascending: false }).order("id").range(from, to)),
-    readAllRows((from, to) => db.from("user_bank_access").select("*").eq("user_id", subjectId).eq("status", "ACTIVE").order("id").range(from, to)),
+    readAllRows((from, to) => db.from("user_bank_access").select("*").eq("user_id", subjectId).order("id").range(from, to)),
   ]);
   return banks.map((bank) => {
     const request = requests.find((item) => item.question_bank_id === bank.id);
-    const approved = grants.some((item) => item.question_bank_id === bank.id);
-    return { ...bank, status: "active", accessState: approved ? "APPROVED" : request?.status === "PENDING" || request?.status === "REJECTED" ? request.status : "LOCKED", rejectionReason: request?.rejection_reason ?? null };
+    const grant = grants.find((item) => item.question_bank_id === bank.id);
+    const approved = grant?.status === "ACTIVE";
+    return { ...bank, status: "active", accessState: approved ? "APPROVED" : request?.status === "PENDING" || request?.status === "REJECTED" ? request.status : "LOCKED", accessRevoked: grant?.status === "REVOKED", rejectionReason: request?.rejection_reason ?? null };
   });
 }
 
@@ -46,7 +47,8 @@ export async function getAdminRequests(): Promise<AdminAccessRequest[]> {
   const db = await createClient();
   const { data, error } = await db.rpc("list_bank_access_requests");
   if (error) throw new Error("Unable to load access requests.");
-  return data as unknown as AdminAccessRequest[];
+  const grants = await readAllRows((from,to) => db.from("user_bank_access").select("request_id,status").order("id").range(from,to));
+  return (data as unknown as AdminAccessRequest[]).map(request => ({ ...request, accessActive: grants.some(grant => grant.request_id === request.id && grant.status === "ACTIVE") }));
 }
 
 export async function getAdminBankData(): Promise<QuestionBankStoreData> {

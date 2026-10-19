@@ -1,0 +1,38 @@
+-- Executed by live-sync-db.mjs inside the existing rollback-only course fixtures.
+set local role authenticated;
+select set_config('request.jwt.claim.sub',current_setting('lhcc.student'),true),set_config('request.jwt.claims',json_build_object('sub',current_setting('lhcc.student'),'role','authenticated')::text,true);
+select pg_temp.check_test(public.live_sync_state()->>'userId'=current_setting('lhcc.student'),'live state self scoped');
+select pg_temp.check_test((public.live_sync_state(current_setting('lhcc.bank'))->>'bankAllowed')::boolean,'live state approved bank');
+select pg_temp.denied('select * from private.live_revisions','revisions cannot be queried directly');
+select pg_temp.denied('select private.emit_live(''lhcc:admin'',''users'')','clients cannot emit trusted hints');
+select pg_temp.denied('select public.revoke_bank_access(current_setting(''lhcc.request'')::uuid)','student cannot revoke access');
+select set_config('lhcc.live_revision',public.live_sync_state()->>'revision',true);
+select set_config('lhcc.live_attempt',public.start_learning_exam(jsonb_build_object('bankId',current_setting('lhcc.bank'),'source','RANDOM','sourceId',null,'mode','EXAM','count',2,'timeLimitMinutes',null))::text,true);
+select pg_temp.check_test(public.exam_data(current_setting('lhcc.live_attempt')::uuid)->>'answerVersion'='0','new attempt version zero');
+select pg_temp.check_test(public.save_exam_answer_versioned(current_setting('lhcc.live_attempt')::uuid,current_setting('lhcc.question'),'a',0)=1,'confirmed answer increments version');
+do $$ begin
+  begin perform public.save_exam_answer_versioned(current_setting('lhcc.live_attempt')::uuid,current_setting('lhcc.question'),'b',0);
+  exception when serialization_failure then insert into course_checks values('stale tab cannot overwrite answer');return;end;
+  raise exception 'Expected exam version conflict';
+end $$;
+select pg_temp.check_test(public.exam_data(current_setting('lhcc.live_attempt')::uuid)->'questions' @> jsonb_build_array(jsonb_build_object('id',current_setting('lhcc.question'),'selectedOptionId','a')),'conflict preserves newer selection');
+select pg_temp.check_test(public.live_sync_state()->>'revision'<>current_setting('lhcc.live_revision'),'own revision tracks saved progress');
+select pg_temp.check_test(public.live_sync_state(null,current_setting('lhcc.live_attempt')::uuid)::text !~ 'question|correct|option|email|phone','snapshot metadata contains no questions or personal fields');
+select set_config('request.jwt.claim.sub',current_setting('lhcc.other'),true),set_config('request.jwt.claims',json_build_object('sub',current_setting('lhcc.other'),'role','authenticated')::text,true);
+select pg_temp.check_test(not (public.live_sync_state(null,current_setting('lhcc.live_attempt')::uuid)->>'bankAllowed')::boolean,'other student attempt inaccessible');
+select pg_temp.denied('select public.save_exam_answer_versioned(current_setting(''lhcc.live_attempt'')::uuid,current_setting(''lhcc.question''),''b'',1)','other student cannot change versioned attempt');
+select set_config('request.jwt.claim.sub',current_setting('lhcc.admin'),true),set_config('request.jwt.claims',json_build_object('sub',current_setting('lhcc.admin'),'role','authenticated')::text,true);
+select public.revoke_bank_access(current_setting('lhcc.request')::uuid);
+select pg_temp.check_test((select status='REVOKED' and revoked_at is not null from public.user_bank_access where request_id=current_setting('lhcc.request')::uuid),'admin revocation persists');
+select pg_temp.check_test((select count(*)=1 from jsonb_array_elements(public.admin_wallet_data()) w where w->>'userId'=current_setting('lhcc.student') and w->>'type'='bank_sale'),'revocation preserves signed sale');
+select set_config('request.jwt.claim.sub',current_setting('lhcc.student'),true),set_config('request.jwt.claims',json_build_object('sub',current_setting('lhcc.student'),'role','authenticated')::text,true);
+select pg_temp.check_test(not (public.live_sync_state(current_setting('lhcc.bank'))->>'bankAllowed')::boolean,'revoked live state denies access');
+select pg_temp.denied('select public.save_exam_answer_versioned(current_setting(''lhcc.live_attempt'')::uuid,current_setting(''lhcc.question''),''b'',1)','revoked student cannot save');
+select pg_temp.denied('select public.exam_data(current_setting(''lhcc.live_attempt'')::uuid)','revoked student cannot reload protected content');
+reset role;
+set local role anon;
+select pg_temp.check_test(public.catalog_revision() is not null,'anonymous catalog revision readable');
+select pg_temp.denied('select public.live_sync_state()','anonymous private snapshot denied');
+reset role;
+select count(*) as passed_checks,true as all_passed from course_checks;
+rollback;

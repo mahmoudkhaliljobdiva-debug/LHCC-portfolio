@@ -408,6 +408,7 @@ export type Database = {
       }
       question_attempts: {
         Row: {
+          answer_version: number
           bank_name_snapshot: string | null
           correct_answers: number
           created_at: string
@@ -432,6 +433,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          answer_version?: number
           bank_name_snapshot?: string | null
           correct_answers?: number
           created_at?: string
@@ -456,6 +458,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          answer_version?: number
           bank_name_snapshot?: string | null
           correct_answers?: number
           created_at?: string
@@ -986,6 +989,10 @@ export type Database = {
       }
       register_exam_source: { Args: { payload: Json }; Returns: string }
       request_bank_access: { Args: { bank_id: string }; Returns: string }
+      live_sync_state: { Args: { bank_id?: string; attempt_id?: string }; Returns: Json }
+      catalog_revision: { Args: Record<PropertyKey, never>; Returns: string }
+      revoke_bank_access: { Args: { request_id: string }; Returns: undefined }
+      save_exam_answer_versioned: { Args: { attempt_id: string; question_id: string; option_id: string; expected_version: number }; Returns: number }
       reset_portfolio_content: { Args: never; Returns: undefined }
       review_bank_access: {
         Args: { decision: string; reason?: string; request_id: string }

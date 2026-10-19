@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useState } from "react";
 import { useMobileNavigation } from "@/hooks/use-mobile-navigation";
+import { LiveConnectionStatus } from "@/features/live-sync/live-sync-provider";
 
 import { logout } from "@/actions/auth";
 import { ContextBoundaryLink } from "@/features/portal-preview/context-boundary-link";
@@ -114,7 +115,7 @@ export function DashboardShell({
             </form>
           </div>
         </header>
-        <main className="portal-content mx-auto min-w-0 max-w-[1500px] p-4 sm:p-7 lg:p-8">{children}</main>
+        <main className="portal-content mx-auto min-w-0 max-w-[1500px] p-4 sm:p-7 lg:p-8"><div className="mb-3"><LiveConnectionStatus /></div>{children}</main>
       </div>
     </div>
   );

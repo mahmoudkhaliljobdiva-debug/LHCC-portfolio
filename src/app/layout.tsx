@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { themeBootstrap } from "@/lib/theme";
+import { LiveSyncProvider } from "@/features/live-sync/live-sync-provider";
 
 import "@/app/globals.css";
 
@@ -29,7 +30,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
       </head>
-      <body>{children}</body>
+      <body><LiveSyncProvider>{children}</LiveSyncProvider></body>
     </html>
   );
 }

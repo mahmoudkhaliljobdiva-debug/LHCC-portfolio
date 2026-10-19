@@ -245,3 +245,10 @@ for high data volume are separate future work. Current reports exhaust paged
 queries rather than silently truncating, but are not snapshot-isolated across
 pages while concurrent edits occur. No new permissions or product rules were
 invented to fill these gaps.
+
+## Live synchronization extension
+
+See [live-synchronization.md](live-synchronization.md) for the private Broadcast
+topics, revision counters, request/approval/revocation refreshes, account-status
+recovery and versioned exam saves added on 2026-10-19. Existing approval, RLS,
+ledger and grading operations remain the authoritative business layer.

@@ -42,10 +42,12 @@ export interface BankAccess {
 
 export interface StudentBank extends CourseBank {
   accessState: BankAccessStatus;
+  accessRevoked?: boolean;
   rejectionReason: string | null;
 }
 
 export interface AdminAccessRequest extends BankAccessRequest {
+  accessActive?: boolean;
   student_name: string;
   bank_name: string;
 }
