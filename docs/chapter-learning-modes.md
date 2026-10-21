@@ -113,6 +113,8 @@ returned a bounded Admin page of 20 and all four existing attempts/120 questions
   1920px, both themes, plus 844×390 and 1024×768 landscape. Screenshot review
   includes mobile, tablet, laptop and desktop, forms, questions and feedback.
   No horizontal page overflow, browser exceptions or HTTP 5xx occurred.
+  Final visual review also shortened native learning-mode labels and moved the
+  feedback explanation below the select, preventing truncation at 320px.
 - Reduced motion is honored. Existing lightweight LHCC/Lucide icons are reused;
   no licensed Lordicon asset or new animation dependency was introduced.
 - Local QA performance samples (12-question material, not a production SLA):
