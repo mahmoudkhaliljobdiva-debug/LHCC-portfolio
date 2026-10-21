@@ -252,3 +252,13 @@ See [live-synchronization.md](live-synchronization.md) for the private Broadcast
 topics, revision counters, request/approval/revocation refreshes, account-status
 recovery and versioned exam saves added on 2026-10-19. Existing approval, RLS,
 ledger and grading operations remain the authoritative business layer.
+
+## Chapter learning modes extension (2026-10-21)
+
+See [chapter-learning-modes.md](chapter-learning-modes.md) for the reusable
+Specialty → Material → Generated / Chapter / PDF Session flow, new Admin chapter
+and difficulty review, indexed many-to-many memberships, guarded RPCs, generated
+selection strata, historical source-number snapshots, preservation checks and
+verification limits. Supabase migration `20261021172927_chapter_learning_modes.sql`
+is applied. Existing auth, approvals, grading, wallet, CMS, private PDF storage,
+historical/shared definitions and live synchronization remain authoritative.

@@ -1,3 +1,3 @@
-import { getAdminPastExams } from "@/lib/exams/admin-server";
+import { getAdminPastExams, getAdminMaterialIdentity } from "@/lib/exams/admin-server";
 import { AdminPastExams } from "@/features/exams/admin-past-exams";
-export default async function Page({ params }: { params: Promise<{ bankId: string }> }) { const { bankId } = await params; return <AdminPastExams bankId={bankId} initial={await getAdminPastExams(bankId)} />; }
+export default async function Page({ params }: { params: Promise<{ bankId: string }> }) { const { bankId } = await params; const [initial, identity] = await Promise.all([getAdminPastExams(bankId), getAdminMaterialIdentity(bankId)]); return <><p className="mb-4 rounded-xl border bg-white p-4 text-sm text-slate-700">PDF destination: {identity.specialty} / {identity.material}. Confirm the year and actual session name in the exam editor before publication.</p><AdminPastExams bankId={bankId} initial={initial} /></>; }

@@ -32,12 +32,14 @@ export const pastExamDraftSchema = z.object({
   if (exam.status === "PUBLISHED" && (exam.year === null || !exam.questions.length || exam.questions.some(q => !q.verified || !q.correctOptionId || q.warnings.length))) ctx.addIssue({ code: "custom", message: "Confirm the year, resolve warnings, and verify every answer before publishing." });
 });
 export const learningSetupSchema = z.object({
-  bankId: contentId, source: z.enum(["RANDOM", "ALL", "CASE", "PAST", "SHARED"]),
+  bankId: contentId, source: z.enum(["RANDOM", "ALL", "CASE", "PAST", "SHARED", "CHAPTER"]),
+  prioritizeIncorrect: z.boolean().optional(),
   sourceId: contentId.nullable(), mode: z.enum(["PRACTICE", "EXAM"]),
   count: z.number().int().min(1).max(30).default(30), timeLimitMinutes: z.number().int().min(1).max(1440).nullable(),
 }).superRefine((setup,ctx)=>{
   if ((setup.source === "PAST" || setup.source === "SHARED") && !z.uuid().safeParse(setup.sourceId).success) ctx.addIssue({code:"custom",message:"Choose a published exam definition."});
   if (setup.source === "CASE" && !setup.sourceId) ctx.addIssue({code:"custom",message:"Choose a clinical case."});
+  if (setup.source === "CHAPTER" && !z.uuid().safeParse(setup.sourceId).success) ctx.addIssue({code:"custom",message:"Choose a published chapter."});
 });
 export const pastExamCardSchema = z.object({
   id: z.uuid(), title: z.string(), year: z.number().nullable(), session: z.string(),

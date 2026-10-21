@@ -14,9 +14,31 @@ export type Database = {
   }
   public: {
     Tables: {
+      bank_chapters: {
+        Row: { id: string; question_bank_id: string; title: string; description: string; display_order: number; published: boolean }
+        Insert: { id: string; question_bank_id: string; title: string; description?: string; display_order?: number; published?: boolean }
+        Update: { id?: string; question_bank_id?: string; title?: string; description?: string; display_order?: number; published?: boolean }
+        Relationships: [{ foreignKeyName: "bank_chapters_question_bank_id_fkey"; columns: ["question_bank_id"]; isOneToOne: false; referencedRelation: "question_banks"; referencedColumns: ["id"] }]
+      }
+      bank_generation_settings: {
+        Row: { question_bank_id: string; default_count: number; prioritize_incorrect: boolean }
+        Insert: { question_bank_id: string; default_count?: number; prioritize_incorrect?: boolean }
+        Update: { question_bank_id?: string; default_count?: number; prioritize_incorrect?: boolean }
+        Relationships: [{ foreignKeyName: "bank_generation_settings_question_bank_id_fkey"; columns: ["question_bank_id"]; isOneToOne: true; referencedRelation: "question_banks"; referencedColumns: ["id"] }]
+      }
+      chapter_questions: {
+        Row: { chapter_id: string; question_id: string; question_bank_id: string }
+        Insert: { chapter_id: string; question_id: string; question_bank_id: string }
+        Update: { chapter_id?: string; question_id?: string; question_bank_id?: string }
+        Relationships: [
+          { foreignKeyName: "chapter_questions_chapter_id_question_bank_id_fkey"; columns: ["chapter_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "bank_chapters"; referencedColumns: ["id", "question_bank_id"] },
+          { foreignKeyName: "chapter_questions_question_id_question_bank_id_fkey"; columns: ["question_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "bank_questions"; referencedColumns: ["id", "question_bank_id"] },
+        ]
+      }
       bank_questions: {
         Row: {
           created_at: string
+          difficulty: string | null
           display_order: number | null
           id: string
           include_in_complete_bank: boolean
@@ -29,6 +51,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          difficulty?: string | null
           display_order?: number | null
           id?: string
           include_in_complete_bank?: boolean
@@ -41,6 +64,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          difficulty?: string | null
           display_order?: number | null
           id?: string
           include_in_complete_bank?: boolean
@@ -357,6 +381,7 @@ export type Database = {
       }
       question_attempt_questions: {
         Row: {
+          source_number_snapshot: string | null
           attempt_id: string
           case_description_snapshot: string | null
           case_title_snapshot: string | null
@@ -368,6 +393,7 @@ export type Database = {
           text: string
         }
         Insert: {
+          source_number_snapshot?: string | null
           attempt_id: string
           case_description_snapshot?: string | null
           case_title_snapshot?: string | null
@@ -379,6 +405,7 @@ export type Database = {
           text: string
         }
         Update: {
+          source_number_snapshot?: string | null
           attempt_id?: string
           case_description_snapshot?: string | null
           case_title_snapshot?: string | null
@@ -408,6 +435,7 @@ export type Database = {
       }
       question_attempts: {
         Row: {
+          chapter_id: string | null
           answer_version: number
           bank_name_snapshot: string | null
           correct_answers: number
@@ -433,6 +461,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          chapter_id?: string | null
           answer_version?: number
           bank_name_snapshot?: string | null
           correct_answers?: number
@@ -458,6 +487,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          chapter_id?: string | null
           answer_version?: number
           bank_name_snapshot?: string | null
           correct_answers?: number
@@ -483,6 +513,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "question_attempts_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "bank_chapters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "question_attempts_past_exam_id_fkey"
             columns: ["past_exam_id"]
@@ -943,6 +980,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_chapters: { Args: { bank_id: string; page_number?: number; search_text?: string }; Returns: Json }
+      manage_chapters: { Args: { operation: string; payload: Json }; Returns: undefined }
       admin_bank_data: { Args: never; Returns: Json }
       admin_past_exams: { Args: { bank_id: string }; Returns: Json }
       admin_shared_exams: {
