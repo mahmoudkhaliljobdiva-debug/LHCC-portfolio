@@ -8,7 +8,19 @@ export const specialtySchema = z.object({
   icon: z.enum(specialtyIcons), published: z.boolean(), displayOrder: z.number().int().min(0).max(10000),
 });
 export const catalogSchema = z.array(specialtySchema.pick({ id: true, slug: true, name: true, description: true, icon: true }).extend({
-  materials: z.array(z.object({ id: contentId, name: z.string(), description: z.string() })),
+  materials: z.array(z.object({
+    id: contentId,
+    name: z.string(),
+    description: z.string(),
+    materialKind: z.enum(["SUBJECT", "EXAM_TRACK"]).default("EXAM_TRACK"),
+    examCategory: z.enum(["COLLOQUIUM", "PROMETRIC", "OTHER"]).nullable().default("OTHER"),
+    icon: z.enum(["book", "brain", "stethoscope", "nursing", "dentistry", "graduation", "clipboard", "other"]).default("book"),
+    language: z.enum(["auto", "ar", "en", "mixed"]).default("auto"),
+  }).superRefine((material, context) => {
+    if ((material.materialKind === "SUBJECT") !== (material.examCategory === null)) {
+      context.addIssue({ code: "custom", message: "Subjects and exam tracks must have separate classifications." });
+    }
+  })),
 }));
 export const generateSharedSchema = z.object({
   id: z.uuid(), bankId: contentId, title: z.string().trim().min(1).max(500),

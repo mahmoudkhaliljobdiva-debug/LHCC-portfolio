@@ -35,6 +35,8 @@ export const ROLE_NAVIGATION = {
     { label: "Portfolio", href: ROUTES.admin.portfolio, icon: PanelsTopLeft },
     { label: "Users", href: ROUTES.admin.users, icon: Users },
     { label: "Question Banks", href: ROUTES.admin.questionBanks, icon: BookOpen },
+    { label: "Subjects", href: "/admin/subjects", icon: BookOpen },
+    { label: "Exam Tracks", href: "/admin/exam-tracks", icon: ClipboardCheck },
     { label: "Specialties", href: "/admin/specialties", icon: PanelsTopLeft },
     { label: "Wallet", href: ROUTES.admin.wallet, icon: CircleDollarSign },
     { label: "Settings", href: ROUTES.admin.settings, icon: Settings },

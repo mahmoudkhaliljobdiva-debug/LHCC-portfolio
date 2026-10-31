@@ -4,6 +4,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {assertLocalQaTarget} from './qa-safety.mjs';
+import {createQaExamTrack} from './qa-materials.mjs';
 import {startBrowser,login,waitFor,card,pause} from './qa-browser.mjs';
 const m=JSON.parse(await readFile('.test-artifacts/archive-qa.private.json','utf8'));
 const settings=Object.fromEntries((await readFile('.test-artifacts/archive-qa.env','utf8')).trim().split(/\r?\n/).map(l=>{const i=l.indexOf('=');return[l.slice(0,i),l.slice(i+1)];}));
@@ -15,7 +16,7 @@ user.id=checked(await service.auth.admin.createUser({email:user.email,password:u
 const adminDb=createClient(url,m.anonKey,{auth:{persistSession:false}});checked(await adminDb.auth.signInWithPassword(m.users.admin));
 const studentDb=createClient(url,m.anonKey,{auth:{persistSession:false}});checked(await studentDb.auth.signInWithPassword(user));
 const bankId=randomUUID(),bankName='[TEST] Live Bank '+bankId.slice(0,8),rejectId=randomUUID(),rejectName='[TEST] Reject '+bankId.slice(0,8);
-for(const [id,name]of [[bankId,bankName],[rejectId,rejectName]])checked(await adminDb.rpc('manage_bank_content',{operation:'save_bank',item_id:id,payload:{name,description:'Local realtime regression',status:'active',price:0}}));
+for(const [id,name]of [[bankId,bankName],[rejectId,rejectName]])await createQaExamTrack(adminDb,{id,name,description:'Local realtime regression'});
 for(let i=1;i<=2;i++)checked(await adminDb.rpc('manage_bank_content',{operation:'save_question',item_id:bankId+'-q'+i,payload:{bankId,text:'[TEST] Live question '+i,status:'active',answers:[{id:'a',text:'First option',isCorrect:true},{id:'b',text:'Second option',isCorrect:false}]}}));
 const browser=await startBrowser('http://localhost:3100',{port:9348}),checks=[],latencies=[];
 async function soon(fn,label){await waitFor(fn,label,15000);}

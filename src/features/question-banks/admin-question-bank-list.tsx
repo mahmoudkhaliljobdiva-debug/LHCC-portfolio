@@ -47,7 +47,7 @@ export function AdminQuestionBankList() {
     <div>
       <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="text-sm font-semibold text-teal-700">Content management</p><h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Question banks</h1><p className="mt-2 text-sm text-slate-500">Create banks and manage their single-choice questions.</p></div>
-        <button type="button" onClick={() => { setDialog({ mode: "add" }); setNotice(null); }} className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-800"><Plus className="size-4" />Add Question Bank</button>
+        <button type="button" onClick={() => router.push("/admin/exam-tracks")} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-800"><Plus className="size-4" aria-hidden="true" />Add Exam Track</button>
       </div>
 
       {notice && <div role={notice.type === "error" ? "alert" : "status"} className={cn("mb-6 rounded-xl border px-4 py-3 text-sm font-medium", notice.type === "error" ? "border-rose-200 bg-rose-50 text-rose-800" : "border-emerald-200 bg-emerald-50 text-emerald-800")}>{notice.message}</div>}

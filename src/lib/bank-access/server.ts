@@ -29,7 +29,11 @@ export async function getStudentBanksForAdmin(subjectId: string) {
 
 async function readStudentBanks(db: Awaited<ReturnType<typeof createClient>>, subjectId: string): Promise<StudentBank[]> {
   const [banks, requests, grants] = await Promise.all([
-    readAllRows((from, to) => db.from("question_banks").select("*").eq("status", "active").order("display_order").order("id").range(from, to)),
+    // Subject access will be resolved through its group entitlements, never
+    // through the legacy per-bank request/sale workflow (including Admin preview).
+    readAllRows((from, to) => db.from("question_banks").select("*").eq("status", "active")
+      .eq("material_kind", "EXAM_TRACK").eq("publication_status", "PUBLISHED")
+      .order("display_order").order("id").range(from, to)),
     readAllRows((from, to) => db.from("user_bank_access_requests").select("*").eq("user_id", subjectId).order("requested_at", { ascending: false }).order("id").range(from, to)),
     readAllRows((from, to) => db.from("user_bank_access").select("*").eq("user_id", subjectId).order("id").range(from, to)),
   ]);

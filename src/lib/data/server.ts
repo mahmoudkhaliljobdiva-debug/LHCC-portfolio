@@ -52,7 +52,10 @@ async function readDashboardData(role: AppUserRole, profile: Profile, db: Awaite
     role === "admin" ? readAllRows((from, to) => createAdminClient().from("profiles").select("id,full_name,role,status,expiration_date,created_at").order("id").range(from, to)) : [],
     readAllRows((from, to) => {
       const query = db.from("question_banks").select("id,name,description,status,display_order").order("display_order").order("id");
-      return (preview ? query.eq("status", "active") : query).range(from, to);
+      // Service-backed View-As must apply the same material boundary as the
+      // Student catalog; it cannot rely on the Admin client's RLS bypass.
+      const scoped = role === "student" ? query.eq("material_kind", "EXAM_TRACK").eq("publication_status", "PUBLISHED") : query;
+      return (preview ? scoped.eq("status", "active") : scoped).range(from, to);
     }),
     readAllRows((from, to) => {
       const query = db.from("bank_questions").select("id,question_bank_id,status").order("id");

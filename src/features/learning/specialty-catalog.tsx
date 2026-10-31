@@ -9,9 +9,9 @@ export function SpecialtyCatalog({ catalog, banks, publicView = false }: { catal
   return <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{catalog.map(s => {
     const approved = s.materials.filter(m => access.get(m.id)==="APPROVED").length;
     return <Link key={s.id} href={`${publicView ? "/programs" : "/student/specialties"}/${s.slug}` as Route} className="learning-card group min-w-0 rounded-2xl border bg-white p-5 shadow-sm sm:p-6">
-      <span className="learning-icon grid size-12 place-items-center rounded-xl bg-teal-50 text-teal-700"><SpecialtyIcon icon={s.icon}/></span>
-      <h3 className="mt-5 text-lg font-semibold text-slate-950">{s.name}</h3>
-      {s.description && <p className="mt-2 break-words text-sm leading-6 text-slate-600">{s.description}</p>}
+      <span className="learning-icon grid size-20 place-items-center rounded-2xl bg-teal-50 text-teal-700"><SpecialtyIcon icon={s.icon} className="size-14"/></span>
+      <h3 dir="auto" className="mt-5 break-words text-lg font-semibold text-slate-950">{s.name}</h3>
+      {s.description && <p dir="auto" className="mt-2 break-words text-sm leading-6 text-slate-600">{s.description}</p>}
       <p className="mt-3 flex items-center gap-2 text-sm text-slate-600"><BookOpen className="size-4 shrink-0" aria-hidden="true"/>{s.materials.length} published {s.materials.length===1 ? "material" : "materials"}</p>
       {!s.materials.length && <p className="mt-2 text-sm text-slate-500">No materials published yet.</p>}
       {banks && s.materials.length>0 && <p className="mt-2 text-xs text-slate-500">{approved} approved · Other materials require access approval</p>}

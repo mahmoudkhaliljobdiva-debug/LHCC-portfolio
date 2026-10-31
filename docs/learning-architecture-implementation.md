@@ -126,11 +126,11 @@ Each phase must be completed and verified before advancing to the next.
   schema comparison. Recorded exceptions and deployment gates in
   [migration-history-reconciliation.md](migration-history-reconciliation.md).
   Review is complete; it did not repair history or authorize a production change.
-- [ ] **Phase 2 — Typed Subjects and Exam Tracks with secure foundations.**
-  Local implementation underway. Pending local-only migration:
-  `20261031173818_typed_learning_materials.sql`. Classification, safe publication,
-  grouped catalog behavior and access enforcement must pass focused regression
-  tests before this phase is marked complete. No production migration applied.
+- [x] **Phase 2 — Typed Subjects and Exam Tracks with secure foundations.**
+  Locally implemented and verified; not released. Migration
+  `20261031173818_typed_learning_materials.sql` applied only to archive-db.
+  See [phase verification and file inventory](typed-learning-materials.md).
+  No production migration applied; Subjects remain draft-only.
 - [ ] **Phase 3 — Chapters, Lessons and lesson PDF management.**
   Lesson/PDF lifecycle, private originals, safe derivatives and extraction review
   are not complete. Representative authorized lesson samples are still required

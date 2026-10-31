@@ -4,6 +4,7 @@ import { randomBytes, randomUUID, createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
 import { assertLocalQaTarget } from "./qa-safety.mjs";
+import { createQaExamTrack } from "./qa-materials.mjs";
 
 export const projectRef = "local-backend-qa";
 export const manifestPath = ".test-artifacts/backend-qa-local.private.json";
@@ -87,7 +88,7 @@ async function seed() {
   for (const [index, subject] of ["Human Anatomy", "Cardiology", "Nursing Fundamentals"].entries()) {
     const bank = { id: randomUUID(), name: data.tag + " " + subject, price: index === 2 ? 0 : 25 };
     data.banks.push(bank); await saveManifest(data);
-    await checked(manager.rpc("manage_bank_content", { operation: "save_bank", item_id: bank.id, payload: { name: bank.name, description: data.tag + " controlled workflow verification; not educational guidance.", status: "active", price: bank.price, displayOrder: 100 + index } }), "Create QA bank");
+    await createQaExamTrack(manager, { id: bank.id, name: bank.name, description: data.tag + " controlled workflow verification; not educational guidance.", price: bank.price, displayOrder: 100 + index });
     for (let number = 1; number <= 3; number++) {
       const question = { id: randomUUID(), bankId: bank.id, text: data.tag + " " + subject + " question " + number + ": select option A.", correct: "A" };
       data.questions.push(question); await saveManifest(data);

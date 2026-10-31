@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import { checked, getAdmin, loadManifest, saveManifest } from "./backend-qa-data.mjs";
 import { card, login, pause, startBrowser, waitFor } from "./qa-browser.mjs";
+import { assertLocalQaTarget } from "./qa-safety.mjs";
 
-const base = process.env.LHCC_TEST_URL ?? "http://localhost:3100";
+const base = assertLocalQaTarget(process.env.LHCC_TEST_URL ?? "http://localhost:3100");
 const mode = process.argv[2] ?? "smoke";
 assert(["smoke", "workflows", "routes"].includes(mode));
 if (mode === "workflows") assert.equal(new URL(base).hostname, "localhost", "Only the local app runs mutation tests");
@@ -13,6 +14,14 @@ const pass = (name) => { results.push(name); console.log("PASS: " + name); };
 const has = async (page, text) => (await page.text()).includes(text);
 const visibleCard = (page, name, text) => page.evaluate(`${card(name)}?.textContent.includes(${JSON.stringify(text)})`);
 const persisted = (page, path, text) => waitFor(async () => { await page.goto(path); return has(page, text); }, "persisted " + text);
+async function locateExamTrack(page, name) {
+  for (let number = 0; number <= 100000; number++) {
+    await page.goto("/admin/exam-tracks" + (number ? "?page=" + number : ""));
+    if (await page.evaluate(`Boolean(${card(name)})`)) return;
+    assert(await page.evaluate("[...document.querySelectorAll('a')].some(a=>a.textContent.trim()==='Next page')"), "Created exam track must be present in paginated Admin listing.");
+  }
+  throw new Error("Unable to locate created QA exam track.");
+}
 try {
   const publicPage = await browser.page(); await publicPage.resize(1366, 768);
   await publicPage.goto("/"); await publicPage.healthy("home"); await publicPage.screenshot("qa-home"); pass("Public production build renders");
@@ -69,22 +78,46 @@ try {
     assert.equal(attempt.status, "COMPLETED"); assert.equal(attempt.correct_answers, 3); assert.equal(attempt.incorrect_answers, 0); assert.equal(Number(attempt.score_percentage), 100); assert(attempt.submitted_at);
     m.browser.attempt = true; await saveManifest(m); pass("Three UI answers persist across refresh and complete a 100% attempt");
     if (!m.browser.bank) {
-      await admin.goto("/admin/question-banks"); await admin.click("Add Question Bank");
-      await admin.fillLabel("Bank name", m.tag + " Browser workflow"); await admin.fillLabel("Description", m.tag + " created through admin UI");
-      await admin.fillLabel("Access price", "15"); await admin.click("Save Question Bank");
-      await waitFor(() => has(admin, m.tag + " Browser workflow added successfully."), "bank save");
+      await admin.goto("/admin/exam-tracks"); await admin.click("Add exam track");
+      const dialog = "document.querySelector('dialog')";
+      await admin.fillLabel("Name", m.tag + " Browser workflow", dialog); await admin.fillLabel("Description", m.tag + " created through admin UI", dialog);
+      await admin.fillLabel("Exam category", "OTHER", dialog);
+      assert(await admin.evaluate(`${dialog}.querySelectorAll('select:disabled').length===2`), "New exam-track publication and availability must be locked.");
+      assert(!await admin.evaluate(`${dialog}.textContent.includes('Access price')`), "Typed material creation must not introduce pricing controls.");
+      await admin.click("Save material", dialog);
+      await waitFor(() => admin.evaluate("!document.querySelector('dialog')"), "draft exam-track save");
+      await waitFor(() => has(admin, "Material saved."), "draft save confirmation");
       const bank = await checked(db.from("question_banks").select("*").eq("name", m.tag + " Browser workflow").eq("created_by", m.users.admin.id).single(), "Browser bank");
+      assert.equal(bank.material_kind, "EXAM_TRACK"); assert.equal(bank.exam_category, "OTHER");
+      assert.equal(bank.publication_status, "DRAFT"); assert.equal(bank.status, "inactive"); assert.equal(Number(bank.price), 0);
       m.banks.push({ id: bank.id, name: bank.name, price: Number(bank.price) }); m.browser.bank = bank.id; await saveManifest(m);
+      pass("Admin exam-track creation persists as a price-free Draft and Inactive record");
     }
-    pass("Admin bank creation persisted in Supabase");
     const uiBank = m.banks.find((b) => b.id === m.browser.bank);
+    let typedBank = await checked(db.from("question_banks").select("material_kind,publication_status,status").eq("id", uiBank.id).single(), "Browser exam-track lifecycle");
+    assert.equal(typedBank.material_kind, "EXAM_TRACK");
+    if (typedBank.publication_status !== "PUBLISHED" || typedBank.status !== "active") {
+      await locateExamTrack(admin, uiBank.name); await admin.click("Edit", card(uiBank.name));
+      const dialog = "document.querySelector('dialog')";
+      await admin.fillLabel("Publication status", "PUBLISHED", dialog); await admin.fillLabel("Availability", "active", dialog);
+      await admin.click("Save material", dialog);
+      await waitFor(() => admin.evaluate("!document.querySelector('dialog')"), "explicit exam-track publication");
+      typedBank = await checked(db.from("question_banks").select("material_kind,publication_status,status").eq("id", uiBank.id).single(), "Published browser exam track");
+    }
+    assert.equal(typedBank.material_kind, "EXAM_TRACK"); assert.equal(typedBank.publication_status, "PUBLISHED"); assert.equal(typedBank.status, "active");
+    pass("Existing draft exam track explicitly publishes and activates through Admin UI");
     await admin.goto("/admin/question-banks");
     await admin.evaluate(`document.querySelector('[aria-label="Edit ${uiBank.name}"]').click()`);
     await admin.fillLabel("Description", m.tag + " edited through admin UI");
+    await admin.fillLabel("Access price", "15");
     await admin.click("Save Question Bank");
     await waitFor(() => has(admin, uiBank.name + " updated successfully."), "bank edit");
     await admin.goto("/admin/question-banks"); assert(await has(admin, m.tag + " edited through admin UI"));
-    pass("Admin bank editing persists after refresh");
+    const editedBank = await checked(db.from("question_banks").select("price,description,material_kind,publication_status,status").eq("id", uiBank.id).single(), "Edited legacy commercial fields");
+    assert.equal(Number(editedBank.price), 15); assert.equal(editedBank.description, m.tag + " edited through admin UI");
+    assert.equal(editedBank.material_kind, "EXAM_TRACK"); assert.equal(editedBank.publication_status, "PUBLISHED"); assert.equal(editedBank.status, "active");
+    uiBank.price = 15; await saveManifest(m);
+    pass("Existing bank commercial editing persists after refresh without changing material classification or publication");
     if (!m.browser.question) {
       await admin.goto(`/admin/question-banks/${uiBank.id}/questions/new`);
       await admin.fillLabel("Question text", m.tag + " Browser QCU: select option A.");

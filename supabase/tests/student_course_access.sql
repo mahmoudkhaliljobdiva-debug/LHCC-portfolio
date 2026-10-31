@@ -28,8 +28,17 @@ select pg_temp.check_test(not public.is_profile_access_active('EXPIRED','STUDENT
 select pg_temp.check_test(not public.is_profile_access_active('ACTIVE','TEACHER',statement_timestamp()-interval '1 day'),'expired teacher denied');
 set local role authenticated;
 select set_config('request.jwt.claim.sub',current_setting('lhcc.admin'),true),set_config('request.jwt.claims',json_build_object('sub',current_setting('lhcc.admin'),'role','authenticated')::text,true);
+-- Typed Admin creation starts private; publish explicitly before testing the
+-- existing approval/ledger contract. The historical generic-create bypass is gone.
+select public.save_learning_material(jsonb_build_object('id',bid,'name','[TEST] Rollback bank','description','Isolated verification',
+ 'specialtyId',null,'materialKind','EXAM_TRACK','examCategory','OTHER','publicationStatus','DRAFT',
+ 'icon','book','language','auto','displayOrder',0,'status','inactive'))
+ from unnest(array[current_setting('lhcc.bank'),current_setting('lhcc.rejected_bank')]) bid;
+select public.save_learning_material(jsonb_build_object('id',bid,'name','[TEST] Rollback bank','description','Isolated verification',
+ 'specialtyId',null,'materialKind','EXAM_TRACK','examCategory','OTHER','publicationStatus','PUBLISHED',
+ 'icon','book','language','auto','displayOrder',0,'status','active'))
+ from unnest(array[current_setting('lhcc.bank'),current_setting('lhcc.rejected_bank')]) bid;
 select public.manage_bank_content('save_bank',current_setting('lhcc.bank'),'{"name":"[TEST] Paid rollback bank","description":"Isolated verification","status":"active","price":25}');
-select public.manage_bank_content('save_bank',current_setting('lhcc.rejected_bank'),'{"name":"[TEST] Rejected rollback bank","description":"Isolated verification","status":"active","price":0}');
 select public.manage_bank_content('save_question',current_setting('lhcc.question'),jsonb_build_object('bankId',current_setting('lhcc.bank'),'text','[TEST] Rollback question one','status','active','answers','[{"id":"a","text":"First","isCorrect":true},{"id":"b","text":"Second","isCorrect":false}]'::jsonb));
 select public.manage_bank_content('save_question',current_setting('lhcc.question_two'),jsonb_build_object('bankId',current_setting('lhcc.bank'),'text','[TEST] Rollback question two','status','active','answers','[{"id":"a","text":"First","isCorrect":true},{"id":"b","text":"Second","isCorrect":false}]'::jsonb));
 select pg_temp.check_test((select count(*)=2 from public.bank_questions where question_bank_id=current_setting('lhcc.bank')),'Admin manages canonical questions');

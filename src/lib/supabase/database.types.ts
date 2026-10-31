@@ -552,40 +552,55 @@ export type Database = {
       }
       question_banks: {
         Row: {
+          content_language: string
           created_at: string
           created_by: string | null
           description: string
           display_order: number
+          exam_category: string | null
           id: string
           image_url: string | null
+          material_icon: string
+          material_kind: string
           name: string
           price: number
+          publication_status: string
           specialty_id: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          content_language?: string
           created_at?: string
           created_by?: string | null
           description: string
           display_order?: number
+          exam_category?: string | null
           id?: string
           image_url?: string | null
+          material_icon?: string
+          material_kind?: string
           name: string
           price?: number
+          publication_status?: string
           specialty_id?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          content_language?: string
           created_at?: string
           created_by?: string | null
           description?: string
           display_order?: number
+          exam_category?: string | null
           id?: string
           image_url?: string | null
+          material_icon?: string
+          material_kind?: string
           name?: string
           price?: number
+          publication_status?: string
           specialty_id?: string | null
           status?: string
           updated_at?: string
@@ -980,6 +995,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_learning_materials: { Args: { kind: string; page_number?: number }; Returns: Json }
+      save_learning_material: { Args: { payload: Json }; Returns: string }
       admin_chapters: { Args: { bank_id: string; page_number?: number; search_text?: string }; Returns: Json }
       manage_chapters: { Args: { operation: string; payload: Json }; Returns: undefined }
       admin_bank_data: { Args: never; Returns: Json }
