@@ -10,7 +10,7 @@ async function mutate(operation: string, payload: Json): Promise<ServerResult<nu
   try {
     const db = await createClient(); const { error } = await db.rpc("manage_chapters", { operation, payload });
     if (error) return { ok: false, error: { code: "VALIDATION_ERROR", message: "Changes were not saved. Check the bank, chapters and fields." } };
-    revalidatePath("/admin/question-banks", "layout"); revalidatePath("/student", "layout");
+    revalidatePath("/admin/question-banks", "layout"); revalidatePath("/admin/subjects", "layout"); revalidatePath("/student", "layout");
     return { ok: true, data: null };
   } catch { return { ok: false, error: { code: "VALIDATION_ERROR", message: "Unable to save. Please retry." } }; }
 }

@@ -15,7 +15,7 @@ const secondaryButton = "inline-flex min-h-11 items-center justify-center rounde
 const categoryLabels = { COLLOQUIUM: "Colloquium", PROMETRIC: "Prometric", OTHER: "Other" } as const;
 const languageLabels = { auto: "Automatic", ar: "Arabic", en: "English", mixed: "Arabic & English" } as const;
 const iconLabels = { book: "Book", brain: "Brain", stethoscope: "Stethoscope", nursing: "Nursing", dentistry: "Dentistry", graduation: "Graduation", clipboard: "Clipboard", other: "Other" } as const;
-const foundationNotice = "Subjects are draft-only in this foundation. Lessons, learning activities and subject-access rules are not implemented yet, so subject publishing and activation are unavailable.";
+const foundationNotice = "Subjects remain draft-only. Admins can organize chapters, lessons and private PDFs; Student reading, practice and subject-access rules are not enabled, so subject publishing and activation remain unavailable.";
 
 export function AdminMaterials({ kind, page, items, total, specialties }: AdminMaterialsData & { kind: MaterialKind; page: number }) {
   const [editing, setEditing] = useState<{ value: MaterialInput; isNew: boolean } | null>(null);
@@ -39,7 +39,7 @@ export function AdminMaterials({ kind, page, items, total, specialties }: AdminM
   return <div className="space-y-6">
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div className="max-w-3xl"><h1 className="text-3xl font-semibold text-slate-950 dark:text-slate-50">{title}</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{isSubject ? "Create and organize independent subject records by specialty. Subject content authoring will be added in a later phase." : "Manage Colloquium, Prometric and other exam tracks. Existing question banks and their exam content remain available through Question Banks."}</p>
+        <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{isSubject ? "Create and organize independent subjects by specialty, then manage their chapters, lessons and private PDFs." : "Manage Colloquium, Prometric and other exam tracks. Existing question banks and their exam content remain available through Question Banks."}</p>
       </div>
       <button type="button" onClick={addMaterial} className="min-h-11 rounded-xl bg-teal-700 px-5 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600">Add {noun}</button>
     </header>
@@ -70,7 +70,7 @@ export function AdminMaterials({ kind, page, items, total, specialties }: AdminM
           <div><dt className="text-slate-500 dark:text-slate-400">Language</dt><dd className="mt-1 text-slate-800 dark:text-slate-200">{languageLabels[material.language]}</dd></div>
         </dl>
         <div className="mt-auto flex flex-wrap gap-3 pt-2"><button type="button" className={secondaryButton} onClick={() => { setFeedback(""); setEditing({ value: material, isNew: false }); }}>Edit<span className="sr-only"> {material.name}</span></button>
-          {!isSubject ? <Link href={`/admin/question-banks/${encodeURIComponent(material.id)}`} className={secondaryButton}>Manage questions</Link> : null}
+          {!isSubject ? <Link href={`/admin/question-banks/${encodeURIComponent(material.id)}`} className={secondaryButton}>Manage questions</Link> : <Link href={`/admin/subjects/${encodeURIComponent(material.id)}/lessons`} className={secondaryButton}>Manage chapters & lessons</Link>}
         </div>
       </article>)}
     </section>}

@@ -14,6 +14,31 @@ export type Database = {
   }
   public: {
     Tables: {
+      lessons: {
+        Row: { id: string; question_bank_id: string; chapter_id: string; title: string; description: string; display_order: number; content_language: string; status: string; revision: number; created_at: string; updated_at: string }
+        Insert: { id: string; question_bank_id: string; chapter_id: string; title: string; description?: string; display_order?: number; content_language?: string; status?: string; revision?: number; created_at?: string; updated_at?: string }
+        Update: { id?: string; question_bank_id?: string; chapter_id?: string; title?: string; description?: string; display_order?: number; content_language?: string; status?: string; revision?: number; created_at?: string; updated_at?: string }
+        Relationships: [
+          { foreignKeyName: "lessons_question_bank_id_fkey"; columns: ["question_bank_id"]; isOneToOne: false; referencedRelation: "question_banks"; referencedColumns: ["id"] },
+          { foreignKeyName: "lessons_chapter_id_question_bank_id_fkey"; columns: ["chapter_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "bank_chapters"; referencedColumns: ["id", "question_bank_id"] },
+        ]
+      }
+      lesson_documents: {
+        Row: { id: string; lesson_id: string; question_bank_id: string; storage_path: string; filename: string; sha256: string; size_bytes: number; document_role: string; provenance: string; approved_for_students: boolean; reviewed_by: string | null; reviewed_at: string | null; uploaded_by: string; created_at: string }
+        Insert: { id: string; lesson_id: string; question_bank_id: string; storage_path: string; filename: string; sha256: string; size_bytes: number; document_role: string; provenance: string; approved_for_students?: boolean; reviewed_by?: string | null; reviewed_at?: string | null; uploaded_by: string; created_at?: string }
+        Update: { id?: string; lesson_id?: string; question_bank_id?: string; storage_path?: string; filename?: string; sha256?: string; size_bytes?: number; document_role?: string; provenance?: string; approved_for_students?: boolean; reviewed_by?: string | null; reviewed_at?: string | null; uploaded_by?: string; created_at?: string }
+        Relationships: [{ foreignKeyName: "lesson_documents_lesson_id_question_bank_id_fkey"; columns: ["lesson_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "lessons"; referencedColumns: ["id", "question_bank_id"] }]
+      }
+      lesson_questions: {
+        Row: { lesson_id: string; question_id: string; question_bank_id: string; document_id: string | null; source_page: number | null; source_number: string; position: number }
+        Insert: { lesson_id: string; question_id: string; question_bank_id: string; document_id?: string | null; source_page?: number | null; source_number?: string; position: number }
+        Update: { lesson_id?: string; question_id?: string; question_bank_id?: string; document_id?: string | null; source_page?: number | null; source_number?: string; position?: number }
+        Relationships: [
+          { foreignKeyName: "lesson_questions_lesson_id_question_bank_id_fkey"; columns: ["lesson_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "lessons"; referencedColumns: ["id", "question_bank_id"] },
+          { foreignKeyName: "lesson_questions_question_id_question_bank_id_fkey"; columns: ["question_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "bank_questions"; referencedColumns: ["id", "question_bank_id"] },
+          { foreignKeyName: "lesson_questions_document_id_lesson_id_question_bank_id_fkey"; columns: ["document_id", "lesson_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "lesson_documents"; referencedColumns: ["id", "lesson_id", "question_bank_id"] },
+        ]
+      }
       bank_chapters: {
         Row: { id: string; question_bank_id: string; title: string; description: string; display_order: number; published: boolean }
         Insert: { id: string; question_bank_id: string; title: string; description?: string; display_order?: number; published?: boolean }
@@ -995,6 +1020,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_subject_lessons: { Args: { bank_id: string; lesson_id?: string | null }; Returns: Json }
+      save_lesson: { Args: { payload: Json }; Returns: Json }
+      register_lesson_document: { Args: { payload: Json }; Returns: string }
+      approve_lesson_document: { Args: { document_id: string; approved: boolean }; Returns: undefined }
       admin_learning_materials: { Args: { kind: string; page_number?: number }; Returns: Json }
       save_learning_material: { Args: { payload: Json }; Returns: string }
       admin_chapters: { Args: { bank_id: string; page_number?: number; search_text?: string }; Returns: Json }

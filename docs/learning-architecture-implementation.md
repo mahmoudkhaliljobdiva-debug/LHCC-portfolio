@@ -132,9 +132,14 @@ Each phase must be completed and verified before advancing to the next.
   See [phase verification and file inventory](typed-learning-materials.md).
   No production migration applied; Subjects remain draft-only.
 - [ ] **Phase 3 — Chapters, Lessons and lesson PDF management.**
-  Lesson/PDF lifecycle, private originals, safe derivatives and extraction review
-  are not complete. Representative authorized lesson samples are still required
-  to validate extraction; reuse existing chapter/exam PDF systems where suitable.
+  Resumed on 2026-11-01 from the two lesson schemas and an empty migration.
+  Admin authoring/private PDFs/extraction review are implemented locally; see
+  [tests and the source acceptance gate](subject-lessons.md). Every published
+  question requires an Admin-reviewed why-correct explanation. The supplied
+  98-page Psychiatry PDF is image-only and exceeds the 20 MB upload boundary;
+  visual yellow keys need manual transcription or separately scoped OCR/splitting.
+  Arabic/mixed selectable-text acceptance is still pending. Phase 3 is not marked
+  accepted solely from synthetic fixtures. No production migration/release occurred.
 - [ ] **Phase 4 — Student reading and question practice.**
   Lesson reading, separate completion/progress and reviewed lesson practice are
   not complete. Preserve existing exam/chapter practice behavior.
