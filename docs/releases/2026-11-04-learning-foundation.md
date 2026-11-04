@@ -53,7 +53,20 @@ Fresh verification on Node 22.23.2:
   WARN remains; see [Supabase remediation](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
   Existing private `live_revisions` no-policy INFO is unchanged. Do not report a
   fully clean production security-advisor result or silently change Auth settings.
-- Production HTTP/browser/runtime checks: pending application deployment.
+- Production HTTP checks: PASS for all public portfolio/specialty/auth pages,
+  generated favicon URLs and crawler rules. Anonymous protected paths redirect
+  server-side to `/login`, including the new material/lesson routes.
+- Production browser: PASS, 10 public pages × 3 widths (390/768/1366) × both
+  themes = 60 combinations, plus 15 anonymous portal-route guards. No browser
+  exceptions or HTTP 5xx were observed. No live forms or user data were mutated.
+- Exact protected deployment HTTP fetch: 200, LHCC HTML confirmed through the
+  existing Vercel connection; Deployment Protection was not disabled.
+- Post-deployment integrity: all 28 baseline application-table fingerprints
+  still match. Production release tests remained read-only.
+- Runtime observation: no matching error/fatal logs for the deployment and no
+  project runtime-error clusters in the checked 30-minute window. This is bounded
+  observation, not proof of no future errors. No log drains are configured;
+  external monitoring remains a gap, not a newly installed integration.
 
 Existing module-type/CRLF notices remain non-failing. Physical Samsung Internet
 and representative Arabic/mixed selectable-text PDF extraction are not verified.
@@ -92,9 +105,31 @@ rollback. Any corrective database change must be independently reviewed.
 ## Current release state
 
 Both production migrations applied successfully, with business data preserved.
-Git/Vercel application release is pending. Record the actual deployed commit,
-deployment ID/URL and production smoke results after execution; migration success
-alone is not a successful application release.
+The initial Git-integrated production release is **READY**:
+
+- Git commit: `1d2d1c69615a58857bc44952c3ab772bfa1481a9`.
+- Deployment: `dpl_E4CctvU4xCH4WWZTjREMRVgeE9Mz`, source `git`, branch `main`.
+- Exact URL: https://lhcc-portfolio-je06n11ow-mahmoudkhaliljobdiva-8508.vercel.app.
+- Public domain: https://lhcc-lb.com, assigned to that deployment.
+- Vercel build: PASS, approximately 48 seconds after build start.
+- No separate manual deployment or protection/configuration change was made.
+
+This verification record and reusable read-only smoke scripts are a follow-up
+commit with unchanged application source. Their normal Git push can create a
+new deployment; verify its final SHA/READY/domain mapping rather than assuming
+this initial deployment remains the latest release forever.
+
+Release verification tooling: `scripts/release-http-smoke.mjs` and
+`scripts/release-public-smoke.mjs`. Both default to read-only checks; the latter
+must receive `QA_BASE_URL=https://lhcc-lb.com` for production. Neither creates
+accounts, submits forms or writes backend data. Authenticated authoring/exam
+mutations were tested in isolated local Supabase, not through live production
+accounts. Production role/RPC checks were read-only transactions.
+
+Favicon regression check: `/favicon.ico` and its generated query URL returned
+200 `image/vnd.microsoft.icon`, 48×48; `/icon.png` and its generated query URL
+returned 200 `image/png`, 192×192. Private portal robots rules remain unchanged.
+This does not assert that an external search engine refreshed its cached icon.
 
 ## Remaining implementation
 

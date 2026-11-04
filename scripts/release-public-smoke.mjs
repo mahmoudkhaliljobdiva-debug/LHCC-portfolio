@@ -7,7 +7,7 @@ try {
   const page = await browser.page();
   for (const width of [390, 768, 1366]) {
     await page.resize(width);
-    for (const path of ['/', '/signup', '/login']) {
+    for (const path of ['/', '/about', '/services', '/platform', '/contact', '/programs/medical', '/programs/nursing', '/programs/dentistry', '/signup', '/login']) {
       await page.goto(path);
       for (const dark of [false, true]) {
         await page.evaluate(`document.documentElement.classList.toggle('dark',${dark})`);
@@ -17,7 +17,7 @@ try {
     }
     console.log(`PASS public pages ${width}px light/dark`);
   }
-  for (const path of ['/admin', '/teacher', '/teacher/questions', '/account/settings']) {
+  for (const path of ['/admin', '/admin/subjects', '/admin/exam-tracks', '/admin/subjects/release-readonly-check/lessons', '/admin/question-banks', '/admin/users', '/admin/wallet', '/admin/portfolio', '/teacher', '/teacher/questions', '/student', '/student/question-banks', '/student/exams', '/student/analytics', '/account/settings']) {
     await page.goto(path);
     assert.equal(await page.evaluate('location.pathname'), '/login', `Anonymous guarded: ${path}`);
   }
