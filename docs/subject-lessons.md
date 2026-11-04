@@ -1,5 +1,12 @@
 # Subject lessons — Phase 3 checkpoint
 
+Release update (2026-11-04): the user has authorized the verified foundation's
+production migration and Git/Vercel release. The original local-only gates below
+describe the November 1 checkpoint; current release status and preservation
+checks are tracked in [the release record](releases/2026-11-04-learning-foundation.md).
+Representative PDF acceptance and the unfinished Student/commerce phases remain
+separate from releasing the secure Admin authoring foundation.
+
 Resumed 2026-11-01 on `feat/learning-material-foundation`, after verified local
 Phase 2 commit `ad57d66`. This is **not a production release**. Do not deploy or
 apply this migration to production without the user's explicit release approval.

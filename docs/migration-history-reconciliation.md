@@ -1,5 +1,12 @@
 # Migration history reconciliation and production safety
 
+Release update (2026-11-04): the two new reviewed foundation migrations are now
+applied under service-assigned versions `20261104174628` and `20261104174656`.
+See [the release mapping and preservation checks](releases/2026-11-04-learning-foundation.md).
+The historical comparison below is retained unchanged. No historical migration
+was replayed, renamed or repaired; routine directory-wide database push is still
+unsafe because the documented local/live timestamp differences remain.
+
 Read-only review: 2026-10-31. Branch: `feat/learning-material-foundation`.
 Reviewed baseline: `9abc258`. Production Supabase project:
 `lcazjsmmegwwnmuupsko`; site: https://lhcc-lb.com.

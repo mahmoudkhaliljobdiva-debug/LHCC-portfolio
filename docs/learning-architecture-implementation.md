@@ -1,5 +1,18 @@
 # Approved learning architecture and implementation record
 
+## Release authorization update — 2026-11-04
+
+The user explicitly authorized continued implementation, production Supabase
+migrations, normal Git pushes and release through the existing Vercel integration.
+This supersedes the older routine release-approval gates below, not the safeguards
+against destructive operations, real financial transactions or silently changing
+existing access/coverage. Nursing's specialty reassignment remains a separate
+business/access decision and is not part of this release.
+
+The current release is the completed typed-material/Admin lesson foundation,
+not a claim that Student lessons or the later commerce phases are implemented.
+See [the release record](releases/2026-11-04-learning-foundation.md).
+
 Status: 2026-10-31. Branch: `feat/learning-material-foundation`.
 Reviewed baseline: `9abc258`. This is a phased implementation record, not a
 production release or a claim that the entire learning/commerce platform exists.

@@ -1,5 +1,10 @@
 # Typed learning materials — Phase 2 checkpoint
 
+Production update (2026-11-04): the verified foundation is being released under
+the user's explicit authorization. See [the release record](releases/2026-11-04-learning-foundation.md)
+for applied migration versions and deployment status. The original October 31
+verification below is retained as historical evidence, not current release state.
+
 Verified locally on 2026-10-31 with Node 22.23.2. **Not a production release.**
 See the [approved decisions](learning-architecture-implementation.md) and
 [migration reconciliation](migration-history-reconciliation.md).
