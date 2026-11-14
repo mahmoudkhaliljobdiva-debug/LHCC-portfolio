@@ -114,5 +114,5 @@ test('production dependencies omit confirmed unused libraries', () => {
   const { dependencies } = JSON.parse(readFileSync('package.json', 'utf8'));
   assert(!('class-variance-authority' in dependencies));
   assert(!('date-fns' in dependencies));
-  assert.equal(dependencies.next, '16.3.8');
+  assert.equal(dependencies.next, '16.4.6');
 });
