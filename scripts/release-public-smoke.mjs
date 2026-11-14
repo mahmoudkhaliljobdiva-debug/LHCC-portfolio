@@ -3,15 +3,21 @@ import assert from 'node:assert/strict';
 import { startBrowser } from './qa-browser.mjs';
 
 const browser = await startBrowser(process.env.QA_BASE_URL ?? 'http://localhost:3100');
+const widths = process.env.LHCC_AUDIT_FULL_VIEWPORTS === '1'
+  ? [320, 360, 375, 390, 412, 430, 768, 1024, 1366, 1440, 1920]
+  : [390, 768, 1366];
 try {
   const page = await browser.page();
-  for (const width of [390, 768, 1366]) {
+  for (const width of widths) {
     await page.resize(width);
     for (const path of ['/', '/about', '/services', '/platform', '/contact', '/programs/medical', '/programs/nursing', '/programs/dentistry', '/signup', '/login']) {
       await page.goto(path);
       for (const dark of [false, true]) {
         await page.evaluate(`document.documentElement.classList.toggle('dark',${dark})`);
         await page.healthy(`${path} ${width}px ${dark ? 'dark' : 'light'}`);
+        if (process.env.LHCC_AUDIT_FULL_VIEWPORTS === '1' && [320, 768, 1366, 1920].includes(width) && ['/', '/programs/medical', '/signup'].includes(path)) {
+          await page.screenshot(`audit-public-${path.replaceAll('/', '-') || 'home'}-${width}-${dark ? 'dark' : 'light'}`);
+        }
       }
       if (path === '/') assert(!/Admin portal/i.test(await page.text()), 'Admin portal card removed');
     }

@@ -101,8 +101,15 @@ async function seed() {
     const request = await checked(student.rpc("request_bank_access", { bank_id: bank.id }), "Request QA bank");
     data.users[key].requestId = request; await saveManifest(data);
     if (key !== "pending") await checked(manager.rpc("review_bank_access", { request_id: request, decision: key === "rejected" ? "REJECTED" : "APPROVED", reason: data.tag + " review" }), "Review QA request");
-    if (key === "completed") for (const [index, q] of data.questions.filter((q) => q.bankId === bank.id).entries()) {
-      await checked(student.rpc("submit_bank_answer", { question_id: q.id, option_id: index === 2 ? "B" : "A" }), "Submit QA answer");
+    if (key === "completed") {
+      // The immediate-feedback API is intentionally retired. Exercise the current
+      // frozen attempt -> persisted selections -> server grading contract instead.
+      const attemptId = await checked(student.rpc("start_exam", { bank_id: bank.id }), "Start QA exam");
+      data.users[key].attemptId = attemptId; await saveManifest(data);
+      for (const [index, q] of data.questions.filter((q) => q.bankId === bank.id).entries()) {
+        await checked(student.rpc("save_exam_answer", { attempt_id: attemptId, question_id: q.id, option_id: index === 2 ? "B" : "A" }), "Save QA exam answer");
+      }
+      await checked(student.rpc("submit_exam", { attempt_id: attemptId }), "Grade QA exam");
     }
   }
   for (const [type, amount] of [["manual_income", 12], ["manual_expense", 5]]) {

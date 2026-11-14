@@ -1,18 +1,20 @@
 // Real browser/server/RPC flow; all mutations are restricted to isolated LOCAL Supabase.
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
+import { localQaStatus } from './qa-local-status.mjs';
 import { startBrowser, login, waitFor, pause } from './qa-browser.mjs';
 const m=JSON.parse(await readFile('.test-artifacts/archive-qa.private.json','utf8'));
 assert(['localhost','127.0.0.1'].includes(new URL(m.url).hostname));
-const status=JSON.parse(execFileSync('cmd.exe',['/d','/s','/c','npx.cmd supabase status --workdir .test-artifacts/archive-db -o json'],{encoding:'utf8',stdio:['ignore','pipe','pipe']}));
+const status=localQaStatus();
 assert.equal(status.API_URL,m.url);
 const checked=(r)=>{if(r.error)throw Error(r.error.message);return r.data;};
 const service=createClient(m.url,status.SERVICE_ROLE_KEY,{auth:{persistSession:false}});
 const two={email:m.prefix+'-two-'+randomBytes(4).toString('hex')+'@example.com',password:randomBytes(24).toString('base64url')};
 const bankName='[TEST] Archive Bank '+m.prefix.slice(-8);
+const sharedTitle='[TEST] Fixed Exam A '+randomBytes(4).toString('hex');
+const sharedScope=`[...document.querySelectorAll('section')].find(element=>element.querySelector('h2')?.textContent===${JSON.stringify(sharedTitle)})`;
 checked(await service.from('question_banks').update({name:bankName,specialty_id:null}).eq('id',m.bankId));
 two.id=checked(await service.auth.admin.createUser({email:two.email,password:two.password,email_confirm:true,user_metadata:{full_name:'[TEST] Independent learning student'}})).user.id;
 checked(await service.from('user_bank_access').insert({user_id:two.id,question_bank_id:m.bankId,status:'ACTIVE',granted_by:m.users.admin.id}));
@@ -22,6 +24,13 @@ for(const [db,user] of [[adminDb,m.users.admin],[oneDb,m.users.student],[twoDb,t
 const services=checked(await service.from('portfolio_content').select('content').eq('section_key','services').single());
 checked(await service.from('portfolio_content').update({content:{...services.content,catalogHeading:'Explore Our Learning Programs'}}).eq('section_key','services'));
 const catalog=checked(await anon.rpc('learning_catalog'));const nursing=catalog.find(s=>s.slug==='nursing');
+// A failed local run can leave its published [TEST] definition behind. Archive
+// only definitions from this exact generated QA bank; frozen results remain.
+assert(m.prefix.startsWith('archive-qa-'));
+for (const definition of checked(await adminDb.rpc('admin_shared_exams',{bank_id:m.bankId})).filter(item=>item.status==='PUBLISHED')) {
+ assert(definition.title.startsWith('[TEST]'), 'Refuse to alter unexpected local content.');
+ checked(await adminDb.rpc('save_shared_exam',{payload:{id:definition.id,title:definition.title,status:'ARCHIVED',timeLimitMinutes:definition.timeLimitMinutes,questionIds:definition.questions.map(question=>question.questionId)}}));
+}
 const browser=await startBrowser('http://localhost:3100',{port:9342});const checks=[],timings=[];
 const widths=[320,375,390,430,768,1024,1366,1440,1920];
 async function responsive(p,name){
@@ -44,15 +53,16 @@ try{
  const visitor=await browser.page();await visitor.goto('/services');assert((await visitor.text()).includes('Explore Our Learning Programs'));await responsive(visitor,'services');await measure(visitor,'/services');
  for(const slug of ['nursing','medical','dentistry']){await visitor.goto('/programs/'+slug);await responsive(visitor,'public-'+slug);if(slug==='nursing')assert((await visitor.text()).includes('[TEST] Archive Bank'));else assert(!(await visitor.text()).includes('[TEST] Archive Bank'));}
  assert(!/correct_option_id|answer_key|storage_path|options/.test(JSON.stringify(checked(await anon.rpc('learning_catalog')))));
- await admin.goto('/admin/portfolio');await admin.click('Services page');await admin.fillLabel('Learning catalog heading','[TEST] Live Learning Programs');await admin.click('Save Changes');await waitFor(()=>admin.evaluate("document.body.innerText.includes('Portfolio content updated successfully.')"),'catalog CMS save');
+ const catalogHeading='[TEST] Live Learning Programs '+randomBytes(4).toString('hex');
+ await admin.goto('/admin/portfolio');await admin.click('Services page');await admin.fillLabel('Learning catalog heading',catalogHeading);await waitFor(()=>admin.evaluate("[...document.querySelectorAll('button')].some(button=>button.textContent==='Save Changes'&&!button.disabled)"),'CMS dirty state');await admin.click('Save Changes');await waitFor(()=>admin.evaluate("document.body.innerText.includes('Portfolio content updated successfully.')"),'catalog CMS save');
  await visitor.goto('/services');assert((await visitor.text()).includes('[TEST] Live Learning Programs'));await responsive(admin,'catalog-cms');
  await admin.goto(`/admin/question-banks/${m.bankId}/shared-exams`);await responsive(admin,'shared-empty');
- await admin.fillLabel('Exam title','[TEST] Fixed Exam A');await admin.fillLabel('Requested questions','35');await admin.click('Generate draft');
- await waitFor(()=>admin.evaluate("Boolean(document.querySelector('details'))"),'generated draft');
+ await admin.fillLabel('Exam title',sharedTitle);await admin.fillLabel('Requested questions','35');await admin.click('Generate draft');
+ await waitFor(()=>admin.evaluate(`Boolean(${sharedScope})`),'generated draft');
  let definition=checked(await adminDb.rpc('admin_shared_exams',{bank_id:m.bankId}))[0];assert.equal(definition.questionCount,35);assert.equal(checked(await oneDb.rpc('exam_bank_data',{bank_id:m.bankId})).sharedExams.length,0);
- await admin.evaluate("document.querySelector('details').open=true;document.querySelector('button[aria-label=\"Move question 1 down\"]').click()");await responsive(admin,'shared-draft');
- await admin.click('Save draft');await waitFor(async()=>checked(await adminDb.rpc('admin_shared_exams',{bank_id:m.bankId}))[0].questions[0].questionId===definition.questions[1].questionId,'saved reordering');
- await admin.click('Publish exam');await waitFor(async()=>checked(await oneDb.rpc('exam_bank_data',{bank_id:m.bankId})).sharedExams.length===1,'published shared exam');
+ await admin.evaluate(`${sharedScope}.querySelector('details').open=true;${sharedScope}.querySelector('button[aria-label="Move question 1 down"]').click()`);await responsive(admin,'shared-draft');
+ await admin.click('Save draft',sharedScope);await waitFor(async()=>checked(await adminDb.rpc('admin_shared_exams',{bank_id:m.bankId}))[0].questions[0].questionId===definition.questions[1].questionId,'saved reordering');
+ await admin.click('Publish exam',sharedScope);await waitFor(async()=>checked(await oneDb.rpc('exam_bank_data',{bank_id:m.bankId})).sharedExams.length===1,'published shared exam');
  await admin.goto(`/admin/question-banks/${m.bankId}/shared-exams`);assert(await admin.evaluate("document.querySelector('input').disabled===false && document.querySelectorAll('fieldset')[1].disabled"));await responsive(admin,'shared-published');
  definition=checked(await adminDb.rpc('admin_shared_exams',{bank_id:m.bankId}))[0];
  const one=await browser.page(),second=await browser.page();await login(one,m.users.student,'/student');await login(second,two,'/student');
@@ -60,7 +70,7 @@ try{
  for(const db of [oneDb,twoDb]){const b=checked(await db.rpc('exam_bank_data',{bank_id:m.bankId}));for(const a of b.attempts.filter(a=>a.status==='IN_PROGRESS'))checked(await db.rpc('submit_exam',{attempt_id:a.id}));}
  await one.goto('/student');await responsive(one,'student-catalog');await measure(one,'/student');
  for(const slug of ['nursing','medical','dentistry']){await one.goto('/student/specialties/'+slug);await responsive(one,'student-'+slug);if(slug==='nursing')assert((await one.text()).includes('[TEST] Archive Bank'));else assert(!(await one.text()).includes('[TEST] Archive Bank'));}
- await one.goto(`/student/banks/${m.bankId}`);for(const label of ['Random Questions From Different Years','Past Year Exams','Shared Random Exams'])assert((await one.text()).includes(label));await responsive(one,'material');
+ await one.goto(`/student/banks/${m.bankId}`);for(const label of ['AI-Generated Exams','Chapter Questions','PDF Session Exams','Shared Random Exams'])assert((await one.text()).includes(label));await responsive(one,'material');
  await one.goto(`/student/banks/${m.bankId}/shared-exams`);await responsive(one,'shared-list');await one.click('[TEST] Fixed Exam A');await waitFor(()=>one.evaluate("document.body.innerText.includes('Prepare your session')"),'shared setup');await responsive(one,'shared-setup');
  const ids=[];for(const [p,db] of [[one,oneDb],[second,twoDb]]){
   const id=await start(p,'SHARED',definition.id);ids.push(id);const data=await payload(db,id);assert.equal(data.totalQuestions,35);assert.deepEqual(data.questions.map(q=>q.id),definition.questions.map(q=>q.questionId));assert(!/correctOptionId|outcome|answer_key/.test(JSON.stringify(data)));
@@ -84,7 +94,8 @@ try{
  await admin.goto(`/admin/question-banks/${m.bankId}/shared-exams`);await admin.click('Archive exam');await waitFor(async()=>checked(await oneDb.rpc('exam_bank_data',{bank_id:m.bankId})).sharedExams.length===0,'archiving');assert.equal((await payload(oneDb,ids[0])).status,'COMPLETED');
  assert((await oneDb.rpc('start_learning_exam',{config:{bankId:m.bankId,source:'SHARED',sourceId:definition.id,mode:'EXAM',count:30,timeLimitMinutes:null}})).error);
  for(let i=0;i<6;i++)checked(await adminDb.rpc('generate_shared_exam',{payload:{id:crypto.randomUUID(),bankId:m.bankId,title:'[TEST] Paging '+i,count:1,timeLimitMinutes:null}}));
- await admin.goto(`/admin/question-banks/${m.bankId}/shared-exams?page=1`);assert((await admin.text()).includes('Page 2'));assert.equal(await admin.evaluate("document.querySelectorAll('details').length"),2);
+ const secondPageCount=checked(await adminDb.rpc('admin_shared_exams',{bank_id:m.bankId,page_number:1})).length;
+ await admin.goto(`/admin/question-banks/${m.bankId}/shared-exams?page=1`);assert((await admin.text()).includes('Page 2'));assert.equal(await admin.evaluate("document.querySelectorAll('details').length"),secondPageCount);
  await responsive(admin,'shared-paged');await admin.fillLabel('Exam title','[TEST] Generated from page two');await admin.fillLabel('Requested questions','2');await admin.click('Generate draft');await waitFor(()=>admin.evaluate("location.search==='' && document.body.innerText.includes('[TEST] Generated from page two')"),'new draft visible from later page');
  await admin.goto('/admin/specialties');const assignment=`select[aria-label="Specialty for ${bankName}"]`;await admin.fill(assignment,'');await waitFor(async()=>checked(await adminDb.from('question_banks').select('specialty_id').eq('id',m.bankId).single()).specialty_id===null,'null assignment');await admin.fill(assignment,nursing.id);await waitFor(async()=>checked(await anon.rpc('learning_catalog')).find(s=>s.slug==='nursing').materials.some(b=>b.id===m.bankId),'assignment restored');
  checks.push('Browser Admin assignment/edit/generation/reorder/publish/archive, CMS persistence; public summaries only; two-student SHARED/PAST/RANDOM; frozen/resumed order; independent scores; neutral exam selections; green/red checked practice; immutable checked answers; reduced motion; locked RLS and student isolation');

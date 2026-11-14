@@ -50,6 +50,17 @@ async function form(page, name, subject) {
   await page.fillLabel('Display order', '0');
 }
 
+async function locateMaterial(page, path, name) {
+  // Local audit fixtures can span multiple real pages. A successful save need
+  // not place a new UUID-sorted material on page one.
+  for (let number = 0; number <= 100000; number++) {
+    await page.goto(path + (number ? '?page=' + number : ''));
+    if (await page.evaluate(`Boolean(${card(name)})`)) return;
+    assert(await page.evaluate("[...document.querySelectorAll('a')].some(link=>link.textContent.trim()==='Next page')"), 'Saved material must exist in the paginated listing.');
+  }
+  throw Error('Saved material not found.');
+}
+
 try {
   await login(admin, manifest.users.admin, '/admin');
   await login(student, manifest.users.student, '/student');
@@ -62,13 +73,13 @@ try {
   await admin.evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent==='Save material').scrollIntoView({block:'center'})");
   await admin.screenshot('material-subject-form-mobile-submit');
   await admin.click('Save material');
-  await waitFor(async () => (await admin.text()).includes(subjectName) && !(await admin.evaluate("Boolean(document.querySelector('dialog[open]'))")), 'subject saved');
+  await waitFor(async () => !(await admin.evaluate("Boolean(document.querySelector('dialog[open]'))")), 'subject saved');
   const subject = checked(await service.from('question_banks').select('*').eq('name', subjectName).single());
   created.push(subject.id);
   assert.equal(subject.material_kind, 'SUBJECT'); assert.equal(subject.exam_category, null);
   assert.equal(subject.publication_status, 'DRAFT'); assert.equal(subject.status, 'inactive');
   assert.equal(subject.price, 0); assert.equal(subject.content_language, 'mixed');
-  await admin.goto('/admin/subjects'); assert((await admin.text()).includes(subjectName));
+  await locateMaterial(admin, '/admin/subjects', subjectName); assert((await admin.text()).includes(subjectName));
   await responsive(admin, 'subjects');
 
   await admin.goto('/admin/exam-tracks'); await admin.click('Add exam track');
@@ -77,9 +88,10 @@ try {
   await admin.resize(375, 844);
   await admin.evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent==='Save material').scrollIntoView({block:'center'})");
   await admin.click('Save material');
-  await waitFor(async () => (await admin.text()).includes(trackName) && !(await admin.evaluate("Boolean(document.querySelector('dialog[open]'))")), 'track saved');
+  await waitFor(async () => !(await admin.evaluate("Boolean(document.querySelector('dialog[open]'))")), 'track saved');
   const track = checked(await service.from('question_banks').select('*').eq('name', trackName).single());
   created.push(track.id); assert.equal(track.publication_status, 'DRAFT'); assert.equal(track.status, 'inactive');
+  await locateMaterial(admin, '/admin/exam-tracks', trackName);
   await admin.click('Edit', card(trackName));
   await admin.fillLabel('Publication status', 'PUBLISHED'); await admin.fillLabel('Availability', 'active');
   await admin.click('Save material');

@@ -1,11 +1,11 @@
 // Isolated LOCAL Supabase only. Never accepts a production URL or production credentials.
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { randomBytes,randomUUID } from 'node:crypto';
 import { mkdir,writeFile,readFile } from 'node:fs/promises';
 import { createClient } from '@supabase/supabase-js';
+import { localQaStatus } from './qa-local-status.mjs';
 const folder='.test-artifacts'; const manifestPath=folder+'/archive-qa.private.json';
-const status=JSON.parse(execFileSync('cmd.exe',['/d','/s','/c','npx.cmd supabase status --workdir .test-artifacts/archive-db -o json'],{encoding:'utf8',stdio:['ignore','pipe','pipe']}));
+const status=localQaStatus();
 const url=status.API_URL; assert(['localhost','127.0.0.1'].includes(new URL(url).hostname));
 const db=createClient(url,status.SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 async function checked(result,label) { if(result.error)throw Error(label+': '+result.error.message); return result.data; }

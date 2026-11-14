@@ -1,8 +1,29 @@
 # L.H.C.C Healthcare Learning Platform — Project Handoff
 
-Current handoff updated: October 17, 2026. Older checkpoints below are historical.
+Current handoff updated: November 14, 2026. Older checkpoints below are historical.
 
-## Current production checkpoint
+## Current audit checkpoint — November 14, 2026
+
+- Resume from `audit/full-project-2026-11-11`, not by restarting the implementation.
+- Read [the full audit](docs/FULL_PROJECT_AUDIT.md) and
+  [route/action/function inventory](docs/audit/full-project-inventory.md) first.
+- Production remains the Git-linked `main` release `5e51b03`. Audit mutation tests
+  run only against isolated local Supabase; no production migration was applied.
+- Two audit migrations are pending production approval: private import RLS/FK
+  indexes and the portfolio reset safeupdate correction. Do not run a directory-wide
+  migration push: the hosted migration history differs from the repository.
+- Invitation callback support is tested locally; its matching Supabase Invite
+  email template is in `supabase/templates/invite.html`, not yet configured live.
+  Deploy approved code before enabling that template; preserve password recovery.
+- Ten hosted free Medical Subjects are published, but Student lesson delivery and
+  commerce/entitlements are not implemented. Resolve the access-model decision
+  before connecting them; never put Subject questions into exam-track pools.
+- Fresh production inspection places Nursing Colloquium under Medical, contrary
+  to the older October checkpoint below. Do not reassign it without owner approval.
+- Use Node 22.23.2. Preserve production users, content, grants, frozen results and
+  ledger history. Do not treat catalog fingerprints as a verified restorable backup.
+
+## Historical production checkpoint — October 17, 2026
 
 - Production: https://lhcc-lb.com; normal Git pushes to `main` trigger Vercel.
 - Supabase is the source of truth. No mock business-data fallback or QA routes.

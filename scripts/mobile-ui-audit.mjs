@@ -16,6 +16,10 @@ try{
  const publicPage=await b.page(),student=await b.page(),teacher=await b.page(),admin=await b.page();
  await login(student,m.users.student,'/student');await login(teacher,m.users.teacher,'/teacher');await login(admin,m.users.admin,'/admin');
  const routes=[...['/','/about','/services','/platform','/contact','/login','/signup','/login/forgot-password'].map(r=>[publicPage,r]),...['/student','/student/question-banks',`/student/banks/${m.bankId}`,`/student/banks/${m.bankId}/past-exams`,`/student/banks/${m.bankId}/setup`,...(active?[`/student/exams/${active.id}`]:[]),...(completed?[`/student/exams/${completed.id}/result`]:[]),'/student/exams','/student/analytics','/student/profile','/account/settings'].map(r=>[student,r]),...['/teacher','/teacher/questions','/teacher/question-banks',`/teacher/question-banks/${m.bankId}`,'/teacher/profile'].map(r=>[teacher,r]),...['/admin','/admin/users','/admin/question-banks',`/admin/question-banks/${m.bankId}`,`/admin/question-banks/${m.bankId}/questions/new`,`/admin/question-banks/${m.bankId}/questions/${m.prefix}-q1/edit`,`/admin/question-banks/${m.bankId}/past-exams`,'/admin/access-requests','/admin/portfolio','/admin/wallet','/admin/settings'].map(r=>[admin,r])];
+ routes.push(...['/programs/medical','/programs/nursing','/programs/dentistry','/unauthorized'].map(route=>[publicPage,route]),
+  ...['/admin/subjects','/admin/exam-tracks','/admin/specialties','/admin/view-as/student','/admin/view-as/teacher',`/admin/users/${m.users.student.id}/activity`,`/admin/view-as/student/${m.users.student.id}`,`/admin/view-as/teacher/${m.users.teacher.id}`].map(route=>[admin,route]),
+  ...['medical','nursing','dentistry'].map(slug=>[student,'/student/specialties/'+slug]),
+  ...['/teacher/settings'].map(route=>[teacher,route]));
  for(const [page,route] of routes){
   await page.goto(route);
   for(const dark of [false,true])for(const width of widths){
