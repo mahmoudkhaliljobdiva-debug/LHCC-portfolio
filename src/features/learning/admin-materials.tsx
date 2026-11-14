@@ -52,7 +52,7 @@ export function AdminMaterials({ kind, page, items, total, specialties }: AdminM
           <div><dt className="text-slate-500 dark:text-slate-400">Language</dt><dd className="mt-1 text-slate-800 dark:text-slate-200">{languageLabels[material.language]}</dd></div>
         </dl>
         <div className="mt-auto flex flex-wrap gap-3 pt-2"><button type="button" className={secondaryButton} onClick={() => { setFeedback(""); setEditing({ value: material, isNew: false }); }}>Edit<span className="sr-only"> {material.name}</span></button>
-          <Link href={`/admin/question-banks/${encodeURIComponent(material.id)}`} className={secondaryButton}>Manage questions</Link>{isSubject ? <Link href={`/admin/subjects/${encodeURIComponent(material.id)}/lessons`} className={secondaryButton}>Chapters & lessons</Link> : null}
+          <Link href={isSubject ? `/admin/subjects/${encodeURIComponent(material.id)}/questions` : `/admin/question-banks/${encodeURIComponent(material.id)}`} className={secondaryButton}>{isSubject ? "View imported questions" : "Manage questions"}</Link>{isSubject ? <Link href={`/admin/subjects/${encodeURIComponent(material.id)}/lessons`} className={secondaryButton}>Chapters & lessons</Link> : null}
         </div>
       </article>;
   }
