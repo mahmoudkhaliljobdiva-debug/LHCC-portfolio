@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, Plus, RotateCcw, Save, Trash2 } from "lucide
 import { useEffect, useId, useMemo, useState } from "react";
 
 import { resetPortfolioContent, savePortfolioContent } from "@/actions/portfolio";
+import { ModalPanel } from "@/components/ui/modal-panel";
 import { cn } from "@/lib/cn";
 import type {
   PortfolioContent,
@@ -222,16 +223,16 @@ export function PortfolioEditor({ initialContent }: { readonly initialContent: P
       </div>
 
       {resetOpen && (
-        <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-5" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setResetOpen(false); }}>
-          <div role="alertdialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-description" className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-2xl sm:p-6">
+        <ModalPanel role="alertdialog" labelledBy="reset-title" describedBy="reset-description" className="max-w-md" busy={isSaving} onCancel={() => setResetOpen(false)}>
+          <div className="p-5 sm:p-6">
             <h2 id="reset-title" className="text-lg font-semibold text-slate-950">Reset portfolio content?</h2>
             <p id="reset-description" className="mt-2 text-sm leading-6 text-slate-500">This replaces all saved portfolio edits with the original default content. This action cannot be undone.</p>
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button type="button" autoFocus onClick={() => setResetOpen(false)} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700">Cancel</button>
+              <button type="button" autoFocus disabled={isSaving} onClick={() => setResetOpen(false)} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50">Cancel</button>
               <button type="button" disabled={isSaving} onClick={handleReset} className="rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-800 disabled:opacity-50">{isSaving ? "Restoring…" : "Reset content"}</button>
             </div>
           </div>
-        </div>
+        </ModalPanel>
       )}
     </div>
   );

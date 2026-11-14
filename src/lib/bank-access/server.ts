@@ -19,7 +19,11 @@ export const getStudentBanks = cache(async (): Promise<StudentBank[]> => {
 export async function getAdminBankOptions(): Promise<readonly { id: string; name: string }[]> {
   await requireRole("ADMIN");
   const db = await createClient();
-  return readAllRows((from, to) => db.from("question_banks").select("id,name").order("display_order").order("id").range(from, to));
+  // Teacher authoring is exam-track scoped. Imported Subjects may now be active
+  // in the hosted catalog, but assigning one cannot grant teacher_has_bank access.
+  // Retain draft/inactive tracks so existing assignments remain editable.
+  return readAllRows((from, to) => db.from("question_banks").select("id,name")
+    .eq("material_kind", "EXAM_TRACK").order("display_order").order("id").range(from, to));
 }
 
 export async function getStudentBanksForAdmin(subjectId: string) {

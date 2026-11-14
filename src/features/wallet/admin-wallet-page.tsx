@@ -1,6 +1,7 @@
 "use client";
 
 import { Select } from "@/components/ui/select";
+import { ModalPanel } from "@/components/ui/modal-panel";
 
 import { ArrowDownCircle, ArrowUpCircle, CircleDollarSign, Edit3, Plus, Receipt, Trash2, WalletCards } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -23,6 +24,7 @@ export function AdminWalletPage({ transactions }: { readonly transactions: reado
   const [customEnd, setCustomEnd] = useState("");
   const [ticket, setTicket] = useState<WalletTransaction | "new" | null>(null);
   const [deleteTicket, setDeleteTicket] = useState<WalletTransaction | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const filtered = useMemo(() => transactions.filter((item) => (transactionFilter === "all" || item.type === transactionFilter) && inDateRange(item.transactionDate, dateFilter, customStart, customEnd)), [customEnd, customStart, dateFilter, transactions, transactionFilter]);
   const summary = useMemo(() => getWalletSummary(transactions), [transactions]);
@@ -46,7 +48,8 @@ export function AdminWalletPage({ transactions }: { readonly transactions: reado
   }
 
   async function confirmDelete() {
-    if (!deleteTicket) return;
+    if (!deleteTicket || deleting) return;
+    setDeleting(true);
     try {
       const result = await deleteWalletTicket(deleteTicket.id);
       if (!result.ok) { setFeedback({ type: "error", message: result.error.message }); return; }
@@ -55,7 +58,7 @@ export function AdminWalletPage({ transactions }: { readonly transactions: reado
       router.refresh();
     } catch {
       setFeedback({ type: "error", message: "Unable to delete the wallet ticket." });
-    }
+    } finally { setDeleting(false); }
   }
 
   return <div>
@@ -66,7 +69,7 @@ export function AdminWalletPage({ transactions }: { readonly transactions: reado
     <TransactionTable transactions={recent} />
     <ManualTicketTable transactions={manualTickets} onEdit={setTicket} onDelete={setDeleteTicket} />
     {ticket && <TicketDialog ticket={ticket} onCancel={() => setTicket(null)} onSave={saveTicket} />}
-    {deleteTicket && <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4"><div role="alertdialog" aria-modal="true" aria-labelledby="delete-ticket-title" className="w-full max-w-md rounded-2xl border bg-white p-6"><h2 id="delete-ticket-title" className="text-lg font-semibold text-slate-950">Delete {deleteTicket.name}?</h2><p className="mt-2 text-sm text-slate-500">This manual ticket will be removed from wallet calculations.</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" onClick={() => setDeleteTicket(null)} className="rounded-xl border px-4 py-2.5 text-sm font-semibold">Cancel</button><button type="button" onClick={confirmDelete} className="rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white">Delete ticket</button></div></div></div>}
+    {deleteTicket && <ModalPanel role="alertdialog" labelledBy="delete-ticket-title" className="max-w-md" busy={deleting} onCancel={() => setDeleteTicket(null)}><div className="p-6"><h2 id="delete-ticket-title" className="text-lg font-semibold text-slate-950">Delete {deleteTicket.name}?</h2><p className="mt-2 text-sm text-slate-500">This manual ticket will be removed from wallet calculations.</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" disabled={deleting} onClick={() => setDeleteTicket(null)} className="rounded-xl border px-4 py-2.5 text-sm font-semibold">Cancel</button><button type="button" disabled={deleting} onClick={confirmDelete} className="rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white">{deleting ? "Deleting…" : "Delete ticket"}</button></div></div></ModalPanel>}
   </div>;
 }
 
@@ -85,7 +88,7 @@ function TicketDialog({ ticket, onCancel, onSave }: { readonly ticket: WalletTra
   const [amount, setAmount] = useState(current ? String(Math.abs(current.amount)) : ""); const [date, setDate] = useState(current?.transactionDate ?? getTodayDate()); const [category, setCategory] = useState(current?.category ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({}); const [saving, setSaving] = useState(false);
   async function submit(event: React.FormEvent) { event.preventDefault(); const next: Record<string, string> = {}; if (!name.trim()) next.name = "Ticket name is required."; const numericAmount = Number(amount); if (!Number.isFinite(numericAmount) || numericAmount <= 0) next.amount = "Amount must be greater than zero."; if (!date) next.date = "Transaction date is required."; setErrors(next); if (Object.keys(next).length) return; setSaving(true); const base = { name: name.trim(), type, amount: numericAmount, transactionDate: date }; const error = await onSave({ ...base, ...(description.trim() ? { description: description.trim() } : {}), ...(category.trim() ? { category: category.trim() } : {}) }); if (error) setErrors({ form: error }); setSaving(false); }
-  return <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4"><form onSubmit={submit} role="dialog" aria-modal="true" aria-labelledby="ticket-title" className="w-full max-w-xl rounded-2xl border bg-white p-6"><h2 id="ticket-title" className="text-xl font-semibold text-slate-950">{current ? "Edit wallet ticket" : "Add wallet ticket"}</h2>{errors.form && <p role="alert" className="mt-4 text-sm text-rose-700">{errors.form}</p>}<div className="mt-6 grid gap-5"><TicketField label="Ticket name" value={name} error={errors.name} onChange={setName} /><TicketField label="Description (optional)" value={description} multiline onChange={setDescription} /><div className="grid gap-5 sm:grid-cols-2"><label className="grid gap-2 text-sm font-medium text-slate-700">Type<Select value={type} onChange={(event) => setType(event.target.value as "manual_income" | "manual_expense")} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="manual_income">Income</option><option value="manual_expense">Expense</option></Select></label><TicketField label="Amount (USD)" type="number" value={amount} error={errors.amount} onChange={setAmount} /><TicketField label="Transaction date" type="date" value={date} error={errors.date} onChange={setDate} /><TicketField label="Category (optional)" value={category} onChange={setCategory} /></div></div><div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" disabled={saving} onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold">Cancel</button><button type="submit" disabled={saving} className="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Saving…" : "Save Ticket"}</button></div></form></div>;
+  return <ModalPanel labelledBy="ticket-title" className="max-w-xl" busy={saving} onCancel={onCancel}><form onSubmit={submit} className="p-6"><h2 id="ticket-title" className="text-xl font-semibold text-slate-950">{current ? "Edit wallet ticket" : "Add wallet ticket"}</h2>{errors.form && <p role="alert" className="mt-4 text-sm text-rose-700">{errors.form}</p>}<div className="mt-6 grid gap-5"><TicketField label="Ticket name" value={name} error={errors.name} onChange={setName} /><TicketField label="Description (optional)" value={description} multiline onChange={setDescription} /><div className="grid gap-5 sm:grid-cols-2"><label className="grid gap-2 text-sm font-medium text-slate-700">Type<Select value={type} onChange={(event) => setType(event.target.value as "manual_income" | "manual_expense")} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="manual_income">Income</option><option value="manual_expense">Expense</option></Select></label><TicketField label="Amount (USD)" type="number" value={amount} error={errors.amount} onChange={setAmount} /><TicketField label="Transaction date" type="date" value={date} error={errors.date} onChange={setDate} /><TicketField label="Category (optional)" value={category} onChange={setCategory} /></div></div><div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" disabled={saving} onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold">Cancel</button><button type="submit" disabled={saving} className="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Saving…" : "Save Ticket"}</button></div></form></ModalPanel>;
 }
 
 function TicketField({ label, value, error, type = "text", multiline = false, onChange }: { readonly label: string; readonly value: string; readonly error?: string | undefined; readonly type?: "text" | "number" | "date"; readonly multiline?: boolean; readonly onChange: (value: string) => void }) { return <label className="grid gap-2 text-sm font-medium text-slate-700">{label}{multiline ? <textarea rows={3} value={value} onChange={(event) => onChange(event.target.value)} className="rounded-xl border bg-slate-50 px-3 py-2" /> : <input type={type} min={type === "number" ? "0.01" : undefined} step={type === "number" ? "0.01" : undefined} value={value} onChange={(event) => onChange(event.target.value)} className={cn("h-11 rounded-xl border bg-slate-50 px-3", error && "border-rose-400")} />}{error && <span className="text-xs text-rose-700">{error}</span>}</label>; }

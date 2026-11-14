@@ -65,6 +65,7 @@ export type Database = {
           created_at: string
           difficulty: string | null
           display_order: number | null
+          group_id: string | null
           id: string
           include_in_complete_bank: boolean
           options: Json
@@ -78,6 +79,7 @@ export type Database = {
           created_at?: string
           difficulty?: string | null
           display_order?: number | null
+          group_id?: string | null
           id?: string
           include_in_complete_bank?: boolean
           options: Json
@@ -91,6 +93,7 @@ export type Database = {
           created_at?: string
           difficulty?: string | null
           display_order?: number | null
+          group_id?: string | null
           id?: string
           include_in_complete_bank?: boolean
           options?: Json
@@ -101,6 +104,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bank_questions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "question_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bank_questions_question_bank_id_fkey"
             columns: ["question_bank_id"]
@@ -358,6 +368,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      question_assets: {
+        Row: {
+          alt_text: string | null
+          asset_kind: string
+          created_at: string
+          display_order: number
+          id: string
+          question_id: string
+          source_page: number | null
+          storage_path: string
+        }
+        Insert: {
+          alt_text?: string | null
+          asset_kind?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          question_id: string
+          source_page?: number | null
+          storage_path: string
+        }
+        Update: {
+          alt_text?: string | null
+          asset_kind?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          question_id?: string
+          source_page?: number | null
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_assets_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "bank_questions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       question_attempt_answers: {
         Row: {
@@ -643,6 +694,44 @@ export type Database = {
             columns: ["specialty_id"]
             isOneToOne: false
             referencedRelation: "specialties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_groups: {
+        Row: {
+          created_at: string
+          display_order: number
+          group_type: string
+          id: string
+          instructions: string | null
+          question_bank_id: string
+          shared_options: Json | null
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          group_type?: string
+          id?: string
+          instructions?: string | null
+          question_bank_id: string
+          shared_options?: Json | null
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          group_type?: string
+          id?: string
+          instructions?: string | null
+          question_bank_id?: string
+          shared_options?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_groups_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
             referencedColumns: ["id"]
           },
         ]
