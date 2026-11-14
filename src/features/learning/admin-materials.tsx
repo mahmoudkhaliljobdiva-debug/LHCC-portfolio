@@ -2,13 +2,14 @@
 
 import { useId, useState, type FormEvent } from "react";
 import Link from "next/link";
+import type { Route } from "next";
 import { ChevronDown, FolderOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { saveMaterial } from "@/actions/materials";
+import { saveMaterial, saveSubjectMetadata } from "@/actions/materials";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { ModalPanel } from "@/components/ui/modal-panel";
 import { Select } from "@/components/ui/select";
-import { examCategories, materialIcons, materialLanguages, materialSchema } from "@/lib/validation/material";
+import { examCategories, materialIcons, materialLanguages, materialSchema, subjectMetadataSchema } from "@/lib/validation/material";
 import type { AdminMaterialsData, LearningMaterial, MaterialInput, MaterialKind, MaterialSpecialtyOption } from "@/types/material";
 
 const fieldClass = "min-h-12 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-950 outline-none focus-visible:ring-2 focus-visible:ring-teal-600 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100";
@@ -16,15 +17,16 @@ const secondaryButton = "inline-flex min-h-11 items-center justify-center rounde
 const categoryLabels = { COLLOQUIUM: "Colloquium", PROMETRIC: "Prometric", OTHER: "Other" } as const;
 const languageLabels = { auto: "Automatic", ar: "Arabic", en: "English", mixed: "Arabic & English" } as const;
 const iconLabels = { book: "Book", brain: "Brain", stethoscope: "Stethoscope", nursing: "Nursing", dentistry: "Dentistry", graduation: "Graduation", clipboard: "Clipboard", other: "Other" } as const;
-const foundationNotice = "Subjects remain draft-only. Admins can organize chapters, lessons and private PDFs; Student reading, practice and subject-access rules are not enabled, so subject publishing and activation remain unavailable.";
+const foundationNotice = "New Subjects begin as private drafts. Existing publication and access settings are preserved. Manage questions directly within each Subject or organize optional chapters and lessons; source extraction never approves or publishes questions.";
 
-export function AdminMaterials({ kind, page, items, total, specialties }: AdminMaterialsData & { kind: MaterialKind; page: number }) {
+export function AdminMaterials({ kind, page, items, total, specialties, folders, selectedSpecialty }: AdminMaterialsData & { kind: MaterialKind; page: number }) {
   const [editing, setEditing] = useState<{ value: MaterialInput; isNew: boolean } | null>(null);
   const [feedback, setFeedback] = useState("");
   const isSubject = kind === "SUBJECT";
   const title = isSubject ? "Subjects" : "Exam Tracks";
   const noun = isSubject ? "subject" : "exam track";
   const path = isSubject ? "/admin/subjects" : "/admin/exam-tracks";
+  const paginationPath = isSubject ? `${path}?specialty=${encodeURIComponent(selectedSpecialty ?? "unassigned")}&` : `${path}?`;
   const specialtyNames = new Map(specialties.map(specialty => [specialty.id, specialty.name]));
   const pages = Math.max(1, Math.ceil(total / 20));
 
@@ -40,19 +42,20 @@ export function AdminMaterials({ kind, page, items, total, specialties }: AdminM
   function renderMaterialCard(material: LearningMaterial) {
     return <article key={material.id} className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
         <div className="flex items-start gap-3"><span className="grid shrink-0 place-items-center rounded-xl bg-teal-50 p-3 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300"><MaterialIcon icon={material.icon} className="size-12" /></span>
-          <div className="min-w-0 flex-1"><h2 dir="auto" className="break-words text-lg font-semibold text-slate-950 dark:text-slate-50">{material.name}</h2>
+          <div className="min-w-0 flex-1"><h2 dir="auto" className="break-words text-lg font-semibold text-slate-950 dark:text-slate-50">{isSubject ? <Link className="hover:underline focus-visible:outline-2" href={`/admin/subjects/${encodeURIComponent(material.id)}/questions`}>{material.name}</Link> : material.name}</h2>
             <p dir="auto" className="mt-1 break-words text-sm text-slate-600 dark:text-slate-300">{material.specialtyId ? specialtyNames.get(material.specialtyId) ?? "Specialty unavailable" : "Unassigned specialty"}</p>
           </div>
         </div>
         <p dir="auto" className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-slate-600 dark:text-slate-300">{material.description || "No description provided."}</p>
         <dl className="my-4 grid grid-cols-2 gap-3 text-sm">
+          {isSubject ? <div><dt className="text-slate-500 dark:text-slate-400">Questions</dt><dd className="mt-1 font-semibold">{material.questionCount ?? 0}</dd></div> : null}
           <div><dt className="text-slate-500 dark:text-slate-400">Publication</dt><dd className="mt-1 font-medium text-slate-800 dark:text-slate-200">{material.publicationStatus === "DRAFT" ? "Draft" : material.publicationStatus === "PUBLISHED" ? "Published" : "Archived"}</dd></div>
           <div><dt className="text-slate-500 dark:text-slate-400">Availability</dt><dd className="mt-1 font-medium text-slate-800 dark:text-slate-200">{material.status === "active" ? "Active" : "Inactive"}</dd></div>
           {material.examCategory ? <div><dt className="text-slate-500 dark:text-slate-400">Exam category</dt><dd className="mt-1 text-slate-800 dark:text-slate-200">{categoryLabels[material.examCategory]}</dd></div> : null}
           <div><dt className="text-slate-500 dark:text-slate-400">Language</dt><dd className="mt-1 text-slate-800 dark:text-slate-200">{languageLabels[material.language]}</dd></div>
         </dl>
         <div className="mt-auto flex flex-wrap gap-3 pt-2"><button type="button" className={secondaryButton} onClick={() => { setFeedback(""); setEditing({ value: material, isNew: false }); }}>Edit<span className="sr-only"> {material.name}</span></button>
-          <Link href={isSubject ? `/admin/subjects/${encodeURIComponent(material.id)}/questions` : `/admin/question-banks/${encodeURIComponent(material.id)}`} className={secondaryButton}>{isSubject ? "View imported questions" : "Manage questions"}</Link>{isSubject ? <Link href={`/admin/subjects/${encodeURIComponent(material.id)}/lessons`} className={secondaryButton}>Chapters & lessons</Link> : null}
+          <Link href={isSubject ? `/admin/subjects/${encodeURIComponent(material.id)}/questions` : `/admin/question-banks/${encodeURIComponent(material.id)}`} className={secondaryButton}>Manage questions</Link>{isSubject ? <Link href={`/admin/subjects/${encodeURIComponent(material.id)}/lessons`} className={secondaryButton}>Chapters & lessons</Link> : null}
         </div>
       </article>;
   }
@@ -73,36 +76,24 @@ export function AdminMaterials({ kind, page, items, total, specialties }: AdminM
     {feedback ? <p role="status" className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-100">{feedback}</p> : null}
     <p className="text-sm text-slate-600 dark:text-slate-300">{total} {total === 1 ? noun : title.toLowerCase()} · Page {Math.min(page + 1, pages)} of {pages}</p>
 
-    {items.length === 0 ? <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-slate-600 dark:bg-slate-900">
-      <h2 className="font-semibold text-slate-950 dark:text-slate-50">{page > 0 ? "No materials on this page" : `No ${title.toLowerCase()} yet`}</h2>
-      <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{page > 0 ? "Return to a previous page to view existing materials." : `Add a ${noun} to begin with a private draft.`}</p>
-    </section> : isSubject ? <section aria-label="Subjects grouped by specialty" className="space-y-4">
-      {specialties.filter(specialty => items.some(material => material.specialtyId === specialty.id)).map(specialty => {
-        const subjectItems = items.filter(material => material.specialtyId === specialty.id);
-        return <details key={specialty.id} open={specialty.name === "Medical"} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-5 py-4 text-slate-950 [&::-webkit-details-marker]:hidden dark:text-slate-50">
-            <FolderOpen aria-hidden="true" className="size-6 shrink-0 text-teal-700 dark:text-teal-300" />
-            <span className="min-w-0 flex-1 text-lg font-semibold">{specialty.name === "Medical" ? "Medicine" : specialty.name}</span>
-            <span className="text-sm text-slate-500 dark:text-slate-400">{subjectItems.length} {subjectItems.length === 1 ? "subject" : "subjects"}</span>
-            <ChevronDown aria-hidden="true" className="size-5 shrink-0 text-slate-500 transition-transform group-open:rotate-180" />
-          </summary>
-          <div className="grid gap-4 border-t border-slate-200 bg-slate-50 p-4 lg:grid-cols-2 dark:border-slate-700 dark:bg-slate-950/30">{subjectItems.map(renderMaterialCard)}</div>
-        </details>;
-      })}
-      {items.some(material => !material.specialtyId || !specialties.some(specialty => specialty.id === material.specialtyId)) ?
-        <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-5 py-4">
-            <FolderOpen aria-hidden="true" className="size-6 text-teal-700" />
-            <span className="flex-1 text-lg font-semibold">Unassigned specialty</span>
-            <ChevronDown aria-hidden="true" className="size-5 transition-transform group-open:rotate-180" />
-          </summary>
-          <div className="grid gap-4 border-t p-4 lg:grid-cols-2">{items.filter(material => !material.specialtyId || !specialties.some(specialty => specialty.id === material.specialtyId)).map(renderMaterialCard)}</div>
-        </details> : null}
-    </section> : <section aria-label={title} className="grid gap-4 lg:grid-cols-2">{items.map(renderMaterialCard)}</section>}
+    {isSubject ? <section aria-label="Subjects grouped by specialty" className="space-y-4">
+      {(folders ?? []).map(folder => <details key={folder.id} open={folder.id === selectedSpecialty} className="group overflow-hidden rounded-2xl border bg-white dark:bg-slate-900">
+        <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
+          <FolderOpen aria-hidden="true" className="size-6 shrink-0 text-teal-700 dark:text-teal-300" />
+          <Link href={`/admin/subjects?specialty=${encodeURIComponent(folder.id)}`} className="min-w-0 flex-1 break-words text-lg font-semibold hover:underline">{folder.name}</Link>
+          <span className="shrink-0 text-sm text-slate-500">{folder.total} subjects</span><ChevronDown aria-hidden="true" className="size-5 shrink-0 group-open:rotate-180" />
+        </summary>
+        <div className="border-t bg-slate-50 p-4 dark:bg-slate-950/30">
+          {folder.id === selectedSpecialty ? items.length ? <div className="grid gap-4 lg:grid-cols-2">{items.map(renderMaterialCard)}</div> : <p className="p-4 text-sm text-slate-600 dark:text-slate-300">{page > 0 ? "No subjects on this page. Return to the previous page." : "No subjects in this specialty yet."}</p>
+            : <Link className={secondaryButton} href={`/admin/subjects?specialty=${encodeURIComponent(folder.id)}`}>Open {folder.name}</Link>}
+        </div>
+      </details>)}
+    </section> : items.length ? <section aria-label={title} className="grid gap-4 lg:grid-cols-2">{items.map(renderMaterialCard)}</section>
+      : <section className="rounded-2xl border border-dashed bg-white p-8 text-center dark:bg-slate-900"><h2 className="font-semibold">No exam tracks on this page</h2></section>}
 
     {page > 0 || (page + 1) * 20 < total ? <nav aria-label={`${title} pagination`} className="flex flex-wrap items-center justify-between gap-3">
-      {page > 0 ? <Link className={secondaryButton} href={`${path}?page=${page - 1}`}>Previous page</Link> : <span />}
-      {(page + 1) * 20 < total ? <Link className={secondaryButton} href={`${path}?page=${page + 1}`}>Next page</Link> : null}
+      {page > 0 ? <Link className={secondaryButton} href={`${paginationPath}page=${page - 1}` as Route}>Previous page</Link> : <span />}
+      {(page + 1) * 20 < total ? <Link className={secondaryButton} href={`${paginationPath}page=${page + 1}` as Route}>Next page</Link> : null}
     </nav> : null}
 
     {editing ? <MaterialForm key={editing.value.id} initial={editing.value} isNew={editing.isNew} specialties={specialties} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); setFeedback("Material saved."); }} /> : null}
@@ -112,7 +103,7 @@ export function AdminMaterials({ kind, page, items, total, specialties }: AdminM
 function MaterialForm({ initial, isNew, specialties, onClose, onSaved }: {
   initial: LearningMaterial; isNew: boolean; specialties: MaterialSpecialtyOption[]; onClose: () => void; onSaved: () => void;
 }) {
-  const [draft, setDraft] = useState<MaterialInput>(initial);
+  const [draft, setDraft] = useState<MaterialInput>(() => { const value = { ...initial }; delete value.questionCount; return value; });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const titleId = useId();
@@ -125,11 +116,12 @@ function MaterialForm({ initial, isNew, specialties, onClose, onSaved }: {
     event.preventDefault();
     if (busy) return;
     const payload = isNew ? { ...draft, publicationStatus: "DRAFT" as const, status: "inactive" as const } : draft;
-    const parsed = materialSchema.safeParse(payload);
+    const metadataOnly = isSubject && !isNew;
+    const parsed = (metadataOnly ? subjectMetadataSchema : materialSchema).safeParse(payload);
     if (!parsed.success) { setError(parsed.error.issues[0]?.message ?? "Check the material fields."); return; }
     setBusy(true); setError("");
     try {
-      const result = await saveMaterial(parsed.data);
+      const result = await (metadataOnly ? saveSubjectMetadata(parsed.data) : saveMaterial(parsed.data));
       if (!result.ok) { setError(result.error.message); return; }
       router.refresh();
       onSaved();
@@ -145,7 +137,7 @@ function MaterialForm({ initial, isNew, specialties, onClose, onSaved }: {
         <legend className="sr-only">Material details</legend>
         <label className="grid min-w-0 gap-2 text-sm font-medium sm:col-span-2">Name<input autoFocus required dir="auto" maxLength={200} className={fieldClass} value={draft.name} onChange={event => setDraft({ ...draft, name: event.target.value })} /></label>
         <label className="grid min-w-0 gap-2 text-sm font-medium sm:col-span-2">Description<textarea required dir="auto" maxLength={3000} rows={4} className={fieldClass} value={draft.description} onChange={event => setDraft({ ...draft, description: event.target.value })} /></label>
-        <label className="grid min-w-0 gap-2 text-sm font-medium">Specialty<Select required={isSubject} className={fieldClass} value={draft.specialtyId ?? ""} onChange={event => setDraft({ ...draft, specialtyId: event.target.value || null })}>
+        <label className="grid min-w-0 gap-2 text-sm font-medium">Specialty<Select disabled={isSubject && !isNew} required={isSubject} className={fieldClass} value={draft.specialtyId ?? ""} onChange={event => setDraft({ ...draft, specialtyId: event.target.value || null })}>
           <option value="">{isSubject ? "Choose a specialty" : "Unassigned"}</option>
           {specialties.map(specialty => <option key={specialty.id} value={specialty.id} dir="auto">{specialty.name}</option>)}
         </Select></label>

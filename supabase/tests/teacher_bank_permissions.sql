@@ -55,7 +55,9 @@ select pg_temp.expect_error('select public.admin_update_managed_profile(current_
 select set_config('request.jwt.claims',jsonb_build_object('sub',current_setting('lhcc.student'),'role','authenticated')::text,true);
 select pg_temp.expect_error('select public.teacher_add_question(gen_random_uuid()::text,current_setting(''lhcc.question_payload'')::jsonb)','42501','student cannot author questions');
 select pg_temp.check_test((select count(*)=0 from public.teacher_bank_assignments),'student cannot read teacher assignments');
-select pg_temp.check_test((select count(*)=0 from public.bank_questions),'student without grant cannot read questions');
+-- Publicly available, explicitly approved Medical Subject questions may exist.
+-- This test denies the two generated Exam Tracks, not unrelated free learning content.
+select pg_temp.check_test((select count(*)=0 from public.bank_questions where question_bank_id in (current_setting('lhcc.bank'),current_setting('lhcc.otherbank'))),'student without grant cannot read questions');
 select public.request_bank_access(current_setting('lhcc.bank'));
 select pg_temp.check_test((select count(*)=1 from public.user_bank_access_requests where user_id=auth.uid() and question_bank_id=current_setting('lhcc.bank')),'student can request bank');
 reset role;

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { authorizeActiveAdmin } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
-import { materialSchema } from "@/lib/validation/material";
+import { materialSchema, subjectMetadataSchema } from "@/lib/validation/material";
 import type { Json } from "@/lib/supabase/database.types";
 import type { ServerResult } from "@/types/server-result";
 
@@ -29,4 +29,17 @@ export async function saveMaterial(input: unknown): Promise<ServerResult<string>
   } catch {
     return { ok: false, error: { code: "INTERNAL_ERROR", message: "Unable to save material. Please retry." } };
   }
+}
+
+/** Edit existing Subject labels without silently changing its live publication/access. */
+export async function saveSubjectMetadata(input: unknown): Promise<ServerResult<string>> {
+  const auth = await authorizeActiveAdmin(); if (!auth.ok) return auth;
+  const parsed = subjectMetadataSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: { code: "VALIDATION_ERROR", message: "Check the Subject metadata." } };
+  try {
+    const { data, error } = await (await createClient()).rpc("save_subject_metadata", { payload: parsed.data as Json });
+    if (error || typeof data !== "string") return { ok: false, error: { code: "CONFLICT", message: "Subject metadata changed or its publication/specialty differs. Reload before editing." } };
+    revalidatePath("/admin/subjects", "layout"); revalidatePath("/programs", "layout");
+    return { ok: true, data };
+  } catch { return { ok: false, error: { code: "INTERNAL_ERROR", message: "Unable to save Subject metadata." } }; }
 }

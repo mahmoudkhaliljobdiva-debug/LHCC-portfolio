@@ -262,3 +262,21 @@ selection strata, historical source-number snapshots, preservation checks and
 verification limits. Supabase migration `20261021172927_chapter_learning_modes.sql`
 is applied. Existing auth, approvals, grading, wallet, CMS, private PDF storage,
 historical/shared definitions and live synchronization remain authoritative.
+
+## Medical Subject review extension (2026-11-14)
+
+See [medical-subject-review.md](medical-subject-review.md) for the source/database
+audit and acceptance boundaries. Subjects remain distinct from Exam Tracks;
+optional chapters do not determine whether a Subject question exists.
+
+Admin-only `admin_subject_materials`, `admin_subject_questions`,
+`manage_subject_import`, `delete_subject_question` and `save_subject_metadata`
+use public invoker wrappers and role-checked private implementations. Private
+`question_import_pages` retains page coverage; `question_import_events` retains
+decision/revision snapshots. Source verification never implies approval.
+Only explicit revision-bound approval can import canonical questions/private
+keys, preserving linked IDs. Subject SELECT eligibility additionally requires
+a matching explicitly approved key; existing access checks still apply.
+No new student key endpoint, material-type conversion or exam-track scoring
+change is introduced. The 12 sources have 1,827 processed pages and 1,542 pending
+or needs-review staging records; zero new production medical approvals/imports.

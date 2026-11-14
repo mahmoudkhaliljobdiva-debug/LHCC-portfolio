@@ -1020,6 +1020,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      save_subject_metadata: { Args: { payload: Json }; Returns: string }
+      admin_subject_materials: { Args: { specialty_filter: string; page_number?: number }; Returns: Json }
+      admin_subject_questions: { Args: { bank_id: string; page_number?: number; search_text?: string; view_kind?: string; chapter_filter?: string | null }; Returns: Json }
+      manage_subject_import: { Args: { operation: string; bank_id: string; item_id: string; payload?: Json }; Returns: Json }
+      delete_subject_question: { Args: { bank_id: string; question_id: string }; Returns: undefined }
       admin_subject_lessons: { Args: { bank_id: string; lesson_id?: string | null }; Returns: Json }
       save_lesson: { Args: { payload: Json }; Returns: Json }
       register_lesson_document: { Args: { payload: Json }; Returns: string }

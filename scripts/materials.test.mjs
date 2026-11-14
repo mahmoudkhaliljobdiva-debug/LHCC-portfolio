@@ -131,5 +131,5 @@ test("material reads query only specialty options and the requested material pag
   });
   const result = await getAdminMaterials("EXAM_TRACK", 3);
   assert(result.ok);
-  assert.deepEqual(calls, [["admin_learning_materials", { kind: "EXAM_TRACK", page_number: 3 }], ["from", "specialties"], ["select", "id,name"]]);
+  assert.deepEqual(calls, [["from", "specialties"], ["select", "id,name,slug"], ["admin_learning_materials", { kind: "EXAM_TRACK", page_number: 3 }]]);
 });
