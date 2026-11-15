@@ -1020,6 +1020,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bulk_update_subject_question_status: { Args: { bank_id: string; question_ids: string[]; target_status: string }; Returns: Json }
       save_reviewed_subject_question: { Args: { bank_id: string; question_id: string | null; payload: Json }; Returns: Json }
       save_subject_metadata: { Args: { payload: Json }; Returns: string }
       admin_subject_materials: { Args: { specialty_filter: string; page_number?: number }; Returns: Json }
