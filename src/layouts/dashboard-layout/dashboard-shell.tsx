@@ -55,7 +55,10 @@ export function DashboardShell({
         }}
         onPointerLeave={() => setPeeking(false)}
         onFocusCapture={event => { if (collapsed && desktop && event.target.matches(":focus-visible")) setPeeking(true); }}
-        onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setPeeking(false); }}
+        onBlurCapture={event => {
+          const hovered = window.matchMedia("(hover: hover) and (pointer: fine)").matches && event.currentTarget.matches(":hover");
+          if (!event.currentTarget.contains(event.relatedTarget) && !hovered) setPeeking(false);
+        }}
         className={cn(
           "portal-sidebar fixed inset-y-0 left-0 z-40 flex w-[min(268px,calc(100vw-32px))] flex-col overflow-y-auto border-r bg-white px-4 py-5 lg:w-[268px] lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",

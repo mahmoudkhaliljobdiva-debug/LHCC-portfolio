@@ -37,7 +37,10 @@ try {
  assert(await page.evaluate('document.querySelector("aside").scrollTop>0'),'Keyboard focus scrolls the last link into view');
  await page.evaluate(`document.querySelector('.portal-header input').focus()`);await pause(250);
  assert.equal((await page.evaluate(state)).preview,'false','Leaving keyboard focus restores the compact rail');
- await page.hover('aside');await pause(100);await page.evaluate(button('Keep navigation expanded'));await page.hover('.portal-header');await pause(250);
+ await page.hover('aside');await pause(100);
+ await page.evaluate(`document.querySelector('aside nav a').focus();document.querySelector('.portal-header input').focus()`);await pause(250);
+ assert.equal((await page.evaluate(state)).preview,'true','Mouse hover stays open when navigation moves keyboard focus outside');
+ await page.evaluate(button('Keep navigation expanded'));await page.hover('.portal-header');await pause(250);
  assert.equal((await page.evaluate(state)).collapsed,'false');assert.equal(Math.round((await page.evaluate(state)).width),268,'Explicit expand stays expanded after leaving');
  await page.evaluate(button('Collapse navigation'));await page.hover('.portal-header');await pause(250);
  await page.cdp('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:1});
