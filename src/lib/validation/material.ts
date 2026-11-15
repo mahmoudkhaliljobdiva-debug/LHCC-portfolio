@@ -31,7 +31,7 @@ function validateClassification(value: z.infer<typeof materialFields>, context: 
   }
 }
 
-export const materialRecordSchema = materialFields.extend({ questionCount: z.number().int().nonnegative().optional() }).superRefine(validateClassification);
+export const materialRecordSchema = materialFields.extend({ questionCount: z.number().int().nonnegative().optional(), chapterCount: z.number().int().nonnegative().optional() }).superRefine(validateClassification);
 export const subjectMetadataSchema = materialFields.extend({
   materialKind: z.literal("SUBJECT"), name: z.string().trim().min(1).max(200),
   description: z.string().trim().min(1).max(3000), displayOrder: z.number().int().min(0).max(10000),

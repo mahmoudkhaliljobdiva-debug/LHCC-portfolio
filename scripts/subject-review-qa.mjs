@@ -25,6 +25,7 @@ for(const name of ['private.admin_subject_questions','private.manage_subject_imp
 sql(await readFile('supabase/migrations/20261114170912_subject_global_duplicate_review.sql','utf8'));
 sql(await readFile('supabase/migrations/20261114171408_subject_duplicate_lookup_indexes.sql','utf8'));
 sql(await readFile('supabase/migrations/20261115130827_subject_legacy_exam_guard.sql','utf8'));
+sql((await readFile('supabase/migrations/20261115140100_subject_direct_question_management.sql','utf8')).replaceAll('create function','create or replace function'));
 const service=createClient(target,settings.SUPABASE_SECRET_KEY,{auth:{persistSession:false}});
 const client=()=>createClient(target,m.anonKey,{auth:{persistSession:false,autoRefreshToken:false}});
 const admin=client(),student=client(),anon=client(),checked=r=>{assert.ifError(r.error);return r.data;};
@@ -123,6 +124,20 @@ assert((await admin.rpc('manage_subject_import',{operation:'approve',bank_id:ban
 assert(checked(await admin.rpc('admin_subject_questions',{bank_id:banks[1].id,view_kind:'review'})).items.find(q=>q.id===crossId).possibleDuplicates>0);
 checks.push('duplicate review detects existing canonical and pending questions across other Subjects and PDF sources, without silently merging them');
 const data=checked(await admin.rpc('admin_subject_questions',{bank_id:bankId}));assert.equal(data.items.find(q=>q.id===qid).correctOptionId,'a');assert.equal(data.items.find(q=>q.id===qid).approvalStatus,'REJECTED');
+const directPayload={...payload,sourceId:null,sourceNumber:'',expectedRevision:null,approvalConfirmed:true,draft:{...draft,text:'[TEST] Direct saved '+suffix}};
+assert((await student.rpc('save_reviewed_subject_question',{bank_id:bankId,question_id:null,payload:directPayload})).error);
+assert((await anon.rpc('save_reviewed_subject_question',{bank_id:bankId,question_id:null,payload:directPayload})).error);
+assert((await admin.rpc('save_reviewed_subject_question',{bank_id:bankId,question_id:null,payload:{...directPayload,approvalConfirmed:false}})).error);
+assert((await admin.rpc('save_reviewed_subject_question',{bank_id:bankId,question_id:null,payload:{...directPayload,draft:{...directPayload.draft,correctOptionId:null}}})).error);
+const direct=checked(await admin.rpc('save_reviewed_subject_question',{bank_id:bankId,question_id:null,payload:directPayload}));
+const saved=checked(await admin.rpc('admin_subject_questions',{bank_id:bankId})).items.find(q=>q.id===direct.questionId);
+assert.equal(saved.text,directPayload.draft.text);assert.equal(saved.approvalStatus,'APPROVED');assert(saved.stagingRevision);
+const edited=checked(await admin.rpc('save_reviewed_subject_question',{bank_id:bankId,question_id:direct.questionId,payload:{...directPayload,sourceId:checked(await admin.rpc('admin_subject_questions',{bank_id:bankId})).sources.find(s=>s.kind==='ADMIN').id,expectedRevision:saved.stagingRevision,draft:{...directPayload.draft,text:directPayload.draft.text+' edited'}}}));
+assert.equal(edited.questionId,direct.questionId);
+assert((await admin.rpc('save_reviewed_subject_question',{bank_id:bankId,question_id:direct.questionId,payload:{...directPayload,expectedRevision:saved.stagingRevision}})).error);
+assert((await admin.rpc('save_reviewed_subject_question',{bank_id:banks[1].id,question_id:direct.questionId,payload:directPayload})).error);
+assert.equal(checked(await admin.rpc('admin_subject_materials',{specialty_filter:medical,page_number:0})).items.find(b=>b.id===bankId)?.chapterCount ?? Number(sql(`select count(*) from public.bank_chapters where question_bank_id='${bankId}'`)),1);
+checks.push('direct reviewed save is atomic, explicit-approval-only and role/bank/revision guarded; IDs and real chapter counts preserved');
 assert.equal(data.sources.find(s=>s.id===sourceId).processedPages,1);assert.equal(data.sources.find(s=>s.id===sourceId).needsReviewPages,1);
 await writeFile('.test-artifacts/subject-qa.private.json',JSON.stringify({bankId,banks,medical,sourceId,stageId,qid,incompleteId:badId},null,2));
 await writeFile('.test-artifacts/subject-review-qa.json',JSON.stringify({passed:true,production:false,checks},null,2));

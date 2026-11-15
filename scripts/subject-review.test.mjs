@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync,existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import ts from 'typescript';
 const require=createRequire(import.meta.url);
 function load(path,mocks={}){const exports={};const code=ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('require','exports',code)(name=>name in mocks?mocks[name]:name.startsWith('@/')?load(resolve('src',name.slice(2)+'.ts'),mocks):require(name),exports);return exports;}
-const {extractSubjectPages,completeSubjectText}=load(resolve('src/lib/learning/subject-extraction.ts'));
+const {extractSubjectPages,completeSubjectText}=load(resolve('scripts/lib/subject-extraction.ts'));
 const {subjectDraftSchema,subjectStageInputSchema}=load(resolve('src/lib/validation/subject-question.ts'));
 test('Subject extraction preserves cross-page text/options, source number and exact page range',()=>{
  const result=extractSubjectPages([{page:4,text:'7. Original source question\nA. First option',hasImages:false},{page:5,text:'B. Second option\n8. Another question\nA. One\nB. Two',hasImages:true},{page:6,text:'Answer key\n7. A\n8. B',hasImages:false}]);
@@ -40,7 +40,7 @@ test('drafts allow incompleteness but reject injected status, answer leaks and m
 });
 test('all Subject mutations authorize before creating a client',async()=>{
  let reached=false;const actions=load(resolve('src/actions/subject-questions.ts'),{'@/lib/auth/admin':{authorizeActiveAdmin:async()=>({ok:false,error:{code:'FORBIDDEN',message:'Denied'}})},'@/lib/supabase/server':{createClient:async()=>{reached=true;throw Error('Must not query');}},'next/cache':{revalidatePath(){}}});
- assert.equal((await actions.manageSubjectImport('approve','bank','bad',{})).ok,false);assert.equal((await actions.deleteSubjectQuestion('bank','qid')).ok,false);assert.equal(reached,false);
+ assert.equal((await actions.saveReviewedSubjectQuestion('bank',null,{})).ok,false);assert.equal((await actions.deleteSubjectQuestion('bank','qid')).ok,false);assert.equal(reached,false);
 });
 test('migration preserves IDs and requires explicit revision-bound approval before canonical writes',()=>{
  const sql=readFileSync('supabase/migrations/20261114165153_subject_question_review.sql','utf8');
@@ -59,4 +59,13 @@ test('shared legacy exam access guard checks material kind before grants and sel
  assert(sql.includes("material_kind='EXAM_TRACK' and publication_status='PUBLISHED' for share"));
  assert(sql.indexOf("if not found then raise exception 'Published exam track required'")<sql.indexOf('private.can_open_bank(bank_id)'));
  assert(!/grant |delete |update |truncate|drop /i.test(sql));
+});
+
+test('Subject website has direct question controls, not PDF extraction or import queues',()=>{
+ const ui=readFileSync('src/features/learning/admin-subject-questions.tsx','utf8');
+ assert(!existsSync('src/features/learning/subject-pdf-import.tsx'));assert(!existsSync('src/lib/learning/subject-pdf-reader.ts'));
+ assert(!/Import review|Import approved|Extract to staging|type="file"|SubjectPdfImport/.test(ui));
+ assert(ui.includes('data.chapters.length ? <Link'));assert(ui.includes('Save reviewed question'));assert(ui.includes('I explicitly approve'));
+ const sql=readFileSync('supabase/migrations/20261115140100_subject_direct_question_management.sql','utf8');
+ assert(sql.includes("payload->'approvalConfirmed' is distinct from 'true'::jsonb"));assert(sql.includes("staged.revision is distinct from"));
 });

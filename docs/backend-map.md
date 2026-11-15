@@ -287,3 +287,19 @@ closes the legacy definer-selector path that could bypass Subject question RLS
 when free Subject catalog access was granted. Existing exam-track authorization,
 frozen attempts, keys, scoring and historical data remain unchanged. Direct
 start/answer/check/submit paths are tested, not only the exam metadata read RPC.
+
+## Direct Subject management cleanup (2026-11-15)
+
+See [subject-page-cleanup.md](subject-page-cleanup.md). The Subject website PDF
+uploader/parser and Import Review controls have been removed. Canonical questions
+are managed directly; chapter links/filters appear only for genuine chapters.
+Agent-only source processing is documented in `AGENTS.md`, outside application
+code. Source repopulation is explicitly deferred; existing data is unchanged.
+
+`save_reviewed_subject_question` is a public invoker wrapper over an Admin-checked
+private transaction. It reuses existing validation, explicit revision-bound
+approval, duplicate protection and canonical import internally, preserving IDs
+and audit snapshots without exposing a multi-step queue. Every UI save requires
+fresh review/approval confirmation. Reads include actual chapter counts and
+linked question revision metadata. Existing private staging/audit records and
+RLS remain intact; no student answer-key endpoint is introduced.

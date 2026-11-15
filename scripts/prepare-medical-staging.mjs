@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 import ts from 'typescript';
 const require=createRequire(import.meta.url);
 function load(path){const exports={};const code=ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('require','exports',code)(name=>name.startsWith('@/')?load(resolve('src',name.slice(2)+'.ts')):require(name),exports);return exports;}
-const {extractSubjectPages,completeSubjectText}=load(resolve('src/lib/learning/subject-extraction.ts'));
+const {extractSubjectPages,completeSubjectText}=load(resolve('scripts/lib/subject-extraction.ts'));
 const sources=JSON.parse(await readFile('.test-artifacts/medical-source-manifest.json','utf8')),bundle=[];
 for(const source of sources){
  const folder='.test-artifacts/medical-sources/'+source.driveFileId;

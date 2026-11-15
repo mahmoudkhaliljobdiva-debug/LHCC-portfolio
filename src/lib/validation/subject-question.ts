@@ -17,6 +17,7 @@ export const subjectStageInputSchema = z.object({
 export const subjectSourceInputSchema = z.object({ filename: z.string().trim().min(1).max(500), driveFileId: z.string().regex(/^[A-Za-z0-9_-]{10,200}$/), pages: z.number().int().min(1).max(2000), sha256: z.string().regex(/^[a-f0-9]{64}$/) }).strict();
 export const subjectPageInputSchema = z.object({ sourceId: z.uuid(), page: z.number().int().min(1).max(2000), text: z.string().max(200000), status: z.enum(["EXTRACTED", "NEEDS_REVIEW"]), warnings: z.array(z.string().max(1000)).max(100) }).strict();
 export const subjectDecisionSchema = z.object({ expectedRevision: z.number().int().positive(), notes: z.string().max(5000).optional() }).strict();
+export const reviewedSubjectQuestionSchema = subjectStageInputSchema.safeExtend({ approvalConfirmed: z.literal(true) });
 export const subjectSourceSchema = z.object({ id: z.uuid(), filename: z.string(), driveFileId: z.string(), pages: z.number().int(), kind: z.enum(["PDF", "ADMIN"]), processedPages: z.number().int(), needsReviewPages: z.number().int() });
 export const subjectQuestionSchema = z.object({
   id: contentId, text: z.string(), options: z.array(subjectOptionSchema), status: z.string(), displayOrder: z.number().nullable(), correctOptionId: z.string().nullable(),
@@ -25,6 +26,8 @@ export const subjectQuestionSchema = z.object({
   groupInstructions: z.string().nullable(), sharedOptions: z.array(subjectOptionSchema).nullable(), assetCount: z.number().int(),
   caseTitle: z.string().nullable().optional(), caseDescription: z.string().nullable().optional(), answerStatus: z.string().nullable().optional(), explanationOrigin: z.string().nullable().optional(), answerPage: z.number().nullable().optional(),
   lessonId: z.uuid().nullable().optional(),
+  stagingRevision: z.number().int().positive().nullable().optional(),
+  chapterId: z.uuid().nullable().optional(),
 });
 export const stagedSubjectQuestionSchema = z.object({
   id: z.uuid(), revision: z.number().int(), draft: z.record(z.string(), z.unknown()), answerStatus: z.string(), reviewStatus: z.string(), notes: z.string().nullable(),

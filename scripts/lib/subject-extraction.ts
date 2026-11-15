@@ -10,7 +10,7 @@ export function completeSubjectText(question: { text: string; caseTitle?: string
   return [question.caseTitle, question.caseDescription, question.text].filter(value => value?.trim()).join("\n\n");
 }
 
-/** Preserve page boundaries and source wording. Never infer a medical answer or approve a draft. */
+/** Agent-only legacy candidate parser. Not a website feature or medical review. */
 export function extractSubjectPages(pages: readonly SubjectPdfPage[]): SubjectExtraction {
   if (pages.some(page => page.independentPage)) {
     const groups: SubjectPdfPage[][] = [];

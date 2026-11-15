@@ -1,5 +1,17 @@
 # Medical Subject navigation and question review
 
+> Superseded website workflow: see [Subject page cleanup](subject-page-cleanup.md).
+> The Import Review/PDF extraction interface described below is historical and
+> has been removed. The owner deferred question repopulation to the next round;
+> this cleanup does not approve or replace existing content.
+>
+> Source-analysis correction (2026-11-15): originals contain highlighted/explicit
+> correct answers and explanation pages. The previous independent-page extraction
+> did not reliably pair them with their question stems. The 1,530 records below
+> are unverified candidates, including answer-page fragments, not 1,530 distinct
+> complete MCQs. Do not treat the historical extraction as a validated dataset
+> or infer that the originals lack supported answers/explanations.
+
 Verified implementation checkpoint: 2026-11-15. Production site: https://lhcc-lb.com.
 Based on main `17e2512`; the previous audit branch is preserved, not merged.
 The verified dependency security patch is retained as `c624d56`.
