@@ -28,11 +28,14 @@ export function DashboardShell({
   const NavigationLink = pathname.startsWith("/admin/view-as/") ? ContextBoundaryLink : Link;
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [peeking, setPeeking] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   const { panelRef, desktop } = useMobileNavigation(open, close);
+  const previewing = collapsed && peeking && desktop;
+  const sidebarToggleLabel = previewing ? "Keep navigation expanded" : collapsed ? "Expand navigation" : "Collapse navigation";
 
   return (
-    <div className="lhcc-portal-shell min-h-screen min-h-dvh bg-[#f6f8fb]" data-sidebar-collapsed={collapsed}>
+    <div className="lhcc-portal-shell min-h-screen min-h-dvh bg-[#f6f8fb]" data-sidebar-collapsed={collapsed} data-sidebar-preview={previewing}>
       {open && (
         <button
           aria-label="Close navigation"
@@ -47,6 +50,12 @@ export function DashboardShell({
         role={open && !desktop ? "dialog" : undefined}
         aria-modal={open && !desktop ? true : undefined}
         aria-label={`${role} navigation`}
+        onPointerEnter={event => {
+          if (collapsed && event.pointerType === "mouse" && window.matchMedia("(min-width: 1024px) and (hover: hover) and (pointer: fine)").matches) setPeeking(true);
+        }}
+        onPointerLeave={() => setPeeking(false)}
+        onFocusCapture={event => { if (collapsed && desktop && event.target.matches(":focus-visible")) setPeeking(true); }}
+        onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setPeeking(false); }}
         className={cn(
           "portal-sidebar fixed inset-y-0 left-0 z-40 flex w-[min(268px,calc(100vw-32px))] flex-col overflow-y-auto border-r bg-white px-4 py-5 lg:w-[268px] lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
@@ -64,11 +73,11 @@ export function DashboardShell({
         </div>
         <PortalNavigation role={role} pathname={pathname} onNavigate={close} />
         <div className="mt-auto space-y-3 pt-6">
-          <button type="button" aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} aria-expanded={!collapsed} aria-controls="portal-navigation" title={collapsed ? "Expand navigation" : "Collapse navigation"}
-            className="lhcc-press hidden min-h-11 w-full items-center justify-center gap-3 rounded-xl border px-3 text-sm text-slate-600 hover:bg-slate-50 lg:flex" onClick={() => setCollapsed(current => !current)}>
-            {collapsed ? <PanelLeftOpen className="size-5 shrink-0" /> : <PanelLeftClose className="size-5 shrink-0" />}<span className="lhcc-sidebar-label">Collapse navigation</span>
+          <button type="button" aria-label={sidebarToggleLabel} aria-expanded={!collapsed || previewing} aria-controls="portal-navigation" title={sidebarToggleLabel}
+            className="lhcc-press hidden min-h-11 w-full items-center justify-center gap-3 rounded-xl border px-3 text-sm text-slate-600 hover:bg-slate-50 lg:flex" onClick={() => { setPeeking(false); setCollapsed(current => !current); }}>
+            {collapsed ? <PanelLeftOpen className="size-5 shrink-0" /> : <PanelLeftClose className="size-5 shrink-0" />}<span className="lhcc-sidebar-label">{previewing ? "Keep expanded" : "Collapse navigation"}</span>
           </button>
-          <NavigationLink href="/" aria-label="Back to website" className="lhcc-collapsed-home hidden min-h-11 items-center justify-center rounded-xl border text-teal-700"><House className="size-5" /></NavigationLink>
+          <NavigationLink href="/" aria-label="Back to website" className="lhcc-collapsed-home hidden min-h-11 items-center justify-center gap-3 rounded-xl border text-teal-700"><House className="size-5 shrink-0" /><span className="lhcc-sidebar-label text-sm">Back to website</span></NavigationLink>
           <div className="lhcc-sidebar-details rounded-2xl bg-[#304f60] p-4 text-white">
           <p className="text-sm font-semibold">Need a quick tour?</p>
           <p className="mt-1 text-xs leading-5 text-sky-100">Use the navigation to move between your workspaces.</p>

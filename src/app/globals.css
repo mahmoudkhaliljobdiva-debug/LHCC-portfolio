@@ -560,7 +560,8 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--color-primary)
 .lhcc-press { transition: transform var(--lhcc-motion-fast) var(--lhcc-ease), background-color var(--lhcc-motion-fast) ease; }
 .lhcc-press:not(:disabled):active { transform: scale(.97); }
 .lhcc-nav-link:active .lhcc-nav-icon { transform: scale(.93); }
-.portal-sidebar { transition: transform var(--lhcc-motion-panel) var(--lhcc-ease); }
+.portal-sidebar { scrollbar-width: none; overscroll-behavior-y: contain; transition: transform var(--lhcc-motion-panel) var(--lhcc-ease); }
+.portal-sidebar::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .lhcc-drawer-backdrop { animation: lhcc-fade-in var(--lhcc-motion-fast) ease both; }
 .lhcc-route-content, .lhcc-feedback { animation: lhcc-content-in 160ms var(--lhcc-ease); }
 .lhcc-icon-reveal { animation: lhcc-icon-in 160ms var(--lhcc-ease); }
@@ -586,11 +587,14 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--color-primary)
   .lhcc-portal-shell[data-sidebar-collapsed="true"] { --lhcc-sidebar-width: 96px; }
   .lhcc-portal-shell .portal-sidebar { width: var(--lhcc-sidebar-width); transition: width var(--lhcc-motion-panel) var(--lhcc-ease), transform var(--lhcc-motion-panel) var(--lhcc-ease); }
   .lhcc-portal-shell .portal-workspace { padding-left: var(--lhcc-sidebar-width); transition: padding-left var(--lhcc-motion-panel) var(--lhcc-ease); }
-  .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-sidebar-label,
-  .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-sidebar-details,
-  .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-sidebar-brand a > span { display: none; }
-  .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-sidebar-brand { justify-content: center; padding-inline: 0; }
-  .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-nav-link { justify-content: center; }
+  .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-sidebar-details { display: none; }
+  .lhcc-portal-shell[data-sidebar-collapsed="true"]:not([data-sidebar-preview="true"]) .lhcc-sidebar-label,
+  .lhcc-portal-shell[data-sidebar-collapsed="true"]:not([data-sidebar-preview="true"]) .lhcc-sidebar-brand a > span { display: none; }
+  .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-sidebar-brand { padding-inline: 0; }
+  .lhcc-portal-shell[data-sidebar-collapsed="true"]:not([data-sidebar-preview="true"]) .lhcc-sidebar-brand,
+  .lhcc-portal-shell[data-sidebar-collapsed="true"]:not([data-sidebar-preview="true"]) .lhcc-nav-link { justify-content: center; }
+  /* Preview overlays the workspace; the saved compact layout stays at 96px. */
+  .lhcc-portal-shell[data-sidebar-collapsed="true"][data-sidebar-preview="true"] .portal-sidebar { width: 268px; box-shadow: 12px 0 24px rgb(15 23 42 / .12); }
   .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-collapsed-home { display: flex; }
 }
 @media (max-width: 639px) {

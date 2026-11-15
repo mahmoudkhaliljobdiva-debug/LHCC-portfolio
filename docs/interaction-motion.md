@@ -93,3 +93,15 @@ reduced-motion and real-save workflows. The Subject suite passed 192 responsive
 checks with create/edit/delete and Student authorization, and the independent
 metadata-save regression passed. Initial form focus was explicitly preserved
 when the mobile-only close control disappears at a desktop breakpoint.
+
+### Sidebar follow-up
+
+The compact desktop rail now temporarily expands on mouse hover or keyboard
+focus, then returns to the rail on pointer/focus exit. The compact preference
+is retained; preview overlays content without shifting its 96px inset. The
+button can explicitly keep it expanded. Touch devices retain the existing drawer.
+Sidebar scrollbars are visually hidden in Firefox and WebKit/Chromium while
+wheel, touch and keyboard scrolling remain enabled. `scripts/sidebar-browser.mjs`
+covers these interactions, both themes, mobile/desktop widths and reduced motion.
+Follow-up verification: 149 unit tests and the sidebar browser suite passed,
+including 13 viewport/theme cases and actual wheel/touch/keyboard scrolling.

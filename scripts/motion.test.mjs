@@ -33,3 +33,16 @@ test('revalidated save UIs do not issue a redundant router refresh',()=>{
  for(const path of ['profile.ts','materials.ts','subject-questions.ts'])
   assert(readFileSync('src/actions/'+path,'utf8').includes('revalidatePath('),path);
 });
+
+test('compact sidebar previews without changing its preference or disabling scrolling',()=>{
+ const shell=readFileSync('src/layouts/dashboard-layout/dashboard-shell.tsx','utf8');
+ const css=readFileSync('src/app/globals.css','utf8');
+ assert(shell.includes('data-sidebar-collapsed={collapsed} data-sidebar-preview={previewing}'));
+ assert(shell.includes('onPointerLeave={() => setPeeking(false)}'));
+ assert(shell.includes('(hover: hover) and (pointer: fine)'));
+ assert(shell.includes('onFocusCapture'));assert(shell.includes('onBlurCapture'));
+ assert(shell.includes('overflow-y-auto'));
+ assert(css.includes('.portal-sidebar::-webkit-scrollbar { display: none;'));
+ assert(css.includes('scrollbar-width: none;'));
+ assert(css.includes('Preview overlays the workspace'));
+});
