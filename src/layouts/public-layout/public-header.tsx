@@ -2,11 +2,10 @@
 
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Brand } from "@/components/ui/brand";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { cn } from "@/lib/cn";
 
 const links = [
   { href: "/about", label: "About" },
@@ -17,9 +16,10 @@ const links = [
 
 export function PublicHeader({ displayName, dashboardHref }: { readonly displayName?: string | undefined; readonly dashboardHref?: "/admin" | "/teacher" | "/student" | undefined }) {
   const [open, setOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!open) return;
-    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { setOpen(false); menuButton.current?.focus(); } };
     window.addEventListener("keydown", escape);
     return () => window.removeEventListener("keydown", escape);
   }, [open]);
@@ -57,6 +57,7 @@ export function PublicHeader({ displayName, dashboardHref }: { readonly displayN
         <div className="flex shrink-0 items-center gap-2">
         {displayName && <Link href="/account/settings" aria-label={`Account settings for ${displayName}`} title={displayName} className="grid size-11 shrink-0 place-items-center rounded-xl bg-teal-700 text-sm font-semibold text-white hover:bg-teal-800">{displayName.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}</Link>}
         <button
+          ref={menuButton}
           type="button"
           className="grid size-11 place-items-center rounded-xl text-slate-700 hover:bg-slate-50 lg:hidden"
           aria-label={open ? "Close menu" : "Open menu"}
@@ -70,11 +71,12 @@ export function PublicHeader({ displayName, dashboardHref }: { readonly displayN
       </div>
       <div
         id="public-mobile-navigation"
-        className={cn(
-          "max-h-[calc(100dvh-72px-env(safe-area-inset-top))] overflow-y-auto overscroll-contain border-t border-slate-100 bg-white px-5 py-5 lg:hidden",
-          !open && "hidden",
-        )}
+        inert={!open}
+        aria-hidden={!open}
+        data-open={open}
+        className="lhcc-public-menu grid bg-white lg:hidden"
       >
+        <div className="min-h-0 overflow-hidden"><div className="max-h-[calc(100dvh-72px-env(safe-area-inset-top))] overflow-y-auto overscroll-contain border-t border-slate-100 px-5 py-5">
         <nav aria-label="Mobile navigation" className="flex flex-col gap-1">
           <div className="mb-2 flex items-center justify-between rounded-lg px-3 py-2">
             <span className="text-sm font-medium text-slate-600">Appearance</span>
@@ -100,6 +102,7 @@ export function PublicHeader({ displayName, dashboardHref }: { readonly displayN
             {dashboardHref ? "Dashboard" : "Explore platform"}
           </Link>
         </nav>
+        </div></div>
       </div>
     </header>
   );

@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { bulkSetSubjectQuestionStatus, deleteSubjectQuestion, saveReviewedSubjectQuestion } from "@/actions/subject-questions";
 import { ModalPanel } from "@/components/ui/modal-panel";
 import { Select } from "@/components/ui/select";
+import { PendingButton } from "@/components/ui/pending-button";
 import type { SubjectQuestion, SubjectDraft, SubjectQuestionsData, SubjectStageInput } from "@/types/subject-question";
 
 const subjectFieldClass = "min-h-12 w-full min-w-0 rounded-xl border bg-white px-3 py-2 text-base text-slate-950 focus-visible:outline-2 focus-visible:outline-teal-600 dark:bg-slate-900 dark:text-slate-100";
@@ -17,7 +17,6 @@ const blankDraft = (): SubjectDraft => ({ text: "", options: [{ id: "a", text: "
 const chapterLabel = (item: SubjectQuestion) => item.chapters[0] ?? "Unassigned questions";
 
 export function AdminSubjectQuestions({ data, page, search, chapter }: { data: SubjectQuestionsData; page: number; search: string; chapter: string }) {
-  const router = useRouter();
   const [editing, setEditing] = useState<SubjectQuestion | "new" | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [busy, setBusy] = useState(false), [feedback, setFeedback] = useState("");
@@ -53,7 +52,7 @@ export function AdminSubjectQuestions({ data, page, search, chapter }: { data: S
       setFeedback(`${result.data.updated} questions set to ${bulkMode}.`);
       setSelectedIds([]);
       setBulkMode(null);
-      router.refresh();
+      // The action revalidates this Subject; no second RSC request is needed.
     } catch {
       setFeedback("Bulk status change failed. Please retry.");
       setBulkMode(null);
@@ -63,7 +62,7 @@ export function AdminSubjectQuestions({ data, page, search, chapter }: { data: S
   }
   async function remove() {
     if (!deleting || busy) return; setBusy(true);
-    try { const result = await deleteSubjectQuestion(data.bank.id, deleting); setFeedback(result.ok ? "Question deleted; audit history is retained." : result.error.message); if (result.ok) { setDeleting(null); router.refresh(); } }
+    try { const result = await deleteSubjectQuestion(data.bank.id, deleting); setFeedback(result.ok ? "Question deleted; audit history is retained." : result.error.message); if (result.ok) setDeleting(null); }
     catch { setFeedback("Unable to delete this question. Please retry."); } finally { setBusy(false); }
   }
   return <div className="space-y-5">
@@ -72,7 +71,7 @@ export function AdminSubjectQuestions({ data, page, search, chapter }: { data: S
       <p className="mt-4 text-sm leading-6 text-amber-800 dark:text-amber-200">Only explicitly reviewed questions with supported answers are eligible for Student access. Pending source content is not automatically approved or published.</p>
       {data.chapters.length ? <Link href={`/admin/subjects/${encodeURIComponent(data.bank.id)}/lessons`} className={`${subjectButtonClass} mt-4`}>Chapters & lessons</Link> : null}
     </header>
-    {feedback ? <p role="status" className="rounded-xl border bg-slate-50 p-4 text-sm dark:bg-slate-800">{feedback}</p> : null}
+    {feedback ? <p role="status" className="lhcc-feedback rounded-xl border bg-slate-50 p-4 text-sm dark:bg-slate-800">{feedback}</p> : null}
     <form action={path} className={`${card} grid gap-4 ${data.chapters.length ? "sm:grid-cols-[1fr_1fr_auto]" : "sm:grid-cols-[1fr_auto]"}`}><label className="grid min-w-0 gap-2 text-sm">Search questions<input name="search" defaultValue={search} maxLength={200} className={subjectFieldClass} /></label>{data.chapters.length ? <label className="grid min-w-0 gap-2 text-sm">Chapter<Select name="chapter" defaultValue={chapter} className={subjectFieldClass}><option value="">All questions (including unassigned)</option>{data.chapters.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</Select></label> : null}<button className={`${subjectButtonClass} self-end`}>Apply filters</button></form>
     <p className="text-sm text-slate-600 dark:text-slate-300">{data.total} matching questions · Page {page + 1} of {Math.max(1, Math.ceil(data.total / 20))}</p>
     <div className={`${card} flex flex-wrap items-center gap-3`} aria-label="Bulk question status actions">
@@ -102,7 +101,7 @@ export function AdminSubjectQuestions({ data, page, search, chapter }: { data: S
       </article>
     </li>)}</ol>
     <nav aria-label="Subject question pagination" className="flex flex-wrap justify-between gap-3">{page > 0 ? <Link className={subjectButtonClass} href={query(page - 1)}>Previous page</Link> : <span />}{(page + 1) * 20 < data.total ? <Link className={subjectButtonClass} href={query(page + 1)}>Next page</Link> : null}</nav>
-    {editing ? <SubjectQuestionEditor bankId={data.bank.id} initial={editing === "new" ? null : editing} sources={data.sources} chapters={data.chapters} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); setFeedback("Question saved after explicit review."); router.refresh(); }} /> : null}
+    {editing ? <SubjectQuestionEditor bankId={data.bank.id} initial={editing === "new" ? null : editing} sources={data.sources} chapters={data.chapters} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); setFeedback("Question saved after explicit review."); }} /> : null}
     {bulkMode ? <ModalPanel labelledBy="subject-bulk-status-title" busy={busy} onCancel={() => { if (!busy) setBulkMode(null); }}><section className="p-6"><h2 id="subject-bulk-status-title" className="text-xl font-semibold">{bulkMode === "active" ? "Activate" : "Deactivate"} {selectedIds.length} selected questions?</h2><p className="mt-3 text-sm leading-6">{bulkMode === "active" ? "Only questions with approved answers can be activated. Unreviewed imported questions remain inactive." : "Selected questions will become inactive and will be removed from complete-bank exams."} No unselected questions will be changed.</p><div className="mt-5 flex flex-wrap gap-3"><button type="button" autoFocus className={subjectButtonClass} disabled={busy} onClick={() => setBulkMode(null)}>Cancel</button><button type="button" className={subjectButtonClass} disabled={busy} onClick={() => void applyBulkStatus()}>{busy ? "Saving…" : "Confirm status change"}</button></div></section></ModalPanel> : null}
     {deleting ? <ModalPanel labelledBy="delete-subject-question" onCancel={() => { if (!busy) setDeleting(null); }} busy={busy}><section className="p-6"><h2 id="delete-subject-question" className="text-xl font-semibold">Delete this Subject question?</h2><p className="mt-3 text-sm leading-6">Protected attempts and lesson history cannot be deleted. Existing audit decisions are retained.</p><div className="mt-5 flex flex-wrap gap-3"><button autoFocus className={subjectButtonClass} disabled={busy} onClick={() => setDeleting(null)}>Cancel</button><button className={`${subjectButtonClass} text-rose-700`} disabled={busy} onClick={() => void remove()}>{busy ? "Deleting…" : "Delete question"}</button></div></section></ModalPanel> : null}
   </div>;
@@ -147,6 +146,6 @@ function SubjectQuestionEditor({ bankId, initial, sources, chapters, onClose, on
       <label className="flex min-h-11 items-start gap-3 text-sm leading-6"><input type="checkbox" className="mt-1 size-5 shrink-0" checked={draft.duplicatesReviewed} onChange={event => setDraft({ ...draft, duplicatesReviewed: event.target.checked })} />I reviewed possible duplicates and confirmed this is a distinct question or the existing linked record.</label>
 
       <label className="flex min-h-11 items-start gap-3 text-sm leading-6"><input required type="checkbox" className="mt-1 size-5 shrink-0" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} />I explicitly approve this complete question and its supported answer.</label>
-    </fieldset>{error ? <p role="alert" className="mt-4 text-rose-700 dark:text-rose-300">{error}</p> : null}<div className="mt-6 flex flex-wrap gap-3"><button disabled={busy} className={subjectButtonClass}>{busy ? "Saving…" : "Save reviewed question"}</button><button type="button" disabled={busy} onClick={onClose} className={subjectButtonClass}>Cancel</button></div>
+    </fieldset>{error ? <p role="alert" className="mt-4 text-rose-700 dark:text-rose-300">{error}</p> : null}<div className="mt-6 flex flex-wrap gap-3"><PendingButton pending={busy} className={subjectButtonClass}>Save reviewed question</PendingButton><button type="button" disabled={busy} onClick={onClose} className={subjectButtonClass}>Cancel</button></div>
   </form></ModalPanel>;
 }

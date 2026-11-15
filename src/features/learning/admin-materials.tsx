@@ -4,11 +4,11 @@ import { useId, useState, type FormEvent } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { ChevronDown, FolderOpen } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { saveMaterial, saveSubjectMetadata } from "@/actions/materials";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { ModalPanel } from "@/components/ui/modal-panel";
 import { Select } from "@/components/ui/select";
+import { PendingButton } from "@/components/ui/pending-button";
 import { examCategories, materialIcons, materialLanguages, materialSchema, subjectMetadataSchema } from "@/lib/validation/material";
 import type { AdminMaterialsData, LearningMaterial, MaterialInput, MaterialKind, MaterialSpecialtyOption } from "@/types/material";
 
@@ -108,7 +108,6 @@ function MaterialForm({ initial, isNew, specialties, onClose, onSaved }: {
   const [error, setError] = useState("");
   const titleId = useId();
   const readinessId = useId();
-  const router = useRouter();
   const isSubject = draft.materialKind === "SUBJECT";
   const statusLocked = isSubject || isNew;
 
@@ -123,7 +122,7 @@ function MaterialForm({ initial, isNew, specialties, onClose, onSaved }: {
     try {
       const result = await (metadataOnly ? saveSubjectMetadata(parsed.data) : saveMaterial(parsed.data));
       if (!result.ok) { setError(result.error.message); return; }
-      router.refresh();
+      // Revalidated page data arrives in the server action response.
       onSaved();
     } catch { setError("Unable to save material. Please retry."); }
     finally { setBusy(false); }
@@ -160,7 +159,7 @@ function MaterialForm({ initial, isNew, specialties, onClose, onSaved }: {
       </fieldset>
       {isSubject && specialties.length === 0 ? <p className="mt-4 text-sm text-amber-800 dark:text-amber-200">Create a specialty in Specialties before saving a subject.</p> : null}
       {error ? <p role="alert" className="mt-4 text-sm text-rose-700 dark:text-rose-300">{error}</p> : null}
-      <div className="mt-6 flex flex-wrap gap-3"><button type="submit" disabled={busy || (isSubject && specialties.length === 0)} className="min-h-11 rounded-xl bg-teal-700 px-5 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:opacity-50">{busy ? "Saving…" : "Save material"}</button>
+      <div className="mt-6 flex flex-wrap gap-3"><PendingButton pending={busy} disabled={isSubject && specialties.length === 0} className="rounded-xl bg-teal-700 px-5 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:opacity-50">Save material</PendingButton>
         <button type="button" disabled={busy} onClick={onClose} className={secondaryButton}>Cancel</button>
       </div>
     </form>

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { saveOwnProfile } from "@/actions/profile";
 import { Select } from "@/components/ui/select";
+import { PendingButton } from "@/components/ui/pending-button";
 import type { CountryOption } from "@/data/countries";
 import type { OwnProfileInput } from "@/types/own-profile";
 import type { UserRole } from "@/types/profile";
@@ -11,7 +11,6 @@ import type { UserRole } from "@/types/profile";
 const inputClass = "mt-2 w-full min-w-0 rounded-xl border bg-white px-4 py-3 text-base text-slate-900 sm:text-sm";
 
 export function ProfileEditor({ initial, role, countries }: { readonly initial: OwnProfileInput; readonly role: UserRole; readonly countries: readonly CountryOption[] }) {
-  const router = useRouter();
   const [baseline, setBaseline] = useState(initial);
   const [draft, setDraft] = useState(initial);
   const [saving, setSaving] = useState(false);
@@ -39,7 +38,7 @@ export function ProfileEditor({ initial, role, countries }: { readonly initial: 
       setBaseline(result.data);
       setDraft(result.data);
       setFeedback({ success: true, message: "Your profile has been updated." });
-      router.refresh();
+      // The server action revalidates the layout and returns its updated RSC.
     } catch {
       setFeedback({ success: false, message: "Your profile could not be saved. Please try again." });
     } finally { setSaving(false); }
@@ -55,8 +54,8 @@ export function ProfileEditor({ initial, role, countries }: { readonly initial: 
       <Field label="Gender" error={errors.gender}><Select value={draft.gender ?? ""} onChange={event => update("gender", event.target.value === "male" || event.target.value === "female" ? event.target.value : null)} className={inputClass}><option value="">Not provided</option><option value="male">Male</option><option value="female">Female</option></Select></Field>
       <div className="sm:col-span-2"><Field label="Home address" error={errors.homeAddress}><textarea autoComplete="street-address" rows={3} maxLength={500} value={draft.homeAddress ?? ""} onChange={event => update("homeAddress", event.target.value || null)} className={inputClass} aria-invalid={Boolean(errors.homeAddress)} /></Field></div>
     </fieldset>
-    {feedback && <p role={feedback.success ? "status" : "alert"} className={`mt-5 text-sm ${feedback.success ? "text-teal-700" : "text-rose-700"}`}>{feedback.message}</p>}
-    <div className="mt-6 flex flex-wrap items-center gap-3 border-t pt-5"><button type="submit" disabled={saving || !dirty} className="rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Saving…" : "Save Changes"}</button><button type="button" disabled={saving || !dirty} onClick={() => { setDraft(baseline); setErrors({}); setFeedback(null); }} className="rounded-xl border px-5 py-3 text-sm font-semibold text-slate-700 disabled:opacity-50">Cancel</button>{dirty && <span className="text-sm text-slate-500">Unsaved changes</span>}</div>
+    {feedback && <p role={feedback.success ? "status" : "alert"} className={`lhcc-feedback mt-5 text-sm ${feedback.success ? "text-teal-700" : "text-rose-700"}`}>{feedback.message}</p>}
+    <div className="mt-6 flex flex-wrap items-center gap-3 border-t pt-5"><PendingButton pending={saving} disabled={!dirty} className="rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">Save Changes</PendingButton><button type="button" disabled={saving || !dirty} onClick={() => { setDraft(baseline); setErrors({}); setFeedback(null); }} className="rounded-xl border px-5 py-3 text-sm font-semibold text-slate-700 disabled:opacity-50">Cancel</button>{dirty && <span className="text-sm text-slate-500">Unsaved changes</span>}</div>
   </form>;
 }
 

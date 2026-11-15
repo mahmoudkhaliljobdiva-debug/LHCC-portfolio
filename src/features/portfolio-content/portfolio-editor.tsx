@@ -5,6 +5,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 
 import { resetPortfolioContent, savePortfolioContent } from "@/actions/portfolio";
 import { cn } from "@/lib/cn";
+import { PendingButton } from "@/components/ui/pending-button";
 import type {
   PortfolioContent,
   PortfolioPageContent,
@@ -125,6 +126,7 @@ export function PortfolioEditor({ initialContent }: { readonly initialContent: P
   }
 
   async function handleSave() {
+    if (isSaving) return;
     const validationErrors = validatePortfolioContent(draft);
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) {
@@ -186,14 +188,14 @@ export function PortfolioEditor({ initialContent }: { readonly initialContent: P
           <button type="button" onClick={() => setResetOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-xl border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             <RotateCcw className="size-4" />Reset to defaults
           </button>
-          <button type="button" onClick={handleSave} disabled={isSaving || !isDirty} className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50">
-            <Save className="size-4" />{isSaving ? "Saving…" : "Save Changes"}
-          </button>
+          <PendingButton type="button" onClick={handleSave} pending={isSaving} disabled={!isDirty} className="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50">
+            <Save aria-hidden="true" className="size-4" />Save Changes
+          </PendingButton>
         </div>
       </div>
 
       {feedback && (
-        <div role={feedback.type === "error" ? "alert" : "status"} className={cn("mb-6 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium", feedback.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800")}>
+        <div role={feedback.type === "error" ? "alert" : "status"} className={cn("lhcc-feedback mb-6 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium", feedback.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800")}>
           {feedback.type === "success" ? <CheckCircle2 className="size-5 shrink-0" /> : <AlertCircle className="size-5 shrink-0" />}
           {feedback.message}
         </div>

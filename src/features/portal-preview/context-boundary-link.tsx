@@ -8,6 +8,8 @@ export function ContextBoundaryLink({ href, className, children, onClick, ...pro
   readonly children: ReactNode;
   readonly onClick?: MouseEventHandler<HTMLAnchorElement>;
   readonly "aria-label"?: string;
+  readonly "aria-current"?: "page" | undefined;
+  readonly title?: string;
 }) {
   return <a href={href} className={className} onClick={onClick} {...props}>{children}</a>;
 }

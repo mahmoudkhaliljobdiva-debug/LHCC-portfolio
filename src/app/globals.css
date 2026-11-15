@@ -548,3 +548,57 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--color-primary)
 .dark .shadow-md {
   --tw-shadow-color: rgb(0 0 0 / 0.24);
 }
+
+/* Interaction motion: short, event-driven and independent of network latency. */
+:root {
+  --lhcc-motion-fast: 140ms;
+  --lhcc-motion-panel: 200ms;
+  --lhcc-ease: cubic-bezier(.2, .8, .2, 1);
+}
+.lhcc-navigation-indicator { transition: transform var(--lhcc-motion-panel) var(--lhcc-ease), opacity var(--lhcc-motion-fast) ease; }
+.lhcc-nav-icon { transition: transform var(--lhcc-motion-fast) var(--lhcc-ease); }
+.lhcc-press { transition: transform var(--lhcc-motion-fast) var(--lhcc-ease), background-color var(--lhcc-motion-fast) ease; }
+.lhcc-press:not(:disabled):active { transform: scale(.97); }
+.lhcc-nav-link:active .lhcc-nav-icon { transform: scale(.93); }
+.portal-sidebar { transition: transform var(--lhcc-motion-panel) var(--lhcc-ease); }
+.lhcc-drawer-backdrop { animation: lhcc-fade-in var(--lhcc-motion-fast) ease both; }
+.lhcc-route-content, .lhcc-feedback { animation: lhcc-content-in 160ms var(--lhcc-ease); }
+.lhcc-icon-reveal { animation: lhcc-icon-in 160ms var(--lhcc-ease); }
+.lhcc-modal[open] { animation: lhcc-dialog-in var(--lhcc-motion-panel) var(--lhcc-ease); }
+.lhcc-modal::backdrop { animation: lhcc-fade-in var(--lhcc-motion-fast) ease; }
+.lhcc-spinner { animation: lhcc-spin 800ms linear infinite; }
+.lhcc-public-menu { grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows var(--lhcc-motion-panel) var(--lhcc-ease), opacity var(--lhcc-motion-fast) ease; }
+.lhcc-public-menu[data-open="true"] { grid-template-rows: 1fr; opacity: 1; }
+@keyframes lhcc-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lhcc-content-in { from { opacity: .65; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes lhcc-icon-in { from { opacity: .5; transform: rotate(-15deg) scale(.85); } to { opacity: 1; transform: none; } }
+@keyframes lhcc-dialog-in { from { opacity: .5; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes lhcc-sheet-in { from { opacity: .5; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes lhcc-spin { to { transform: rotate(360deg); } }
+@media (hover: hover) and (pointer: fine) {
+  .lhcc-nav-link:hover .lhcc-nav-icon { transform: translateX(2px) rotate(-4deg); }
+}
+@media (hover: none), (pointer: coarse) {
+  .lhcc-navigation-indicator { transform: translateY(var(--lhcc-active-y)) !important; opacity: var(--lhcc-active-visible) !important; }
+}
+@media (min-width: 1024px) {
+  .lhcc-portal-shell { --lhcc-sidebar-width: 268px; }
+  .lhcc-portal-shell[data-sidebar-collapsed="true"] { --lhcc-sidebar-width: 96px; }
+  .lhcc-portal-shell .portal-sidebar { width: var(--lhcc-sidebar-width); transition: width var(--lhcc-motion-panel) var(--lhcc-ease), transform var(--lhcc-motion-panel) var(--lhcc-ease); }
+  .lhcc-portal-shell .portal-workspace { padding-left: var(--lhcc-sidebar-width); transition: padding-left var(--lhcc-motion-panel) var(--lhcc-ease); }
+  .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-sidebar-label,
+  .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-sidebar-details,
+  .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-sidebar-brand a > span { display: none; }
+  .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-sidebar-brand { justify-content: center; padding-inline: 0; }
+  .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-nav-link { justify-content: center; }
+  .lhcc-portal-shell[data-sidebar-collapsed="true"] .lhcc-collapsed-home { display: flex; }
+}
+@media (max-width: 639px) {
+  .lhcc-modal[open] { inset: auto 0 0; margin: 0 auto; width: 100%; max-width: 100%; max-height: calc(100dvh - 1rem - env(safe-area-inset-top)); border-radius: 1.5rem 1.5rem 0 0; border-bottom: 0; animation-name: lhcc-sheet-in; }
+  .lhcc-modal > :last-child { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lhcc-navigation-indicator, .lhcc-nav-icon, .lhcc-press, .portal-sidebar, .portal-workspace, .lhcc-public-menu { transition: none !important; }
+  .lhcc-drawer-backdrop, .lhcc-route-content, .lhcc-feedback, .lhcc-icon-reveal, .lhcc-modal[open], .lhcc-modal::backdrop, .lhcc-spinner { animation: none !important; }
+  .lhcc-press:active, .lhcc-nav-link:hover .lhcc-nav-icon, .lhcc-nav-link:active .lhcc-nav-icon { transform: none !important; }
+}
