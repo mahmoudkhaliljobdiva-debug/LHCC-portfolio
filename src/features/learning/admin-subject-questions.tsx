@@ -5,7 +5,7 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
-import { deleteSubjectQuestion, saveReviewedSubjectQuestion } from "@/actions/subject-questions";
+import { bulkSetSubjectQuestionStatus, deleteSubjectQuestion, saveReviewedSubjectQuestion } from "@/actions/subject-questions";
 import { ModalPanel } from "@/components/ui/modal-panel";
 import { Select } from "@/components/ui/select";
 import type { SubjectQuestion, SubjectDraft, SubjectQuestionsData, SubjectStageInput } from "@/types/subject-question";
@@ -22,10 +22,45 @@ export function AdminSubjectQuestions({ data, page, search, chapter }: { data: S
   const [deleting, setDeleting] = useState<string | null>(null);
   const [busy, setBusy] = useState(false), [feedback, setFeedback] = useState("");
   const [grouped, setGrouped] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkMode, setBulkMode] = useState<"active" | "inactive" | null>(null);
   const questions = data.items.filter((item): item is SubjectQuestion => !("draft" in item));
   const visibleItems = grouped ? [...questions].sort((a,b) => chapterLabel(a).localeCompare(chapterLabel(b))) : questions;
   const path = `/admin/subjects/${encodeURIComponent(data.bank.id)}/questions`;
   const query = (next: number) => `${path}?${new URLSearchParams({ page: String(next), search, chapter })}` as Route;
+  const visibleIds = visibleItems.map((item) => item.id);
+  const allOnPageSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+  function toggleQuestion(id: string) {
+    setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+  function togglePageSelection() {
+    setSelectedIds((current) =>
+      allOnPageSelected
+        ? current.filter((id) => !visibleIds.includes(id))
+        : [...new Set([...current, ...visibleIds])],
+    );
+  }
+  async function applyBulkStatus() {
+    if (busy || !bulkMode || selectedIds.length === 0) return;
+    setBusy(true);
+    try {
+      const result = await bulkSetSubjectQuestionStatus(data.bank.id, selectedIds, bulkMode);
+      if (!result.ok) {
+        setFeedback(result.error.message);
+        setBulkMode(null);
+        return;
+      }
+      setFeedback(`${result.data.updated} questions set to ${bulkMode}.`);
+      setSelectedIds([]);
+      setBulkMode(null);
+      router.refresh();
+    } catch {
+      setFeedback("Bulk status change failed. Please retry.");
+      setBulkMode(null);
+    } finally {
+      setBusy(false);
+    }
+  }
   async function remove() {
     if (!deleting || busy) return; setBusy(true);
     try { const result = await deleteSubjectQuestion(data.bank.id, deleting); setFeedback(result.ok ? "Question deleted; audit history is retained." : result.error.message); if (result.ok) { setDeleting(null); router.refresh(); } }
@@ -40,12 +75,21 @@ export function AdminSubjectQuestions({ data, page, search, chapter }: { data: S
     {feedback ? <p role="status" className="rounded-xl border bg-slate-50 p-4 text-sm dark:bg-slate-800">{feedback}</p> : null}
     <form action={path} className={`${card} grid gap-4 ${data.chapters.length ? "sm:grid-cols-[1fr_1fr_auto]" : "sm:grid-cols-[1fr_auto]"}`}><label className="grid min-w-0 gap-2 text-sm">Search questions<input name="search" defaultValue={search} maxLength={200} className={subjectFieldClass} /></label>{data.chapters.length ? <label className="grid min-w-0 gap-2 text-sm">Chapter<Select name="chapter" defaultValue={chapter} className={subjectFieldClass}><option value="">All questions (including unassigned)</option>{data.chapters.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</Select></label> : null}<button className={`${subjectButtonClass} self-end`}>Apply filters</button></form>
     <p className="text-sm text-slate-600 dark:text-slate-300">{data.total} matching questions · Page {page + 1} of {Math.max(1, Math.ceil(data.total / 20))}</p>
+    <div className={`${card} flex flex-wrap items-center gap-3`} aria-label="Bulk question status actions">
+      <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium">
+        <input type="checkbox" checked={allOnPageSelected} onChange={togglePageSelection} disabled={busy || !visibleIds.length} aria-label="Select all questions on this page" />
+        Select all on this page
+      </label>
+      <span role="status" className="text-sm text-slate-600 dark:text-slate-300">{selectedIds.length} selected</span>
+      <button type="button" className={subjectButtonClass} disabled={busy || selectedIds.length === 0} onClick={() => setBulkMode("active")}>Activate selected</button>
+      <button type="button" className={subjectButtonClass} disabled={busy || selectedIds.length === 0} onClick={() => setBulkMode("inactive")}>Deactivate selected</button>
+    </div>
     {data.chapters.length ? <label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={grouped} onChange={event => setGrouped(event.target.checked)} />Group this page by first chapter (including unassigned questions)</label> : null}
     {!questions.length ? <p className={card}>No questions match these filters. Questions do not require chapters; unverified source content remains private until reviewed.</p> : null}
     <ol className="space-y-4">{visibleItems.map((item,index) => <li key={item.id}>
       {grouped && (index === 0 || chapterLabel(visibleItems[index - 1]!) !== chapterLabel(item)) ? <h2 className="mb-3 text-lg font-semibold">{chapterLabel(item)}</h2> : null}
       <article className={card}>
-        <div className="flex flex-wrap justify-between gap-3"><h2 className="font-semibold">Question {item.displayOrder ?? page * 20 + index + 1}</h2><span className="text-sm">{item.status} · {item.approvalStatus}</span></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><label className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleQuestion(item.id)} disabled={busy} aria-label={`Select question ${item.displayOrder ?? page * 20 + index + 1}`} />Select</label><h2 className="font-semibold">Question {item.displayOrder ?? page * 20 + index + 1}</h2></div><span className="text-sm">{item.status} · {item.approvalStatus}</span></div>
         {item.groupInstructions ? <p className="mt-3 whitespace-pre-wrap rounded-xl border p-4" dir="auto">{item.groupInstructions}</p> : null}
         {item.caseTitle || item.caseDescription ? <section className="mt-3 rounded-xl border p-4"><h3 className="font-semibold" dir="auto">{item.caseTitle}</h3><p dir="auto" className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{item.caseDescription}</p></section> : null}
         <p className="mt-4 whitespace-pre-wrap break-words text-base leading-7" dir="auto">{item.text}</p>
@@ -59,6 +103,7 @@ export function AdminSubjectQuestions({ data, page, search, chapter }: { data: S
     </li>)}</ol>
     <nav aria-label="Subject question pagination" className="flex flex-wrap justify-between gap-3">{page > 0 ? <Link className={subjectButtonClass} href={query(page - 1)}>Previous page</Link> : <span />}{(page + 1) * 20 < data.total ? <Link className={subjectButtonClass} href={query(page + 1)}>Next page</Link> : null}</nav>
     {editing ? <SubjectQuestionEditor bankId={data.bank.id} initial={editing === "new" ? null : editing} sources={data.sources} chapters={data.chapters} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); setFeedback("Question saved after explicit review."); router.refresh(); }} /> : null}
+    {bulkMode ? <ModalPanel labelledBy="subject-bulk-status-title" busy={busy} onCancel={() => { if (!busy) setBulkMode(null); }}><section className="p-6"><h2 id="subject-bulk-status-title" className="text-xl font-semibold">{bulkMode === "active" ? "Activate" : "Deactivate"} {selectedIds.length} selected questions?</h2><p className="mt-3 text-sm leading-6">{bulkMode === "active" ? "Only questions with approved answers can be activated. Unreviewed imported questions remain inactive." : "Selected questions will become inactive and will be removed from complete-bank exams."} No unselected questions will be changed.</p><div className="mt-5 flex flex-wrap gap-3"><button type="button" autoFocus className={subjectButtonClass} disabled={busy} onClick={() => setBulkMode(null)}>Cancel</button><button type="button" className={subjectButtonClass} disabled={busy} onClick={() => void applyBulkStatus()}>{busy ? "Saving…" : "Confirm status change"}</button></div></section></ModalPanel> : null}
     {deleting ? <ModalPanel labelledBy="delete-subject-question" onCancel={() => { if (!busy) setDeleting(null); }} busy={busy}><section className="p-6"><h2 id="delete-subject-question" className="text-xl font-semibold">Delete this Subject question?</h2><p className="mt-3 text-sm leading-6">Protected attempts and lesson history cannot be deleted. Existing audit decisions are retained.</p><div className="mt-5 flex flex-wrap gap-3"><button autoFocus className={subjectButtonClass} disabled={busy} onClick={() => setDeleting(null)}>Cancel</button><button className={`${subjectButtonClass} text-rose-700`} disabled={busy} onClick={() => void remove()}>{busy ? "Deleting…" : "Delete question"}</button></div></section></ModalPanel> : null}
   </div>;
 }
