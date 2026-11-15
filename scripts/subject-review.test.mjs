@@ -53,3 +53,10 @@ test('indexed duplicate checks still recheck exact text and preserve legacy impo
  assert(sql.includes('md5(lower(regexp_replace(q.text'));assert(sql.includes('and lower(regexp_replace(q.text'));
  assert(sql.includes('a.linked_question_id is not null'));assert(!sql.includes('os.question_bank_id=bank_id'));
 });
+
+test('shared legacy exam access guard checks material kind before grants and selectors',()=>{
+ const sql=readFileSync('supabase/migrations/20261115130827_subject_legacy_exam_guard.sql','utf8');
+ assert(sql.includes("material_kind='EXAM_TRACK' and publication_status='PUBLISHED' for share"));
+ assert(sql.indexOf("if not found then raise exception 'Published exam track required'")<sql.indexOf('private.can_open_bank(bank_id)'));
+ assert(!/grant |delete |update |truncate|drop /i.test(sql));
+});

@@ -24,6 +24,7 @@ for(const name of ['private.admin_subject_questions','private.manage_subject_imp
 }
 sql(await readFile('supabase/migrations/20261114170912_subject_global_duplicate_review.sql','utf8'));
 sql(await readFile('supabase/migrations/20261114171408_subject_duplicate_lookup_indexes.sql','utf8'));
+sql(await readFile('supabase/migrations/20261115130827_subject_legacy_exam_guard.sql','utf8'));
 const service=createClient(target,settings.SUPABASE_SECRET_KEY,{auth:{persistSession:false}});
 const client=()=>createClient(target,m.anonKey,{auth:{persistSession:false,autoRefreshToken:false}});
 const admin=client(),student=client(),anon=client(),checked=r=>{assert.ifError(r.error);return r.data;};
@@ -70,6 +71,16 @@ assert.equal(checked(await service.from('bank_questions').select('id').eq('quest
 assert.equal(checked(await student.from('bank_questions').select('id,options').eq('question_bank_id',bankId)).length,1);
 assert((await student.rpc('exam_bank_data',{bank_id:bankId})).error);
 assert((await student.schema('private').from('question_solutions').select('*')).error);
+const beforeAttempts=checked(await service.from('question_attempts').select('id').eq('question_bank_id',bankId));
+const legacyStart=await student.rpc('start_exam',{bank_id:bankId});
+assert.equal(legacyStart.error?.code,'42501');assert.match(legacyStart.error.message,/Published exam track required/);
+for(const mode of ['EXAM','PRACTICE'])for(const source of ['RANDOM','ALL','CASE','CHAPTER','PAST','SHARED']){
+ const started=await student.rpc('start_learning_exam',{config:{bankId,source,sourceId:randomUUID(),mode,count:1,timeLimitMinutes:null}});
+ assert.equal(started.error?.code,'42501',mode+' '+source);assert.match(started.error.message,/Published exam track required/);
+}
+assert.deepEqual(checked(await service.from('question_attempts').select('id').eq('question_bank_id',bankId)),beforeAttempts);
+assert((await student.rpc('submit_bank_answer',{question_id:qid,option_id:'a'})).error,'retired correctness oracle remains uncallable');
+checks.push('legacy start_exam and all 12 source/mode combinations deny Subjects before creating attempts; retired correctness oracle remains disabled');
 checks.push('explicit approval records actor/time/revision; import is idempotent, correctly scoped and Student-safe; Subject cannot start track exams');
 stage=checked(await admin.rpc('manage_subject_import',{operation:'reject',bank_id:bankId,item_id:stageId,payload:{expectedRevision:stage.revision}}));
 assert.equal(checked(await student.from('bank_questions').select('id').eq('question_bank_id',bankId)).length,0);

@@ -280,3 +280,10 @@ a matching explicitly approved key; existing access checks still apply.
 No new student key endpoint, material-type conversion or exam-track scoring
 change is introduced. The 12 sources have 1,827 processed pages and 1,542 pending
 or needs-review staging records; zero new production medical approvals/imports.
+
+The 2026-11-15 follow-up `20261115130827_subject_legacy_exam_guard.sql` also
+requires a published EXAM_TRACK in the shared private exam access lock. This
+closes the legacy definer-selector path that could bypass Subject question RLS
+when free Subject catalog access was granted. Existing exam-track authorization,
+frozen attempts, keys, scoring and historical data remain unchanged. Direct
+start/answer/check/submit paths are tested, not only the exam metadata read RPC.

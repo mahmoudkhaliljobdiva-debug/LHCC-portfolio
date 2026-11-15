@@ -1,6 +1,6 @@
 # Medical Subject navigation and question review
 
-Verified implementation checkpoint: 2026-11-14. Production site: https://lhcc-lb.com.
+Verified implementation checkpoint: 2026-11-15. Production site: https://lhcc-lb.com.
 Based on main `17e2512`; the previous audit branch is preserved, not merged.
 The verified dependency security patch is retained as `c624d56`.
 
@@ -97,6 +97,9 @@ All 12 original staging payloads/statuses/links also match their original digest
   duplicate review and legacy canonical import-count preservation.
 - `20261114171408_subject_duplicate_lookup_indexes.sql`: bounded-size fingerprint
   indexes with exact-text equality rechecks, not hash-only deduplication.
+- `20261115130827_subject_legacy_exam_guard.sql`: checks the shared private exam
+  access guard for a published EXAM_TRACK before legacy starts, answers or grading.
+  Catalog access to a Subject is not authorization to use legacy exam selectors.
 
 These version/name pairs match hosted migration history. Existing hosted/local
 history drift predates this feature; no directory-wide push, history repair,
@@ -110,16 +113,22 @@ in comparable EXPLAIN ANALYZE checks after the lookup indexes.
 Node **22.23.2** used for the release checks.
 
 - Typecheck: PASS; lint: PASS; production build: PASS.
-- Unit tests: **143/143 PASS**.
-- Local authenticated REST/RPC: **9 workflow groups PASS**, including role/cross-bank
+- Unit tests: **144/144 PASS**.
+- Local authenticated REST/RPC: **10 workflow groups PASS**, including role/cross-bank
   denial, incomplete keys, explicit approval/actor/revision, sanitized options,
-  concurrent retries, duplicate review, optional chapters and retained IDs.
+  concurrent retries, duplicate review, optional chapters and retained IDs; direct
+  legacy starts and all six sources in both EXAM/PRACTICE modes deny Subjects.
+- Local legacy endpoint regression: **26 rollback checks PASS**. It reproduced
+  the pre-fix SECURITY DEFINER/RLS gap inside an isolated transaction, then proved
+  the corrected start/save/versioned-save/check/submit paths deny Subject attempts
+  without changing existing attempt rows. Every generated fixture rolled back.
 - Full migration replay: PASS, rollback-only.
 - Complete 1,827-page / 1,530-candidate staging batch replayed twice locally:
   PASS, no canonical writes, all fixtures rolled back.
 - Existing Teacher **25**, Student exam **44**, course access **38**, lesson
-  **141** SQL assertions PASS. The Teacher fixture denial is scoped to its own
-  generated Exam Tracks rather than unrelated approved free Subjects.
+  **141**, typed material **80** SQL assertions PASS. The Teacher fixture denial is scoped to its own
+  generated Exam Tracks rather than unrelated approved free Subjects. The typed
+  material fixture lookup now checks all pages rather than assuming page zero.
 - Local authenticated browser: **216 responsive checks PASS** across nine screens,
   eleven widths (320/360/375/390/412/430/768/1024/1366/1440/1920), both themes and
   two landscape layouts. Actual navigation, empty chapters, Add, approval,
@@ -132,6 +141,12 @@ Node **22.23.2** used for the release checks.
   requested Subjects load their real canonical/review counts. Anonymous execution
   denied. Student-role RLS: zero visible unapproved Subject questions; private
   keys/staging/audit table access denied.
+- Production legacy guard: **156 denial checks PASS**, covering all 12 Subjects,
+  `start_exam`, and all six source types in both modes. The transaction rolled
+  back; no production attempts/answers were created. All 29 monitored production
+  data tables, including private source/staging/audit/key tables, retained exact
+  before/after row counts and digests. All four existing production attempts are
+  Exam Track attempts and were preserved.
 - Production Admin-browser approval/import was NOT performed: no authorized
   production browser session was available. Actual authenticated UI mutations
   were tested only against isolated local Supabase. No production test users,
@@ -158,9 +173,10 @@ Verification/source tools:
 `scripts/materials.test.mjs`, `scripts/subject-review.test.mjs`,
 `scripts/subject-review-qa.mjs`, `scripts/subject-review-browser.mjs`,
 `scripts/subject-pdf-browser.mjs`, `scripts/subject-migration-check.mjs`,
+`scripts/subject-exam-guard-qa.mjs`, `supabase/tests/typed_learning_materials.sql`,
 `scripts/extract-medical-sources.py`, `scripts/prepare-medical-staging.mjs`,
 `scripts/prepare-medical-staging-sql.mjs`, `scripts/check-medical-staging-sql.mjs`,
-`supabase/tests/teacher_bank_permissions.sql`, the three migrations above,
+`supabase/tests/teacher_bank_permissions.sql`, the four migrations above,
 `docs/backend-map.md` and this report.
 The retained security commit changes `package.json`, `package-lock.json`
 and `scripts/production-audit.test.mjs`.

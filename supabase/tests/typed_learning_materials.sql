@@ -126,7 +126,11 @@ select pg_temp.assert_material(not exists(select 1 from jsonb_array_elements(cur
  and (select count(*)=2 from jsonb_array_elements(current_setting('mt.legacyAdmin')::jsonb->'sections')s where s->>'bankId' in(current_setting('mt.track'),current_setting('mt.draft'))),'legacy bank editor excludes Subject cases without dropping Exam Track cases');
 select pg_temp.assert_material(not exists(select 1 from jsonb_array_elements(current_setting('mt.legacyAdmin')::jsonb->'questions')q where q->>'bankId'=current_setting('mt.subject'))
  and (select count(*)=2 from jsonb_array_elements(current_setting('mt.legacyAdmin')::jsonb->'questions')q where q->>'bankId' in(current_setting('mt.track'),current_setting('mt.draft'))),'legacy bank editor excludes Subject question pools without dropping Exam Track questions');
-select pg_temp.assert_material(exists(select 1 from jsonb_array_elements(public.admin_learning_materials('SUBJECT')->'items')m where m->>'id'=current_setting('mt.subject')),'Subject remains available in typed Subject management');
+-- The generated Subject need not sort onto page 0 when other local fixtures exist.
+select pg_temp.assert_material(exists(select 1
+ from generate_series(0,(public.admin_learning_materials('SUBJECT')->>'total')::integer/20) as pages(page_number)
+ cross join lateral jsonb_array_elements(public.admin_learning_materials('SUBJECT',pages.page_number)->'items')m
+ where m->>'id'=current_setting('mt.subject')),'Subject remains available in typed Subject management');
 select pg_temp.deny_material($q$select public.review_bank_access(current_setting('mt.request')::uuid,'APPROVED')$q$,'subject approval denied even pre-existing request');
 select pg_temp.deny_material($q$select public.save_learning_material(pg_temp.material_payload(current_setting('mt.track'),'SUBJECT'))$q$,'typed RPC cannot reclassify populated bank');
 select pg_temp.deny_material($q$select public.generate_shared_exam(jsonb_build_object('id',gen_random_uuid(),'bankId',current_setting('mt.subject'),'title','No','count',1))$q$,'subject shared generation denied');
