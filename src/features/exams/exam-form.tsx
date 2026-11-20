@@ -83,6 +83,11 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
   const finish = useCallback(async (automatic = false) => {
     if (readOnly || submitLock.current || locks.current || (examMode && !draftReady)
       || (!examMode && (writing.current || queue.current.length > 0 || (failed && !automatic)))) return;
+    // Native modal dialogs render in the browser's top layer. Close the
+    // confirmation first so the full-screen progress overlay is visible
+    // immediately after the student confirms submission.
+    const wasConfirming = Boolean(dialog.current?.open);
+    if (wasConfirming) dialog.current?.close();
     submitLock.current = true; setSubmitting(true); setProcessingStep("saving"); setSubmitError("");
     let completed = false;
     try {
@@ -103,9 +108,14 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
     } catch {
       setSubmitError("Submission could not be confirmed. Your selected answers are still available here. Please retry.");
     } finally {
-      // Keep the completion overlay visible until navigation finishes.
-      // On failure allow manual retry without an automatic timeout retry loop.
-      if (!completed) { submitLock.current = false; setSubmitting(false); }
+      // Keep the progress screen visible until successful navigation.
+      // If saving or grading fails, dismiss it and reopen the confirmation
+      // with the error, so the student can retry without losing selections.
+      if (!completed) {
+        submitLock.current = false;
+        setSubmitting(false);
+        if (wasConfirming && !dialog.current?.open) dialog.current?.showModal();
+      }
     }
   }, [exam.id,answers,examMode,draftReady,failed,readOnly]);
   useEffect(() => {
