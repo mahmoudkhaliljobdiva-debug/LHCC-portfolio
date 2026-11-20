@@ -47,7 +47,7 @@ export function DashboardShell({
     }
   }, [pathname]);
   const roleHome = pathname.startsWith("/admin/view-as/") ? "/admin" : `/${role}`;
-  const isLiveExam = /^\\/student\\/exams\\/[^/]+\\/?$/.test(pathname);
+  const isLiveExam = pathname.startsWith("/student/exams/") && pathname.split("/").filter(Boolean).length === 3;
   const canNavigateBack = hasInAppHistory || pathname !== roleHome;
   function goBack() {
     if (!canNavigateBack) return;
