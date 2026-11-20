@@ -23,7 +23,7 @@ export function MissedQuestionDetail({ question }: { readonly question: MissedQu
       {question.options.map((option,index) => {
         const isCorrect = option.id === question.correctOptionId;
         const isWrongSelection = option.id === question.selectedOptionId && !isCorrect;
-        return <li key={option.id} className={`flex items-start gap-3 rounded-xl border p-4 text-sm leading-6 ${isCorrect ? "border-emerald-400 bg-emerald-50 text-emerald-950" : isWrongSelection ? "border-rose-300 bg-rose-50 text-rose-950" : "border-slate-200 bg-white text-slate-700"}`}>
+        return <li key={option.id} className={`flex items-start gap-3 rounded-xl border p-4 text-sm leading-6 ${isCorrect ? "border-emerald-400 bg-emerald-50 text-emerald-950 dark:border-emerald-700 dark:text-emerald-50" : isWrongSelection ? "border-rose-300 bg-rose-50 text-rose-950 dark:border-rose-700 dark:text-rose-50" : "border-slate-200 bg-white text-slate-700"}`}>
           <span className="w-5 shrink-0 font-bold">{String.fromCharCode(65+index)}.</span>
           <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">{option.text}</span>
           {isCorrect ? <CheckCircle2 aria-label="Correct answer" className="size-5 shrink-0 text-emerald-700" /> : null}
@@ -32,13 +32,13 @@ export function MissedQuestionDetail({ question }: { readonly question: MissedQu
       })}
     </ul>
     <div className="grid gap-3 sm:grid-cols-2">
-      <section className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+      <section className="rounded-xl border border-rose-200 bg-rose-50 p-4 dark:text-rose-50">
         <div className="flex items-center gap-2 text-sm font-semibold text-rose-800"><XCircle className="size-4" aria-hidden="true" />Your answer</div>
-        <p className="mt-2 whitespace-pre-wrap break-words text-sm text-rose-950">{selected?.text ?? "Not available"}</p>
+        <p className="mt-2 whitespace-pre-wrap break-words text-sm text-rose-950 dark:text-rose-50">{selected?.text ?? "Not available"}</p>
       </section>
-      <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+      <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:text-emerald-50">
         <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800"><CheckCircle2 className="size-4" aria-hidden="true" />Correct answer</div>
-        <p className="mt-2 whitespace-pre-wrap break-words text-sm text-emerald-950">{correct?.text ?? "Answer unavailable"}</p>
+        <p className="mt-2 whitespace-pre-wrap break-words text-sm text-emerald-950 dark:text-emerald-50">{correct?.text ?? "Answer unavailable"}</p>
       </section>
     </div>
     <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
