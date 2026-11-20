@@ -123,7 +123,7 @@ export function DashboardShell({
                 <p className="mt-1 text-xs leading-5 text-sky-100">Use the navigation to move between your workspaces.</p>
                 <NavigationLink href="/" className="mt-3 inline-block text-xs font-semibold text-teal-200">Back to website →</NavigationLink>
               </div>}
-        </div></div>
+        </div>
       </aside>
 
       <div className="portal-workspace lg:pl-[268px]">
