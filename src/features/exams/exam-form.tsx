@@ -84,11 +84,13 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
     if (readOnly || submitLock.current || locks.current || (examMode && !draftReady)
       || (!examMode && (writing.current || queue.current.length > 0 || (failed && !automatic)))) return;
     submitLock.current = true; setSubmitting(true); setProcessingStep("saving"); setSubmitError("");
+    let completed = false;
     try {
       const result = examMode
         ? await submitExamWithAnswers({ attemptId: exam.id, answers, expectedVersion: versionRef.current })
         : await submitExam(exam.id);
       if (result.ok) {
+        completed = true;
         setProcessingStep("done");
         try { window.sessionStorage.removeItem(`lhcc:exam-draft:${exam.id}`); } catch { /* restricted browser */ }
         dialog.current?.close();
@@ -97,13 +99,13 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
         window.location.replace(`/student/exams/${exam.id}/result`);
       } else {
         setSubmitError(result.error.message);
-        if (automatic) autoSubmitted.current = false;
       }
     } catch {
       setSubmitError("Submission could not be confirmed. Your selected answers are still available here. Please retry.");
-      if (automatic) autoSubmitted.current = false;
     } finally {
-      submitLock.current = false; setSubmitting(false);
+      // Keep the completion overlay visible until navigation finishes.
+      // On failure allow manual retry without an automatic timeout retry loop.
+      if (!completed) { submitLock.current = false; setSubmitting(false); }
     }
   }, [exam.id,answers,examMode,draftReady,failed,readOnly]);
   useEffect(() => {
@@ -323,11 +325,11 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
           ].map((item, i) => {
             const steps = ["saving","grading","preparing","done"];
             const activeStep = steps.indexOf(processingStep);
-            return <div key={item.step} className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${i <= activeStep ? "border-teal-400/30 bg-teal-400/10" : "border-white/10 bg-white/[0.03]"}`}>
-              {i < activeStep || processingStep === "done"
+            return <div key={item.step} className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${processingStep === "done" || i === activeStep ? "border-teal-400/30 bg-teal-400/10" : "border-white/10 bg-white/[0.03]"}`}>
+              {processingStep === "done"
                 ? <Check className="size-5 shrink-0 text-emerald-300" aria-hidden="true" />
                 : <item.Icon className={`size-5 shrink-0 ${i === activeStep ? "text-teal-300" : "text-slate-500"}`} aria-hidden="true" />}
-              <span className={`text-sm ${i <= activeStep ? "font-semibold text-white" : "text-slate-400"}`}>{item.label}</span>
+              <span className={`text-sm ${processingStep === "done" || i === activeStep ? "font-semibold text-white" : "text-slate-400"}`}>{item.label}</span>
               {i === activeStep && processingStep !== "done" && <LoaderCircle className="ml-auto size-4 animate-spin text-teal-300 motion-reduce:animate-none" aria-hidden="true" />}
             </div>;
           })}
