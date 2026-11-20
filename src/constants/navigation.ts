@@ -1,14 +1,12 @@
 import {
-  BarChart3,
-  BookOpen,
+   BookOpen,
   CircleDollarSign,
   ClipboardCheck,
   FileQuestion,
   Gauge,
   PanelsTopLeft,
   Settings,
-  UserCircle,
-  Users,
+   Users,
 } from "lucide-react";
 
 import { ROUTES } from "@/constants/routes";
@@ -17,11 +15,9 @@ import type { UserRole } from "@/types/roles";
 
 export const ROLE_NAVIGATION = {
   student: [
-    { label: "Dashboard", href: ROUTES.student.dashboard, icon: Gauge },
-    { label: "Question Banks", href: ROUTES.student.questionBanks, icon: BookOpen },
-    { label: "My Progress", href: ROUTES.student.exams, icon: ClipboardCheck },
-    { label: "Analytics", href: ROUTES.student.analytics, icon: BarChart3 },
-    { label: "Profile", href: ROUTES.student.profile, icon: UserCircle },
+    { label: "My Learning", href: ROUTES.student.dashboard, icon: Gauge },
+    { label: "My Courses", href: ROUTES.student.questionBanks, icon: BookOpen },
+    { label: "My Exams", href: ROUTES.student.exams, icon: ClipboardCheck },
   ],
   teacher: [
     { label: "Dashboard", href: ROUTES.teacher.dashboard, icon: Gauge },

@@ -37,7 +37,17 @@ async function readStudentBanks(db: Awaited<ReturnType<typeof createClient>>, su
     readAllRows((from, to) => db.from("user_bank_access_requests").select("*").eq("user_id", subjectId).order("requested_at", { ascending: false }).order("id").range(from, to)),
     readAllRows((from, to) => db.from("user_bank_access").select("*").eq("user_id", subjectId).order("id").range(from, to)),
   ]);
-  return banks.map((bank) => {
+  // Only advertise banks that have real, active questions. This includes
+  // exam-only tracks (their active questions may be excluded from random pools).
+  // Use an ID-only query; never expose correct answers or private solutions.
+  if (!banks.length) return [];
+  const activeQuestions = await readAllRows((from, to) => db.from("bank_questions")
+    .select("id,question_bank_id")
+    .eq("status", "active")
+    .in("question_bank_id", banks.map(bank => bank.id))
+    .order("id").range(from, to));
+  const populatedBankIds = new Set(activeQuestions.map(item => item.question_bank_id));
+  return banks.filter(bank => populatedBankIds.has(bank.id)).map((bank) => {
     const request = requests.find((item) => item.question_bank_id === bank.id);
     const grant = grants.find((item) => item.question_bank_id === bank.id);
     const approved = grant?.status === "ACTIVE";

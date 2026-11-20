@@ -109,10 +109,20 @@ export function DashboardShell({
             {collapsed ? <PanelLeftOpen className="size-5 shrink-0" /> : <PanelLeftClose className="size-5 shrink-0" />}<span className="lhcc-sidebar-label">{previewing ? "Keep expanded" : "Collapse navigation"}</span>
           </button>
           <NavigationLink href="/" aria-label="Back to website" className="lhcc-collapsed-home hidden min-h-11 items-center justify-center gap-3 rounded-xl border text-teal-700"><House className="size-5 shrink-0" /><span className="lhcc-sidebar-label text-sm">Back to website</span></NavigationLink>
-          <div className="lhcc-sidebar-details rounded-2xl bg-[#304f60] p-4 text-white">
-          <p className="text-sm font-semibold">Need a quick tour?</p>
-          <p className="mt-1 text-xs leading-5 text-sky-100">Use the navigation to move between your workspaces.</p>
-          <NavigationLink href="/" className="mt-3 inline-block text-xs font-semibold text-teal-200">Back to website →</NavigationLink>
+          {role === "student"
+            ? <button type="button" onClick={() => { setOpen(false); goBack(); }}
+                disabled={isLiveExam || !canNavigateBack}
+                title={isLiveExam ? "Use Back to Course inside the exam after saving your answers" : "Go back"}
+                aria-label="Back to the previous page"
+                className="lhcc-press flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-teal-800 shadow-sm transition-colors hover:border-teal-600 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:text-teal-200 dark:hover:bg-slate-800">
+                <ArrowLeft className="size-[18px] shrink-0" strokeWidth={2} aria-hidden="true" />
+                <span className="lhcc-sidebar-label">Back</span>
+              </button>
+            : <div className="lhcc-sidebar-details rounded-2xl bg-[#304f60] p-4 text-white">
+                <p className="text-sm font-semibold">Need a quick tour?</p>
+                <p className="mt-1 text-xs leading-5 text-sky-100">Use the navigation to move between your workspaces.</p>
+                <NavigationLink href="/" className="mt-3 inline-block text-xs font-semibold text-teal-200">Back to website →</NavigationLink>
+              </div>}
         </div></div>
       </aside>
 
