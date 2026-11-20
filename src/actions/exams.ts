@@ -52,9 +52,9 @@ export async function saveExamAnswer(input: { attemptId: string; questionId: str
     const { data, error } = await db.rpc("save_exam_answer_versioned", { attempt_id: parsed.data.attemptId, question_id: parsed.data.questionId, option_id: parsed.data.optionId, expected_version: parsed.data.expectedVersion });
     if (error?.code === "40001") return { ok: false, error: { code: "CONFLICT", message: "Another tab changed this exam. Load the latest saved answers before choosing again; your change was not applied." } };
     if (error) return failure("Answer not saved. Your exam may be completed or access may no longer be available. Retry or reload to check.");
-    revalidatePath(`/student/exams/${parsed.data.attemptId}`);
-    revalidatePath("/student");
-    revalidatePath("/student/analytics");
+    // A one-question save returns only the new version. Refreshing three
+    // routes on every tap adds needless latency and RSC work; final submission
+    // still invalidates exam, student, and analytics pages.
     return { ok: true, data: data! };
   } catch { return failure("Answer not saved. Please retry before leaving this page."); }
 }
