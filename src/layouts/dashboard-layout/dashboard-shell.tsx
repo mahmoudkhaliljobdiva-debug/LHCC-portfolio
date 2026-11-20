@@ -1,9 +1,9 @@
 "use client";
 
-import { Bell, House, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
+import { ArrowLeft, Bell, House, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useCallback, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { useMobileNavigation } from "@/hooks/use-mobile-navigation";
 import { LiveConnectionStatus } from "@/features/live-sync/live-sync-provider";
 
@@ -25,10 +25,38 @@ export function DashboardShell({
   readonly children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const NavigationLink = pathname.startsWith("/admin/view-as/") ? ContextBoundaryLink : Link;
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [peeking, setPeeking] = useState(false);
+  const [hasInAppHistory, setHasInAppHistory] = useState(false);
+  // Track in-app navigation only: an external referrer must not become
+  // the target of the portal Back button.
+  useEffect(() => {
+    try {
+      const stored = window.sessionStorage.getItem("lhcc:current-path");
+      if (stored && stored !== pathname && stored.startsWith("/") && !stored.startsWith("//")) {
+        window.sessionStorage.setItem("lhcc:previous-path", stored);
+      }
+      window.sessionStorage.setItem("lhcc:current-path", pathname);
+      const previous = window.sessionStorage.getItem("lhcc:previous-path");
+      setHasInAppHistory(Boolean(previous && previous !== pathname && previous.startsWith("/") && !previous.startsWith("//")));
+    } catch {
+      setHasInAppHistory(false);
+    }
+  }, [pathname]);
+  const roleHome = pathname.startsWith("/admin/view-as/") ? "/admin" : `/${role}`;
+  const isLiveExam = /^\\/student\\/exams\\/[^/]+\\/?$/.test(pathname);
+  const canNavigateBack = hasInAppHistory || pathname !== roleHome;
+  function goBack() {
+    if (!canNavigateBack) return;
+    if (hasInAppHistory && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push(roleHome as import("next").Route);
+    }
+  }
   const close = useCallback(() => setOpen(false), []);
   const { panelRef, desktop } = useMobileNavigation(open, close);
   const previewing = collapsed && peeking && desktop;
@@ -93,6 +121,12 @@ export function DashboardShell({
           <button aria-label="Open navigation" aria-expanded={open} aria-controls="portal-navigation" onClick={() => setOpen(true)} className="grid size-11 shrink-0 place-items-center rounded-xl hover:bg-slate-50 lg:hidden">
             <Menu className="size-5" />
           </button>
+          {!isLiveExam && <button type="button" onClick={goBack}
+            disabled={!canNavigateBack} aria-label="Go back to the previous page"
+            title="Go back" className="lhcc-desktop-back group min-h-11 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-[border-color,background-color,transform,box-shadow] duration-150 hover:border-teal-600 hover:bg-teal-50 hover:text-teal-800 hover:shadow-md active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800">
+            <ArrowLeft aria-hidden="true" className="size-[18px] shrink-0 transition-transform duration-150 motion-safe:group-hover:-translate-x-0.5" strokeWidth={2} />
+            <span>Back</span>
+          </button>}
           <div className="relative hidden min-w-0 max-w-sm flex-1 sm:block">
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
             <input aria-label="Search" placeholder="Search the platform" className="h-10 w-full rounded-xl border bg-slate-50 pr-3 pl-10 text-sm" />

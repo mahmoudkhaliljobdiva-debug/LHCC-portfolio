@@ -613,3 +613,12 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--color-primary)
 .lhcc-card-stack { display: flex; flex-direction: column; min-width: 0; min-height: 100%; }
 .lhcc-card-body { flex: 1 1 auto; min-width: 0; }
 .lhcc-card-footer { margin-top: auto; padding-top: 1rem; }
+
+/* Desktop mouse/trackpad only: no extra Back control on touch/mobile. */
+.lhcc-desktop-back { display: none; }
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .lhcc-desktop-back { display: inline-flex; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lhcc-desktop-back, .lhcc-desktop-back svg { transition: none !important; transform: none !important; }
+}

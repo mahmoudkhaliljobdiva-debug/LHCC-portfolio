@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Clock, Check, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import type { Route } from "next";
+import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Check, ListChecks, X } from "lucide-react";
 import { AnswerFeedback, answerOptionTone } from "@/features/learning/answer-feedback";
 import { checkPracticeAnswer, readCurrentExam, saveExamAnswer, submitExam } from "@/actions/exams";
 import type { ExamAttempt } from "@/types/exam";
 
 export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOnly?: boolean }) {
+  const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null); const heading = useRef<HTMLHeadingElement>(null);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string,string>>(() => Object.fromEntries(exam.questions.filter(q => q.selectedOptionId).map(q => [q.id,q.selectedOptionId!])));
@@ -154,7 +157,21 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
     finally { locks.current = false; setChecking(false); }
   }
   function navigate(next: number) { if (locks.current || checking || submitting || next < 0 || next >= exam.questions.length) return; setIndex(next); requestAnimationFrame(() => heading.current?.focus()); }
+  function backToCourse() {
+    // Do not leave while a queued answer is unsaved or being checked.
+    if (pendingAnswers || failed || checking || submitting || locks.current || submitLock.current) return;
+    router.push(`/student/banks/${exam.bankId}` as Route);
+  }
   return <div className="mx-auto min-w-0 max-w-5xl space-y-5">
+    {!readOnly && <div className="flex items-center justify-between">
+      <button type="button" onClick={backToCourse}
+        disabled={pendingAnswers || failed || checking || submitting}
+        className="lhcc-desktop-back group min-h-11 items-center gap-2 rounded-xl border bg-white px-4 text-sm font-semibold text-teal-800 shadow-sm transition-[border-color,background-color,transform] duration-150 hover:border-teal-600 hover:bg-teal-50 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-slate-900 dark:text-teal-200"
+        aria-label="Back to course" title="Back to course — saved answers remain available">
+        <ArrowLeft aria-hidden="true" className="size-[18px] transition-transform duration-150 motion-safe:group-hover:-translate-x-0.5" strokeWidth={2} />
+        <span>Back to course</span>
+      </button>
+    </div>}
     <header className="overflow-hidden rounded-3xl border border-t-4 border-t-teal-600 bg-white p-5 shadow-sm sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0"><p className="text-sm font-medium text-teal-700 dark:text-teal-200">{exam.learningMode === "PRACTICE" ? "Practice · feedback after checking" : "Exam · feedback after submission"}</p><h1 className="mt-2 break-words text-2xl font-semibold text-slate-950">{exam.title ?? exam.bankName}{exam.year ? ` · ${exam.year}` : ""}</h1><p className="mt-2 text-sm text-slate-600">{exam.bankName}</p></div>{remaining !== null && <p className="inline-flex items-center gap-2 rounded-xl border px-4 py-3 font-mono text-slate-900" aria-label="Time remaining"><Clock className="size-4" />{Math.floor(remaining/60)}:{String(remaining%60).padStart(2,"0")}</p>}</div>
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm">
@@ -186,7 +203,7 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
     </section>
     <nav aria-label="Question navigator" className="rounded-3xl border bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div><h2 className="font-semibold text-slate-950">Question navigator</h2><p className="mt-1 text-xs text-slate-500">Jump to any question, including answered ones.</p></div>
+        <div><h2 className="inline-flex items-center gap-2 font-semibold text-slate-950"><ListChecks aria-hidden="true" className="size-[18px] text-teal-700" strokeWidth={2} />Question navigator</h2><p className="mt-1 text-xs text-slate-500">Jump to any question, including answered ones.</p></div>
         <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
           <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-teal-700" />Current</span>
           <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-emerald-500" />Answered</span>
