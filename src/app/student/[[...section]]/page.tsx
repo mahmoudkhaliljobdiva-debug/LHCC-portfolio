@@ -2,6 +2,8 @@ import { RoleScreen } from "@/features/dashboard/role-screen";
 import { getStudentBanks } from "@/lib/bank-access/server";
 import { notFound, redirect } from "next/navigation";
 import { StudentLearningOverview } from "@/features/exams/student-learning-overview";
+import { StudentReviewDashboard } from "@/features/exams/student-review-dashboard";
+import { getStudentMissedReview } from "@/lib/exams/missed-review-server";
 import { BookOpen, ClipboardList, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -12,7 +14,7 @@ export default async function StudentPage({ params }: { params: Promise<{ sectio
     if (section[0] === "exams") redirect("/student/exams");
     return <RoleScreen role="student" section={section[0]} />;
   }
-  const banks = await getStudentBanks();
+  const [banks, review] = await Promise.all([getStudentBanks(), getStudentMissedReview(3)]);
   const approved = banks.filter(bank => bank.accessState === "APPROVED");
   return <div className="space-y-7">
     <header>
@@ -21,6 +23,7 @@ export default async function StudentPage({ params }: { params: Promise<{ sectio
       <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Pick up an unfinished exam, open your courses, or review your results—all in one place.</p>
     </header>
     <StudentLearningOverview banks={approved} />
+    <StudentReviewDashboard review={review} />
     <section aria-label="More student actions" className="grid gap-4 sm:grid-cols-2">
       <Link href="/student/question-banks" className="lhcc-card-stack group rounded-2xl border bg-white p-5 shadow-sm transition-colors hover:border-teal-500 sm:p-6">
         <BookOpen className="size-6 text-teal-700" aria-hidden="true" />
