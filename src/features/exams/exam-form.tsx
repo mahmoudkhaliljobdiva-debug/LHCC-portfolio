@@ -17,7 +17,6 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
   const [remaining, setRemaining] = useState<number | null>(null);
   const [version, setVersion] = useState(exam.answerVersion);
   const [previousExam, setPreviousExam] = useState(exam);
-  const [conflict, setConflict] = useState(false);
   const locks = useRef(false); const submitLock = useRef(false); const autoSubmitted = useRef(false);
   // All saves are versioned and run serially. Navigation can be optimistic.
   const queue = useRef<Array<{ questionId: string; optionId: string }>>([]);
@@ -87,7 +86,6 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
         if (!result.ok) {
           writeBlocked.current = true;
           setErrors(prev => ({ ...prev, [item.questionId]: result.error.message }));
-          setConflict(result.error.code === "CONFLICT");
           setSaveIssue({ questionId: item.questionId, message: result.error.message, conflict: result.error.code === "CONFLICT" });
           break;
         }
@@ -143,7 +141,7 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
       queue.current=[]; setQueuedCount(0); writeBlocked.current=false; setSaveIssue(null);
       setAnswers(Object.fromEntries(latest.questions.filter(q=>q.selectedOptionId).map(q=>[q.id,q.selectedOptionId!])));
       setFeedback(Object.fromEntries(latest.questions.filter(q=>q.correctOptionId!==undefined).map(q=>[q.id,{outcome:q.outcome!,correctOptionId:q.correctOptionId!}])));
-      setErrors({}); setConflict(false);
+      setErrors({});
       if (latest.status==='COMPLETED') window.location.replace(`/student/exams/${exam.id}/result`);
     } catch { setSubmitError("Unable to load the latest answers. Reconnect and retry."); }
     finally { locks.current=false; setSaving(false); }
