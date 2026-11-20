@@ -1,0 +1,1249 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  public: {
+    Tables: {
+      lessons: {
+        Row: { id: string; question_bank_id: string; chapter_id: string; title: string; description: string; display_order: number; content_language: string; status: string; revision: number; created_at: string; updated_at: string }
+        Insert: { id: string; question_bank_id: string; chapter_id: string; title: string; description?: string; display_order?: number; content_language?: string; status?: string; revision?: number; created_at?: string; updated_at?: string }
+        Update: { id?: string; question_bank_id?: string; chapter_id?: string; title?: string; description?: string; display_order?: number; content_language?: string; status?: string; revision?: number; created_at?: string; updated_at?: string }
+        Relationships: [
+          { foreignKeyName: "lessons_question_bank_id_fkey"; columns: ["question_bank_id"]; isOneToOne: false; referencedRelation: "question_banks"; referencedColumns: ["id"] },
+          { foreignKeyName: "lessons_chapter_id_question_bank_id_fkey"; columns: ["chapter_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "bank_chapters"; referencedColumns: ["id", "question_bank_id"] },
+        ]
+      }
+      lesson_documents: {
+        Row: { id: string; lesson_id: string; question_bank_id: string; storage_path: string; filename: string; sha256: string; size_bytes: number; document_role: string; provenance: string; approved_for_students: boolean; reviewed_by: string | null; reviewed_at: string | null; uploaded_by: string; created_at: string }
+        Insert: { id: string; lesson_id: string; question_bank_id: string; storage_path: string; filename: string; sha256: string; size_bytes: number; document_role: string; provenance: string; approved_for_students?: boolean; reviewed_by?: string | null; reviewed_at?: string | null; uploaded_by: string; created_at?: string }
+        Update: { id?: string; lesson_id?: string; question_bank_id?: string; storage_path?: string; filename?: string; sha256?: string; size_bytes?: number; document_role?: string; provenance?: string; approved_for_students?: boolean; reviewed_by?: string | null; reviewed_at?: string | null; uploaded_by?: string; created_at?: string }
+        Relationships: [{ foreignKeyName: "lesson_documents_lesson_id_question_bank_id_fkey"; columns: ["lesson_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "lessons"; referencedColumns: ["id", "question_bank_id"] }]
+      }
+      lesson_questions: {
+        Row: { lesson_id: string; question_id: string; question_bank_id: string; document_id: string | null; source_page: number | null; source_number: string; position: number }
+        Insert: { lesson_id: string; question_id: string; question_bank_id: string; document_id?: string | null; source_page?: number | null; source_number?: string; position: number }
+        Update: { lesson_id?: string; question_id?: string; question_bank_id?: string; document_id?: string | null; source_page?: number | null; source_number?: string; position?: number }
+        Relationships: [
+          { foreignKeyName: "lesson_questions_lesson_id_question_bank_id_fkey"; columns: ["lesson_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "lessons"; referencedColumns: ["id", "question_bank_id"] },
+          { foreignKeyName: "lesson_questions_question_id_question_bank_id_fkey"; columns: ["question_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "bank_questions"; referencedColumns: ["id", "question_bank_id"] },
+          { foreignKeyName: "lesson_questions_document_id_lesson_id_question_bank_id_fkey"; columns: ["document_id", "lesson_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "lesson_documents"; referencedColumns: ["id", "lesson_id", "question_bank_id"] },
+        ]
+      }
+      bank_chapters: {
+        Row: { id: string; question_bank_id: string; title: string; description: string; display_order: number; published: boolean }
+        Insert: { id: string; question_bank_id: string; title: string; description?: string; display_order?: number; published?: boolean }
+        Update: { id?: string; question_bank_id?: string; title?: string; description?: string; display_order?: number; published?: boolean }
+        Relationships: [{ foreignKeyName: "bank_chapters_question_bank_id_fkey"; columns: ["question_bank_id"]; isOneToOne: false; referencedRelation: "question_banks"; referencedColumns: ["id"] }]
+      }
+      bank_generation_settings: {
+        Row: { question_bank_id: string; default_count: number; prioritize_incorrect: boolean }
+        Insert: { question_bank_id: string; default_count?: number; prioritize_incorrect?: boolean }
+        Update: { question_bank_id?: string; default_count?: number; prioritize_incorrect?: boolean }
+        Relationships: [{ foreignKeyName: "bank_generation_settings_question_bank_id_fkey"; columns: ["question_bank_id"]; isOneToOne: true; referencedRelation: "question_banks"; referencedColumns: ["id"] }]
+      }
+      chapter_questions: {
+        Row: { chapter_id: string; question_id: string; question_bank_id: string }
+        Insert: { chapter_id: string; question_id: string; question_bank_id: string }
+        Update: { chapter_id?: string; question_id?: string; question_bank_id?: string }
+        Relationships: [
+          { foreignKeyName: "chapter_questions_chapter_id_question_bank_id_fkey"; columns: ["chapter_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "bank_chapters"; referencedColumns: ["id", "question_bank_id"] },
+          { foreignKeyName: "chapter_questions_question_id_question_bank_id_fkey"; columns: ["question_id", "question_bank_id"]; isOneToOne: false; referencedRelation: "bank_questions"; referencedColumns: ["id", "question_bank_id"] },
+        ]
+      }
+      bank_questions: {
+        Row: {
+          created_at: string
+          difficulty: string | null
+          display_order: number | null
+          id: string
+          include_in_complete_bank: boolean
+          options: Json
+          question_bank_id: string
+          section_id: string | null
+          status: string
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          difficulty?: string | null
+          display_order?: number | null
+          id?: string
+          include_in_complete_bank?: boolean
+          options: Json
+          question_bank_id: string
+          section_id?: string | null
+          status?: string
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          difficulty?: string | null
+          display_order?: number | null
+          id?: string
+          include_in_complete_bank?: boolean
+          options?: Json
+          question_bank_id?: string
+          section_id?: string | null
+          status?: string
+          text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_questions_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_questions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "question_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_sources: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          question_bank_id: string
+          sha256: string
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id: string
+          question_bank_id: string
+          sha256: string
+          storage_path: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          question_bank_id?: string
+          sha256?: string
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_sources_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_sources_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      past_exam_questions: {
+        Row: {
+          exam_id: string
+          position: number
+          question_id: string
+          source_number: string
+        }
+        Insert: {
+          exam_id: string
+          position: number
+          question_id: string
+          source_number: string
+        }
+        Update: {
+          exam_id?: string
+          position?: number
+          question_id?: string
+          source_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "past_exam_questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "past_exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "past_exam_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "bank_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      past_exams: {
+        Row: {
+          created_at: string
+          exam_year: number | null
+          id: string
+          provenance: string
+          question_bank_id: string
+          session: string
+          source_id: string | null
+          status: string
+          time_limit_minutes: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          exam_year?: number | null
+          id: string
+          provenance: string
+          question_bank_id: string
+          session?: string
+          source_id?: string | null
+          status?: string
+          time_limit_minutes?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          exam_year?: number | null
+          id?: string
+          provenance?: string
+          question_bank_id?: string
+          session?: string
+          source_id?: string | null
+          status?: string
+          time_limit_minutes?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "past_exams_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "past_exams_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "exam_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolio_content: {
+        Row: {
+          content: Json
+          created_at: string
+          default_content: Json
+          published: boolean
+          revision: number
+          section_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          default_content: Json
+          published?: boolean
+          revision?: number
+          section_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          default_content?: Json
+          published?: boolean
+          revision?: number
+          section_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_content_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          activation_months: number | null
+          activation_start: string | null
+          age: number | null
+          avatar_url: string | null
+          country_code: string | null
+          created_at: string
+          created_by: string | null
+          deactivated_at: string | null
+          expiration_date: string | null
+          full_name: string
+          gender: Database["public"]["Enums"]["profile_gender"] | null
+          home_address: string | null
+          id: string
+          phone: string | null
+          reactivated_at: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          status: Database["public"]["Enums"]["user_status"]
+          updated_at: string
+        }
+        Insert: {
+          activation_months?: number | null
+          activation_start?: string | null
+          age?: number | null
+          avatar_url?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          deactivated_at?: string | null
+          expiration_date?: string | null
+          full_name: string
+          gender?: Database["public"]["Enums"]["profile_gender"] | null
+          home_address?: string | null
+          id: string
+          phone?: string | null
+          reactivated_at?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["user_status"]
+          updated_at?: string
+        }
+        Update: {
+          activation_months?: number | null
+          activation_start?: string | null
+          age?: number | null
+          avatar_url?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          deactivated_at?: string | null
+          expiration_date?: string | null
+          full_name?: string
+          gender?: Database["public"]["Enums"]["profile_gender"] | null
+          home_address?: string | null
+          id?: string
+          phone?: string | null
+          reactivated_at?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["user_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      question_attempt_answers: {
+        Row: {
+          answered_at: string
+          attempt_id: string
+          created_at: string
+          id: string
+          is_correct: boolean | null
+          question_id: string
+          selected_option_id: string
+        }
+        Insert: {
+          answered_at?: string
+          attempt_id: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          question_id: string
+          selected_option_id: string
+        }
+        Update: {
+          answered_at?: string
+          attempt_id?: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          question_id?: string
+          selected_option_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_attempt_answers_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "question_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_attempt_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "bank_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_attempt_questions: {
+        Row: {
+          source_number_snapshot: string | null
+          attempt_id: string
+          case_description_snapshot: string | null
+          case_title_snapshot: string | null
+          created_at: string
+          display_order: number
+          options: Json
+          question_id: string
+          section_id_snapshot: string | null
+          text: string
+        }
+        Insert: {
+          source_number_snapshot?: string | null
+          attempt_id: string
+          case_description_snapshot?: string | null
+          case_title_snapshot?: string | null
+          created_at?: string
+          display_order: number
+          options: Json
+          question_id: string
+          section_id_snapshot?: string | null
+          text: string
+        }
+        Update: {
+          source_number_snapshot?: string | null
+          attempt_id?: string
+          case_description_snapshot?: string | null
+          case_title_snapshot?: string | null
+          created_at?: string
+          display_order?: number
+          options?: Json
+          question_id?: string
+          section_id_snapshot?: string | null
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_attempt_questions_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "question_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_attempt_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "bank_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_attempts: {
+        Row: {
+          chapter_id: string | null
+          answer_version: number
+          bank_name_snapshot: string | null
+          correct_answers: number
+          created_at: string
+          deadline_at: string | null
+          exam_title_snapshot: string | null
+          exam_year_snapshot: number | null
+          id: string
+          incorrect_answers: number
+          learning_mode: string
+          mode: string
+          past_exam_id: string | null
+          question_bank_id: string
+          score_percentage: number
+          setup_signature: Json | null
+          shared_exam_id: string | null
+          source_kind: string
+          started_at: string
+          status: string
+          student_id: string
+          submitted_at: string | null
+          total_questions: number
+          updated_at: string
+        }
+        Insert: {
+          chapter_id?: string | null
+          answer_version?: number
+          bank_name_snapshot?: string | null
+          correct_answers?: number
+          created_at?: string
+          deadline_at?: string | null
+          exam_title_snapshot?: string | null
+          exam_year_snapshot?: number | null
+          id?: string
+          incorrect_answers?: number
+          learning_mode?: string
+          mode?: string
+          past_exam_id?: string | null
+          question_bank_id: string
+          score_percentage?: number
+          setup_signature?: Json | null
+          shared_exam_id?: string | null
+          source_kind?: string
+          started_at?: string
+          status?: string
+          student_id: string
+          submitted_at?: string | null
+          total_questions: number
+          updated_at?: string
+        }
+        Update: {
+          chapter_id?: string | null
+          answer_version?: number
+          bank_name_snapshot?: string | null
+          correct_answers?: number
+          created_at?: string
+          deadline_at?: string | null
+          exam_title_snapshot?: string | null
+          exam_year_snapshot?: number | null
+          id?: string
+          incorrect_answers?: number
+          learning_mode?: string
+          mode?: string
+          past_exam_id?: string | null
+          question_bank_id?: string
+          score_percentage?: number
+          setup_signature?: Json | null
+          shared_exam_id?: string | null
+          source_kind?: string
+          started_at?: string
+          status?: string
+          student_id?: string
+          submitted_at?: string | null
+          total_questions?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_attempts_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "bank_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_attempts_past_exam_id_fkey"
+            columns: ["past_exam_id"]
+            isOneToOne: false
+            referencedRelation: "past_exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_attempts_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_attempts_shared_exam_id_fkey"
+            columns: ["shared_exam_id"]
+            isOneToOne: false
+            referencedRelation: "shared_exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_attempts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_banks: {
+        Row: {
+          content_language: string
+          created_at: string
+          created_by: string | null
+          description: string
+          display_order: number
+          exam_category: string | null
+          id: string
+          image_url: string | null
+          material_icon: string
+          material_kind: string
+          name: string
+          price: number
+          publication_status: string
+          specialty_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          content_language?: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          display_order?: number
+          exam_category?: string | null
+          id?: string
+          image_url?: string | null
+          material_icon?: string
+          material_kind?: string
+          name: string
+          price?: number
+          publication_status?: string
+          specialty_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          content_language?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          display_order?: number
+          exam_category?: string | null
+          id?: string
+          image_url?: string | null
+          material_icon?: string
+          material_kind?: string
+          name?: string
+          price?: number
+          publication_status?: string
+          specialty_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_banks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_banks_specialty_id_fkey"
+            columns: ["specialty_id"]
+            isOneToOne: false
+            referencedRelation: "specialties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_sections: {
+        Row: {
+          created_at: string
+          description: string
+          display_order: number
+          id: string
+          question_bank_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          display_order?: number
+          id?: string
+          question_bank_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          display_order?: number
+          id?: string
+          question_bank_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_sections_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_exams: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          question_bank_id: string
+          question_count: number
+          status: string
+          time_limit_minutes: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id: string
+          question_bank_id: string
+          question_count: number
+          status?: string
+          time_limit_minutes?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          question_bank_id?: string
+          question_count?: number
+          status?: string
+          time_limit_minutes?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_exams_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_exams_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      specialties: {
+        Row: {
+          description: string
+          display_order: number
+          icon: string
+          id: string
+          name: string
+          published: boolean
+          slug: string
+        }
+        Insert: {
+          description?: string
+          display_order?: number
+          icon?: string
+          id?: string
+          name: string
+          published?: boolean
+          slug: string
+        }
+        Update: {
+          description?: string
+          display_order?: number
+          icon?: string
+          id?: string
+          name?: string
+          published?: boolean
+          slug?: string
+        }
+        Relationships: []
+      }
+      teacher_bank_assignments: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          question_bank_id: string
+          teacher_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          question_bank_id: string
+          teacher_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          question_bank_id?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_bank_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_bank_assignments_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_bank_assignments_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_bank_access: {
+        Row: {
+          created_at: string
+          granted_at: string
+          granted_by: string
+          id: string
+          price: number
+          question_bank_id: string
+          request_id: string | null
+          revoked_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_at?: string
+          granted_by: string
+          id?: string
+          price?: number
+          question_bank_id: string
+          request_id?: string | null
+          revoked_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          price?: number
+          question_bank_id?: string
+          request_id?: string | null
+          revoked_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_bank_access_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bank_access_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bank_access_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
+            referencedRelation: "user_bank_access_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bank_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_bank_access_requests: {
+        Row: {
+          created_at: string
+          id: string
+          question_bank_id: string
+          rejection_reason: string | null
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          question_bank_id: string
+          rejection_reason?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          question_bank_id?: string
+          rejection_reason?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_bank_access_requests_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bank_access_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bank_access_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          question_bank_id: string | null
+          transaction_date: string
+          transaction_type: string
+          updated_at: string
+          user_bank_access_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          question_bank_id?: string | null
+          transaction_date?: string
+          transaction_type: string
+          updated_at?: string
+          user_bank_access_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          question_bank_id?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string
+          user_bank_access_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transactions_question_bank_id_fkey"
+            columns: ["question_bank_id"]
+            isOneToOne: false
+            referencedRelation: "question_banks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transactions_user_bank_access_id_fkey"
+            columns: ["user_bank_access_id"]
+            isOneToOne: false
+            referencedRelation: "user_bank_access"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      bulk_update_subject_question_status: { Args: { bank_id: string; question_ids: string[]; target_status: string }; Returns: Json }
+      save_reviewed_subject_question: { Args: { bank_id: string; question_id: string | null; payload: Json }; Returns: Json }
+      save_subject_metadata: { Args: { payload: Json }; Returns: string }
+      admin_subject_materials: { Args: { specialty_filter: string; page_number?: number }; Returns: Json }
+      admin_subject_questions: { Args: { bank_id: string; page_number?: number; search_text?: string; view_kind?: string; chapter_filter?: string | null }; Returns: Json }
+      manage_subject_import: { Args: { operation: string; bank_id: string; item_id: string; payload?: Json }; Returns: Json }
+      delete_subject_question: { Args: { bank_id: string; question_id: string }; Returns: undefined }
+      admin_subject_lessons: { Args: { bank_id: string; lesson_id?: string | null }; Returns: Json }
+      save_lesson: { Args: { payload: Json }; Returns: Json }
+      register_lesson_document: { Args: { payload: Json }; Returns: string }
+      approve_lesson_document: { Args: { document_id: string; approved: boolean }; Returns: undefined }
+      admin_learning_materials: { Args: { kind: string; page_number?: number }; Returns: Json }
+      save_learning_material: { Args: { payload: Json }; Returns: string }
+      admin_chapters: { Args: { bank_id: string; page_number?: number; search_text?: string }; Returns: Json }
+      manage_chapters: { Args: { operation: string; payload: Json }; Returns: undefined }
+      admin_bank_data: { Args: never; Returns: Json }
+      admin_past_exams: { Args: { bank_id: string }; Returns: Json }
+      admin_shared_exams: {
+        Args: { bank_id: string; page_number?: number }
+        Returns: Json
+      }
+      admin_update_managed_profile: { Args: { payload: Json }; Returns: Json }
+      admin_wallet_data: { Args: never; Returns: Json }
+      assign_bank_specialty: {
+        Args: { bank_id: string; specialty_id?: string }
+        Returns: undefined
+      }
+      check_practice_answer: {
+        Args: { attempt_id: string; question_id: string }
+        Returns: Json
+      }
+      exam_bank_data: {
+        Args: { bank_id: string; subject_id?: string }
+        Returns: Json
+      }
+      exam_data: {
+        Args: { attempt_id: string; subject_id?: string }
+        Returns: Json
+      }
+      generate_shared_exam: { Args: { payload: Json }; Returns: string }
+      is_profile_access_active: {
+        Args: {
+          profile_expiration_date: string
+          profile_role: Database["public"]["Enums"]["user_role"]
+          profile_status: Database["public"]["Enums"]["user_status"]
+        }
+        Returns: boolean
+      }
+      learning_catalog: { Args: never; Returns: Json }
+      learning_progress: { Args: never; Returns: Json }
+      list_bank_access_requests: { Args: never; Returns: Json }
+      manage_bank_content: {
+        Args: { item_id: string; operation: string; payload?: Json }
+        Returns: undefined
+      }
+      manage_wallet_transaction: {
+        Args: { item_id: string; operation: string; payload?: Json }
+        Returns: undefined
+      }
+      register_exam_source: { Args: { payload: Json }; Returns: string }
+      request_bank_access: { Args: { bank_id: string }; Returns: string }
+      live_sync_state: { Args: { bank_id?: string; attempt_id?: string }; Returns: Json }
+      catalog_revision: { Args: Record<PropertyKey, never>; Returns: string }
+      revoke_bank_access: { Args: { request_id: string }; Returns: undefined }
+      save_exam_answer_versioned: { Args: { attempt_id: string; question_id: string; option_id: string; expected_version: number }; Returns: number }
+      reset_portfolio_content: { Args: never; Returns: undefined }
+      review_bank_access: {
+        Args: { decision: string; reason?: string; request_id: string }
+        Returns: undefined
+      }
+      save_exam_answer: {
+        Args: { attempt_id: string; option_id: string; question_id: string }
+        Returns: undefined
+      }
+      save_past_exam: { Args: { payload: Json }; Returns: string }
+      save_portfolio_content: { Args: { payload: Json }; Returns: undefined }
+      save_shared_exam: { Args: { payload: Json }; Returns: undefined }
+      save_specialty: { Args: { payload: Json }; Returns: string }
+      start_exam: { Args: { bank_id: string }; Returns: string }
+      start_learning_exam: { Args: { config: Json }; Returns: string }
+      submit_bank_answer: {
+        Args: { option_id: string; question_id: string }
+        Returns: Json
+      }
+      submit_exam: { Args: { attempt_id: string }; Returns: string }
+      teacher_add_question: {
+        Args: { item_id: string; payload: Json }
+        Returns: undefined
+      }
+    }
+    Enums: {
+      profile_gender: "MALE" | "FEMALE"
+      user_role: "ADMIN" | "TEACHER" | "STUDENT"
+      user_status: "ACTIVE" | "INACTIVE" | "EXPIRED"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      profile_gender: ["MALE", "FEMALE"],
+      user_role: ["ADMIN", "TEACHER", "STUDENT"],
+      user_status: ["ACTIVE", "INACTIVE", "EXPIRED"],
+    },
+  },
+} as const

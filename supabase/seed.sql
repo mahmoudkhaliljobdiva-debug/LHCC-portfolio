@@ -1,0 +1,3 @@
+-- Intentionally empty: do not seed or reset production business/Auth data.
+-- Provision legitimate users through the application and trusted Admin workflow.
+-- Automated fixtures belong only to isolated local QA; see docs/backend-qa.md.

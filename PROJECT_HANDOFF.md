@@ -1,0 +1,755 @@
+# L.H.C.C Healthcare Learning Platform — Project Handoff
+
+Current handoff updated: October 17, 2026. Older checkpoints below are historical.
+
+## Current production checkpoint
+
+- Production: https://lhcc-lb.com; normal Git pushes to `main` trigger Vercel.
+- Supabase is the source of truth. No mock business-data fallback or QA routes.
+- Nursing, Medical and Dentistry are independent specialties. Nursing Colloquium
+  remains under Nursing with its original 100 questions and 20 clinical cases.
+- Personal random, historical PDF and fixed shared exams reuse the canonical
+  question pool, private keys, frozen snapshots and independently owned attempts.
+- Authoritative architecture: [backend map](docs/backend-map.md) and
+  [learning-platform implementation](docs/learning-platform.md).
+- Latest cleanup/security findings: [production audit](docs/production-cleanup-audit.md).
+- Use Node 22.23.2. Keep automated tests; use isolated Supabase for mutating QA.
+- Never reset production, edit/reapply migrations, reuse archived QA credentials,
+  or delete records without explicit approval and a verified recovery plan.
+- The historical About CMS QA marker was reported, not silently removed.
+
+## Historical checkpoints (superseded; preserve as project history)
+
+The following dated checkpoints are not current architecture or setup instructions.
+Earlier mock features, migration counts and persistent QA-account descriptions
+must not be used to restore obsolete behavior. Follow the current links above.
+
+## Current checkpoint — backend source of truth
+
+The authoritative architecture and audit are in [docs/backend-map.md](docs/backend-map.md).
+This checkpoint supersedes all earlier demo/mock descriptions below.
+
+- Baseline `c294ca7` migrated attempts, answers, wallet, portfolio and reporting.
+- Hosted Supabase project: `lcazjsmmegwwnmuupsko`. All ten local migrations
+  through `20260913175259` are applied. Do not reapply or edit them.
+- Follow-up audit uses RLS session queries for student/teacher reporting;
+  only verified administrators read the protected Auth/profile directory.
+- Database queries exhaust ordered pages; totals do not silently stop at API caps.
+- Completed course answer feedback survives refresh; progress counts unique
+  current questions; recent activity includes real requests/reviews and admin events.
+- Production business localStorage and mock files are removed. Only `lhcc-theme`
+  remains. The question-bank provider adapts real server data and actions.
+- SQL persistence/permission tests run in BEGIN/ROLLBACK; no lasting test accounts,
+  grants, attempts or ledger entries were created. Existing content checksums match.
+- Supabase types match production. No new schema or permission changes in the follow-up.
+- Run Node 22.23.2 typecheck/lint/build and the reporting regression suite.
+- Verify Vercel's Git-triggered deployment against the pushed commit. Production:
+  https://lhcc-lb.com. Do not manually duplicate deployment.
+- Exams and teacher cohort management are unconfigured, with honest empty states.
+  Signed-in browser flows require test sessions; SQL tests are not browser tests.
+
+## Historical checkpoints (superseded)
+
+## Current checkpoint — authentication and course-access separation
+
+This checkpoint supersedes older frontend-only, signup-activation, and mock-bank
+notes below. The full request is saved in `docs/course-access-request.md`; the
+architecture, migrations, security boundaries, and verification are documented in
+`docs/student-course-access.md`.
+
+- Public signup now creates ACTIVE STUDENT accounts with no course grants.
+- Students sign in normally; course approval is independent. Explicit INACTIVE
+  or EXPIRED status still denies account access. Teacher/admin guards remain.
+- The Supabase Email confirmation switch was turned OFF by the owner and verified
+  through Auth settings (`mailer_autoconfirm: true`, signup enabled).
+- Student catalog, requests, grants, admin bank editor, questions, and answer
+  evaluation now use Supabase. Legacy localStorage is not student authorization.
+- `/admin/access-requests` supports approval/rejection and preserved request history.
+- `/student/banks/[bankId]` checks enabled accounts and active course grants; RLS
+  independently blocks locked questions. Answer keys are private.
+- Applied migrations: `20260906161352_student_course_access` and
+  `20260907175002_isolate_course_privileged_functions`. Local filenames match
+  the hosted migration history. Never edit or reapply those migrations.
+- SQL permission/provisioning tests passed before and after migration. Browser
+  tests passed through signup, login, requests, approval/rejection, retry, and
+  submitted-answer feedback. The country dropdown hydration mismatch was fixed
+  by passing one server-resolved list to the signup client.
+- Browser tests used a temporary admin approved explicitly by the owner. All
+  temporary test identities, sessions, requests and grants were removed. The
+  original active administrator remains unchanged.
+- Next.js development server-function argument logging is disabled so passwords
+  are not printed during signup/login debugging.
+- Advisor results: no newly introduced security warnings; existing leaked-password
+  protection remains disabled. Performance findings are unused-index information.
+- Use Node 22.23.2 through fnm. In PowerShell tool sessions, prepend
+  `C:/Users/mahmo/AppData/Roaming/fnm/node-versions/v22.23.2/installation` to PATH
+  and call `npm.cmd` (the default system Node is older; npm.ps1 may be blocked).
+- Browser fallback: `scripts/course-browser-test.mjs` uses isolated headless Edge,
+  no additional packages. Auth fixture creation requires `LHCC_RUN_AUTH_TESTS=1`;
+  temporary admin promotion requires explicit owner authorization. Do not reuse
+  deleted test accounts. Screenshots are ignored under `.test-artifacts/`.
+- Release checklist: final typecheck/lint/build/diff review, commit/push `main`,
+  let Git-connected Vercel deploy automatically. Never manually redeploy routine
+  changes. Record the final commit in the turn handoff; do not store credentials.
+
+Current baseline before this feature: `44f6ca6` on `main`.
+Existing Admin User Management still needs a server-only Supabase secret in the
+runtime environment; course approval/content operations use guarded session RPCs
+and do not need that secret. Wallet/analytics and teacher preview remain demos.
+
+## Historical project notes
+
+## Project objective
+
+Build a production-quality frontend demonstration for a Healthcare Learning
+Platform. This is a SaaS-style application containing:
+
+- A public healthcare portfolio
+- Student portal
+- Teacher portal
+- Admin portal
+- Question bank management
+- Dashboards and analytics
+- A virtual wallet using learning credits only
+- Performance reports
+
+## Current implementation status
+
+The original frontend-only scope below records the project starting point. It
+has been superseded by explicitly approved Supabase phases completed in August
+and September 2026. The application now uses Supabase Auth, server-side role
+guards, `public.profiles`, and Supabase-backed Admin User Management. Unmigrated
+features remain mock/localStorage implementations until separately approved.
+
+Production is hosted at:
+
+`https://lhcc-portfolio.vercel.app`
+
+The Vercel project `lhcc-portfolio` is connected to the GitHub repository
+`mahmoudkhaliljobdiva-debug/LHCC-portfolio`. Pushes to `main` now trigger
+automatic production deployments. Do not manually deploy routine changes.
+
+The current phase is frontend-only. All application information uses reusable
+mock data.
+
+## Explicit scope boundaries
+
+Do not implement any of the following during the frontend demo phase:
+
+- Database
+- Authentication
+- API
+- Backend
+- Supabase
+- Payment gateway
+- Production business logic
+
+The login page is presentational. Portal links enter the appropriate demo
+directly and do not authenticate or authorize a user.
+
+## Technology
+
+- Next.js 16 with App Router
+- React 19
+- TypeScript with strict compiler safeguards
+- Tailwind CSS 4
+- Recharts
+- Lucide React
+- React Context only if a genuine shared-state requirement emerges
+- No Redux
+- No Zustand
+
+Supporting packages:
+
+- `class-variance-authority`
+- `clsx`
+- `tailwind-merge`
+- `date-fns`
+
+## Design direction
+
+The product name is **L.H.C.C**, short for **Lebanese Health & Competence
+Center**.
+
+The requested visual qualities are:
+
+- Professional
+- Medical
+- Clean
+- Minimal
+- Modern
+- Responsive
+
+Core colors:
+
+- Warm ivory
+- Muted medical navy
+- Coral
+- Slate
+- White
+
+The palette is derived from the supplied L.H.C.C logo. The primary logo asset is:
+
+`public/images/lhcc-logo.png`
+
+Avoid:
+
+- Heavy gradients
+- Glassmorphism
+- Flashy animation
+
+AMBOSS was used as a reference for clinical positioning, strong content
+hierarchy, audience-specific messaging, and the relationship between learning,
+question banks, analytics, and educator support:
+
+https://www.amboss.com/us
+
+The implementation is original and does not copy AMBOSS branding or content.
+
+## Architecture
+
+The repository uses a feature-oriented structure:
+
+```text
+public/               Static assets
+src/
+├── app/              Routes, metadata, route layouts, error states
+├── components/       Shared domain-neutral components
+│   ├── charts/
+│   └── ui/
+├── constants/        Routes and role navigation
+├── data/             Typed mock datasets
+├── features/         Product-domain screens and components
+├── hooks/            Shared hooks
+├── layouts/          Public and dashboard shells
+├── lib/              Infrastructure helpers
+├── services/         Mock-data access boundary
+├── types/            Shared domain contracts
+└── utils/            Pure shared transformations
+```
+
+Architectural rules:
+
+1. App Router route files should stay thin.
+2. Feature-specific components belong inside their feature.
+3. Shared visual primitives belong in `components`.
+4. Features must not import another feature's internal modules.
+5. Components should read demo data through services when data access is needed.
+6. Server Components are the default.
+7. Use Client Components only for interaction or browser-dependent libraries
+   such as Recharts.
+8. Role layouts share a configurable dashboard shell rather than duplicating
+   navigation implementations.
+
+## Implemented public routes
+
+| Route | Description |
+|---|---|
+| `/` | Public landing page |
+| `/about` | Product mission and positioning |
+| `/services` | Healthcare learning services |
+| `/platform` | Platform overview |
+| `/contact` | Mock contact information |
+| `/login` | Supabase password login with role-based routing |
+| `/signup` | Public Student registration with email confirmation and Admin activation |
+
+## Implemented student routes
+
+| Route | Description |
+|---|---|
+| `/student` | Student dashboard |
+| `/student/question-banks` | Six reusable question banks |
+| `/student/exams` | Mock exam management view |
+| `/student/analytics` | Performance analytics |
+| `/student/profile` | Presentational profile form |
+
+## Implemented teacher routes
+
+| Route | Description |
+|---|---|
+| `/teacher` | Teacher dashboard |
+| `/teacher/questions` | Mock question management |
+| `/teacher/question-banks` | Shared question banks |
+| `/teacher/exams` | Mock assessment management |
+| `/teacher/students` | Mock student cohort table |
+| `/teacher/analytics` | Cohort analytics |
+
+## Implemented admin routes
+
+| Route | Description |
+|---|---|
+| `/admin` | Platform dashboard |
+| `/admin/portfolio` | Public portfolio content editor |
+| `/admin/users` | Mock user management |
+| `/admin/question-banks` | Shared question banks |
+| `/admin/wallet` | Business wallet analytics and ticket management |
+| `/admin/settings` | Presentational settings |
+
+The role routes use optional catch-all route files so that each role shares one
+screen-composition layer:
+
+- `src/app/student/[[...section]]/page.tsx`
+- `src/app/teacher/[[...section]]/page.tsx`
+- `src/app/admin/[[...section]]/page.tsx`
+
+## Mock datasets
+
+### Question banks
+
+The six banks are defined once in:
+
+`src/data/question-banks.mock.ts`
+
+Banks:
+
+1. Human Anatomy
+2. Medical Physiology
+3. Pharmacology
+4. General Pathology
+5. Medical Microbiology
+6. Clinical Medicine
+
+Each record contains:
+
+- Stable ID
+- Title
+- Description
+- Question count
+- Completed count
+- Average score
+- Difficulty
+- Accent token
+
+The shared rendering component is:
+
+`src/features/question-banks/question-bank-grid.tsx`
+
+Do not create six separate bank implementations.
+
+### Wallet
+
+The active admin wallet is derived from the financial transactions stored with
+user-management data. Typed defaults live in `src/data/default-wallet-data.ts`,
+analytics selectors live in `src/utils/wallet-analytics.ts`, and the dedicated
+page is implemented in `src/features/wallet/admin-wallet-page.tsx`.
+
+It remains an admin-only frontend simulation. It has no payment processing,
+backend ledger, or production authorization.
+
+### Analytics
+
+Defined in:
+
+`src/data/analytics.mock.ts`
+
+It currently includes:
+
+- Score distribution histogram data
+- Six-month score trend
+- Performance metrics
+- Wallet trend data from the wallet dataset
+
+Charts are implemented with Recharts in:
+
+`src/components/charts/performance-chart.tsx`
+
+## Important reusable modules
+
+- `src/layouts/public-layout/public-header.tsx`
+- `src/layouts/public-layout/public-footer.tsx`
+- `src/layouts/dashboard-layout/dashboard-shell.tsx`
+- `src/features/dashboard/role-screen.tsx`
+- `src/features/dashboard/metric-card.tsx`
+- `src/features/question-banks/question-bank-grid.tsx`
+- `src/components/charts/performance-chart.tsx`
+- `src/components/ui/brand.tsx`
+- `src/components/ui/progress.tsx`
+- `src/constants/navigation.ts`
+- `src/constants/routes.ts`
+
+## Responsive and accessibility work
+
+The current implementation includes:
+
+- Responsive layouts for phone, tablet, and laptop
+- Laptop/desktop dashboard sidebar
+- Phone and tablet off-canvas dashboard navigation
+- Responsive public navigation
+- Responsive grids and tables
+- Semantic header, main, nav, section, article, table, and footer elements
+- Accessible labels on icon-only controls
+- Keyboard-visible focus styles
+- Progress bar ARIA attributes
+- Color combinations designed for readable contrast
+- Light and dark color themes
+- Accessible theme-toggle labels
+- Theme preference stored in `localStorage` under `lhcc-theme`
+- Device color-scheme preference used on the first visit
+
+The shared theme control is:
+
+`src/components/ui/theme-toggle.tsx`
+
+The initial inline theme script in `src/app/layout.tsx` applies the stored or
+device theme before hydration to minimize incorrect-theme flashing.
+
+The homepage "See the whole learning journey" section has a dedicated dark navy
+surface in dark mode. Preserve this contrast treatment when editing that section.
+
+Accessibility should continue to be checked as new interactive components are
+introduced.
+
+## Validation status
+
+The following checks passed after implementation:
+
+```powershell
+npm run typecheck
+npm run lint
+npm run build
+```
+
+The production build generated the expected public, authentication, student,
+teacher, and admin routes successfully.
+
+After the July 28 logo, branding, theme, role, and contrast changes:
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed before the final isolated homepage contrast correction.
+- Typecheck and lint also passed after that final contrast correction.
+
+## Running locally
+
+```powershell
+cd C:\Users\mahmo\GIT\L.H.C.C-portfolio
+npm run dev
+```
+
+Then open:
+
+http://localhost:3000
+
+Dependencies are already installed and `package-lock.json` is present.
+
+## Known environment notes
+
+- Node `22.23.2` is installed through `fnm`, is the local default, and is pinned
+  by `.node-version` and `.nvmrc`.
+- The package manifest requires Node `>=22.23.0 <23` to keep development and
+  deployments on the Node 22 LTS line.
+- `npm audit --omit=dev` reported three high-severity advisories in transitive
+  Next.js dependencies (`postcss` and `sharp`).
+- The npm suggested forced remediation would incorrectly downgrade Next.js to
+  version 9 and must not be used.
+- Recheck these advisories after newer compatible Next.js dependencies become
+  available.
+
+## Recommended next session
+
+Continue in this order:
+
+1. Run the development server and visually inspect the public and portal routes.
+2. Test both light and dark modes at phone, tablet, and laptop breakpoints.
+3. Inspect every pale custom background in dark mode for adequate contrast.
+4. Add route-aware titles and breadcrumbs inside the dashboard header.
+5. Replace the generic management table with feature-specific exam, question,
+   student, and user components.
+6. Add detailed question-bank routes using a dynamic bank ID.
+7. Add a mock exam-taking flow with local component state.
+8. Add accessible chart summaries or data-table alternatives.
+9. Add loading, empty, success, and error demonstration states.
+10. Add Vitest, React Testing Library, and Playwright.
+11. Perform an automated accessibility audit.
+
+## July 28 session summary
+
+Completed changes:
+
+- Added the supplied medical logo and prepared a cleaned project asset.
+- Rebranded all visible product references from MedLumen to `L.H.C.C`.
+- Set the full name to `Lebanese Health & Competence Center`.
+- Changed the visual palette to logo-derived navy, coral, and warm ivory.
+- Updated chart colors to match the logo.
+- Removed Wallet from the student portal.
+- Confirmed teachers also have no Wallet access.
+- Restricted Wallet navigation and content to administrators.
+- Added persistent light and dark themes.
+- Added theme controls to public, mobile, authentication, and dashboard headers.
+- Added a dedicated dark-mode background to the homepage learning-journey CTA
+  after a contrast issue was identified.
+- Confirmed responsive behavior remains designed for phone, tablet, and laptop.
+
+Current Git state:
+
+- Local branch: `main`, tracking `origin/main`.
+- The July 28 changes are currently uncommitted and have not been pushed.
+- The last pushed commit remains `c3eb93a`.
+
+## August 2 portfolio content management
+
+The admin portal now includes `/admin/portfolio`. It provides responsive section
+navigation and editors for About, Services, Platform, and Contact content.
+
+Architecture:
+
+- Shared types: `src/types/portfolio-content.ts`
+- Default content: `src/data/portfolio-content.default.ts`
+- Local persistence: `src/services/portfolio-content.storage.ts`
+- Shared React provider: `src/features/portfolio-content/portfolio-content-provider.tsx`
+- Public renderer: `src/features/portfolio-content/portfolio-page.tsx`
+- Admin editor: `src/features/portfolio-content/portfolio-editor.tsx`
+
+The provider is mounted in the root layout. Saved content is stored under the
+`lhcc-portfolio-content` localStorage key and immediately updates all consumers
+in the current application session. Browser storage events synchronize other
+open tabs. Reset removes saved content and restores the typed defaults.
+
+The editor validates every required field, supports repeatable item addition and
+removal, disables saving when clean or while saving, reports success and errors,
+warns before navigation with unsaved changes, and confirms destructive resets.
+
+The public About, Services, Platform, and Contact route no longer contains its
+own visible content constants. All four pages use the shared content model.
+
+Validation on August 2, 2026:
+
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npm run build` passed.
+
+## August 2 admin question-bank management
+
+The admin portal includes a complete mock QCU management workflow:
+
+- `/admin/question-banks`
+- `/admin/question-banks/[bankId]`
+- `/admin/question-banks/[bankId]/questions/new`
+- `/admin/question-banks/[bankId]/questions/[questionId]/edit`
+
+Admin question-bank and question data is separate from learner-facing progress
+summaries. Shared admin models extend `src/types/question-bank.ts`; defaults live
+in `src/data/default-question-banks.ts` and `src/data/default-questions.ts`.
+
+`AdminQuestionBankProvider` is mounted only inside the admin layout. It owns one
+consistent `{ banks, questions }` store and exposes add, update, delete, and
+bank-scoped selector functions. Data persists under the
+`lhcc-admin-question-banks` localStorage key. Invalid or corrupted stored data
+falls back to typed defaults.
+
+Deleting a bank cascades only to questions whose `bankId` matches that bank.
+Question lists always use `getQuestionsByBankId(bankId)`, preventing questions
+from different banks from being mixed.
+
+QCU forms use native radio inputs and validate at least two non-empty unique
+answers with exactly one correct answer before creating or updating a question.
+
+Validation after implementation:
+
+- `npm run lint` passed.
+- `npm run build` passed, including strict TypeScript validation.
+
+## August 2 admin wallet and question-bank access
+
+The former Admin Reports navigation and route were removed. `/admin/reports`
+now resolves to the application not-found boundary.
+
+User add/edit forms can grant priced access to any managed question bank. A new
+grant creates one automatic positive bank-sale transaction. Price changes add
+only the signed difference as an immutable adjustment. Revocation can preserve
+the original sale or add one negative refund transaction after confirmation.
+Automatic transactions cannot be edited or deleted.
+
+`/admin/wallet` derives its balance, earned, spent, bank sales, other income,
+expenses, chart, and transaction table from the shared transaction collection.
+Admins can add, edit, and delete manual income/expense tickets. All wallet and
+bank-access state persists with the `lhcc-user-management` localStorage record.
+
+Learner-facing question-bank cards consult the same active access collection and
+show inaccessible banks as locked. This is demo UI enforcement only; a
+production backend must enforce authorization and financial integrity.
+
+## August 2 admin user management
+
+The admin portal now has a dedicated `/admin/users` implementation and student
+activity drill-down at `/admin/users/[userId]/activity`.
+
+User and usage state is owned by the root `UserManagementProvider` and persisted
+under `lhcc-user-management`. Demo student/teacher sessions use
+`lhcc-demo-session`. Invalid stored data falls back to generated typed defaults,
+and expired active users are normalized and persisted during loading.
+
+Activation rules are centralized in `src/utils/user-activation.ts`:
+
+- Students always receive exactly one calendar month.
+- Teachers receive 1–36 calendar months.
+- Month-end calculation clamps to the final valid target-month day.
+- Manual inactivity wins over date status.
+- Expiration on or before today is expired.
+- Active accounts within seven days of expiration are `expiring-soon`.
+
+The mock login now resolves a managed user by email and rejects inactive or
+expired accounts. Student and teacher layouts use a client-side demo guard that
+rechecks the same effective status for direct route access. This is explicitly
+frontend-only; production authorization must be enforced by a backend.
+
+Student usage totals and charts are derived from `StudentBankUsage` records.
+`recordStudentQuestionActivity()` is available for future question-answer and
+attempt flows to update the correct student and bank without separate totals.
+
+Validation after implementation:
+
+- `npm run lint` passed.
+- `npm run build` passed, including strict TypeScript validation.
+
+## August 16 Supabase connection
+
+The Supabase plugin is connected to the `LHCCPortfolio` project
+(`lcazjsmmegwwnmuupsko`) in `ap-northeast-1`. Local development uses a
+git-ignored `.env.local` containing the project URL and publishable key. No
+service-role key is stored locally.
+
+The remote project has these applied migrations:
+
+- `create_profiles`
+- `restrict_rls_auto_enable`
+
+The `public.profiles` table has RLS enabled. The security advisor reports no
+remaining findings. The unused-index performance notices are expected while
+the new table contains no rows.
+
+## August 16 Phase 3 Admin User Management
+
+`/admin/users` now lists and mutates real Supabase Auth identities joined to
+`public.profiles`. Server actions validate all inputs with Zod, verify the
+request cookie belongs to an active `ADMIN`, and only then use the server-only
+administrative client. The browser never receives the secret/service-role key.
+
+New accounts use `inviteUserByEmail`; users set their own passwords through the
+existing callback/update-password flow. Student activation is forced to one
+calendar month. Teacher activation accepts 1–36 months. Server code calculates
+month-end clamping and never trusts a browser-provided expiration date.
+
+The Phase 3 migration adds `created_by`, `deactivated_at`, and `reactivated_at`
+to `public.profiles`, plus the required foreign-key index. Existing self-profile
+RLS remains unchanged. Deactivation retains Auth identities and historical
+records; incomplete invitation provisioning is the sole rollback case that
+removes a newly created Auth identity.
+
+Mock wallet, question-bank access, and student usage remain in
+`UserManagementProvider`. Admin Users no longer reads its mock user collection;
+usage and bank controls are labeled disabled/deferred. Bootstrap/test steps are
+in `docs/supabase-phase3-test-accounts.md`.
+
+The connected project still needs `SUPABASE_SECRET_KEY` (or legacy
+`SUPABASE_SERVICE_ROLE_KEY`) in local/deployment environment configuration
+before Admin User Management integration tests can run. The initial active
+Admin Auth user was bootstrapped on September 5 as recorded below.
+
+## September 5 deployment, registration, and Admin bootstrap
+
+### Vercel and GitHub
+
+- Vercel project: `lhcc-portfolio`
+- Production URL: `https://lhcc-portfolio.vercel.app`
+- Framework preset: Next.js
+- Runtime: Node.js 22.x
+- Git repository: `mahmoudkhaliljobdiva-debug/LHCC-portfolio`
+- Production branch: `main`
+- Git integration was verified with an automatic production deployment.
+- `/`, `/login`, and `/signup` returned HTTP 200 after deployment.
+- `/admin`, `/student`, and `/teacher` redirect unauthenticated visitors to
+  `/login?reason=auth-required`.
+
+Configured Vercel variables:
+
+- `NEXT_PUBLIC_SUPABASE_URL` for Production, Preview, and Development
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` for Production, Preview, and Development
+- `NEXT_PUBLIC_SITE_URL` using the production URL for Production/Preview and
+  localhost for Development
+
+`SUPABASE_SECRET_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are still missing from
+local and Vercel configuration. Do not store either in Git. Add one directly in
+Vercel before testing Supabase Admin User Management mutations.
+
+### Public Student registration
+
+The public `/signup` route was added in commit `5197b2c`. Registration:
+
+- Validates full name, email, password, and confirmation server-side with Zod.
+- Accepts no role or activation state from the browser.
+- Calls Supabase Auth `signUp` using the public/server session client.
+- Relies on the database trigger to create an `INACTIVE` `STUDENT` profile.
+- Requires Admin activation before portal access.
+- Uses `/auth/callback` for email confirmation.
+- Keeps Teacher and Admin account creation out of the public form.
+
+The Supabase Auth Site URL still redirected confirmation to localhost during
+the first production registration. The confirmation itself succeeded. In the
+Supabase Auth URL Configuration dashboard, set:
+
+```text
+Site URL:
+https://lhcc-portfolio.vercel.app
+
+Redirect URLs:
+https://lhcc-portfolio.vercel.app/auth/callback
+http://localhost:3000/auth/callback
+```
+
+Configure custom SMTP before relying on confirmation/invitation email delivery
+for arbitrary production users.
+
+### Initial Admin account
+
+The initial administrator is stored in Supabase Auth and `public.profiles`.
+Personal account details remain only in Supabase and are intentionally excluded
+from this repository. Verified state at the end of the session:
+
+- Email confirmed: yes
+- Role: `ADMIN`
+- Status: `ACTIVE`
+- Subscription activation/expiration: not applicable (`null`)
+
+No password, access token, API key, confirmation link, or other secret is stored
+in this repository. Sign in at `https://lhcc-portfolio.vercel.app/login` using
+the password privately selected during registration.
+
+### Browser icon
+
+The L.H.C.C logo is registered as the browser favicon. The final favicon asset
+is `public/images/lhcc-logo-round.png`: a 512x512 circular version of the
+approved logo with verified alpha transparency outside the ring. The primary
+site logo remains `public/images/lhcc-logo.png`.
+
+Relevant commits:
+
+- `fc0b03d` — Supabase-backed Admin User Management
+- `5197b2c` — public Student registration
+- `2ea5ed7` — verified Git-triggered Vercel deployment
+- `192295f` — L.H.C.C browser icon metadata
+- `c493fe7` — transparent circular favicon
+
+### Immediate next steps
+
+1. Save the production Site URL and callback allow-list in Supabase Auth.
+2. Add `SUPABASE_SECRET_KEY` directly to Vercel and local `.env.local` without
+   committing it.
+3. Sign in with the active Admin account and verify `/admin` routing.
+4. Test Admin Users list/create/deactivate/reactivate after the secret is set.
+5. Configure custom SMTP and test registration confirmation end-to-end with a
+   separate Student email.
+
+## Prompt for continuing tomorrow
+
+Use the following prompt in a new session:
+
+> Continue implementing the L.H.C.C Healthcare Learning Platform frontend demo.
+> Read `PROJECT_HANDOFF.md` and inspect the existing repository before making
+> changes. Preserve the current feature-oriented architecture, strict TypeScript,
+> current mock-data migration boundary, medical visual system, responsiveness,
+> and accessibility requirements. Continue using the connected `LHCCPortfolio`
+> Supabase project for the approved backend phases; do not add payment gateway
+> integration. Start with the next-session checklist in the handoff document,
+> validate changes with typecheck, lint, and production build, and report
+> exactly what was completed.

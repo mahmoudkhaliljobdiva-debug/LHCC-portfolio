@@ -1,0 +1,44 @@
+import {
+  BarChart3,
+  BookOpen,
+  CircleDollarSign,
+  ClipboardCheck,
+  FileQuestion,
+  Gauge,
+  PanelsTopLeft,
+  Settings,
+  UserCircle,
+  Users,
+} from "lucide-react";
+
+import { ROUTES } from "@/constants/routes";
+import type { NavigationItem } from "@/types/navigation";
+import type { UserRole } from "@/types/roles";
+
+export const ROLE_NAVIGATION = {
+  student: [
+    { label: "Dashboard", href: ROUTES.student.dashboard, icon: Gauge },
+    { label: "Question Banks", href: ROUTES.student.questionBanks, icon: BookOpen },
+    { label: "My Progress", href: ROUTES.student.exams, icon: ClipboardCheck },
+    { label: "Analytics", href: ROUTES.student.analytics, icon: BarChart3 },
+    { label: "Profile", href: ROUTES.student.profile, icon: UserCircle },
+  ],
+  teacher: [
+    { label: "Dashboard", href: ROUTES.teacher.dashboard, icon: Gauge },
+    { label: "Questions", href: ROUTES.teacher.questions, icon: FileQuestion },
+    { label: "Question Banks", href: ROUTES.teacher.questionBanks, icon: BookOpen },
+    { label: "Profile", href: "/teacher/profile", icon: UserCircle },
+  ],
+  admin: [
+    { label: "Access Requests", href: "/admin/access-requests", icon: ClipboardCheck },
+    { label: "Dashboard", href: ROUTES.admin.dashboard, icon: Gauge },
+    { label: "Portfolio", href: ROUTES.admin.portfolio, icon: PanelsTopLeft },
+    { label: "Users", href: ROUTES.admin.users, icon: Users },
+    { label: "Question Banks", href: ROUTES.admin.questionBanks, icon: BookOpen },
+    { label: "Subjects", href: "/admin/subjects", icon: BookOpen },
+    { label: "Exam Tracks", href: "/admin/exam-tracks", icon: ClipboardCheck },
+    { label: "Specialties", href: "/admin/specialties", icon: PanelsTopLeft },
+    { label: "Wallet", href: ROUTES.admin.wallet, icon: CircleDollarSign },
+    { label: "Settings", href: ROUTES.admin.settings, icon: Settings },
+  ],
+} as const satisfies Record<UserRole, readonly NavigationItem[]>;

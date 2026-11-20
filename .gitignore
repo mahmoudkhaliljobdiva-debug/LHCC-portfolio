@@ -1,0 +1,15 @@
+.next/
+node_modules/
+out/
+coverage/
+.test-artifacts/
+*.tsbuildinfo
+.env
+.env.*
+*.env.local
+!.env.example
+.DS_Store
+Thumbs.db
+npm-debug.log*
+.vercel/
+supabase/.temp/

@@ -1,0 +1,147 @@
+"use client";
+
+import { Select } from "@/components/ui/select";
+import { ModalPanel } from "@/components/ui/modal-panel";
+
+import { useState } from "react";
+import Link from "next/link";
+
+import { MAX_HOME_ADDRESS_LENGTH, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/constants/profile";
+import { cn } from "@/lib/cn";
+import type { ProfileGender } from "@/types/account";
+import type { ServerResult } from "@/types/server-result";
+import type { ManagedUserRole, PlatformUser, PlatformUserInput, UserAccountStatus } from "@/types/user-management";
+import { addCalendarMonths, getTodayDate } from "@/utils/user-activation";
+
+export type UserDialogState =
+  | { readonly mode: "add"; readonly user?: never }
+  | { readonly mode: "edit"; readonly user: PlatformUser };
+
+interface UserFormDialogProps {
+  readonly state: UserDialogState;
+  readonly users: readonly PlatformUser[];
+  readonly banks: readonly { readonly id: string; readonly name: string }[];
+  readonly onCancel: () => void;
+  readonly onSave: (input: PlatformUserInput) => Promise<ServerResult<PlatformUser>>;
+}
+
+export function UserFormDialog({ state, users, banks, onCancel, onSave }: UserFormDialogProps) {
+  const editing = state.mode === "edit" ? state.user : undefined;
+  const [fullName, setFullName] = useState(editing?.fullName ?? "");
+  const [email, setEmail] = useState(editing?.email ?? "");
+  const [phone, setPhone] = useState(editing?.phone ?? "");
+  const [age, setAge] = useState(editing?.age === null || editing?.age === undefined ? "" : String(editing.age));
+  const [gender, setGender] = useState<ProfileGender | "">(editing?.gender ?? "");
+  const [homeAddress, setHomeAddress] = useState(editing?.homeAddress ?? "");
+  const [role, setRole] = useState<ManagedUserRole>(editing?.role ?? "student");
+  const [teacherBankIds, setTeacherBankIds] = useState<readonly string[]>(editing?.teacherBankIds ?? []);
+  const [start, setStart] = useState(editing?.activationStartDate ?? getTodayDate());
+  const [months, setMonths] = useState(editing?.role === "teacher" ? (editing.activationMonths ?? 1) : 1);
+  const [status, setStatus] = useState<Exclude<UserAccountStatus, "expired">>(editing?.status === "inactive" ? "inactive" : "active");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [generalError, setGeneralError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const expiration = safeExpiration(start, role === "student" ? 1 : months);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const next: Record<string, string> = {};
+    if (!fullName.trim()) next.fullName = "Full name is required.";
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = "Enter a valid email address.";
+    if (users.some((user) => user.id !== editing?.id && user.email.trim().toLocaleLowerCase() === email.trim().toLocaleLowerCase())) next.email = "This email address is already in use.";
+    if (role === "teacher" && !start) next.activationStartDate = "Activation start date is required.";
+    if (role === "teacher" && teacherBankIds.length === 0) next.teacherBankIds = "Select at least one question bank.";
+    if (role === "teacher" && (!Number.isInteger(months) || months < 1 || months > 36)) next.activationMonths = "Choose between 1 and 36 months.";
+    if (phone.trim().length > 50) next.phone = "Phone number is too long.";
+    if (age !== "" && (!Number.isInteger(Number(age)) || Number(age) < MIN_PROFILE_AGE || Number(age) > MAX_PROFILE_AGE)) next.age = `Age must be a whole number between ${MIN_PROFILE_AGE} and ${MAX_PROFILE_AGE}.`;
+    if (homeAddress.trim().length > MAX_HOME_ADDRESS_LENGTH) next.homeAddress = `Home address must be ${MAX_HOME_ADDRESS_LENGTH} characters or fewer.`;
+    setErrors(next);
+    setGeneralError("");
+    if (Object.keys(next).length) return;
+
+    setIsSaving(true);
+    try {
+      const result = await onSave({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        age: age === "" ? null : Number(age),
+        gender: gender || null,
+        homeAddress: homeAddress.trim(),
+        role,
+        teacherBankIds: role === "teacher" ? teacherBankIds : [],
+        status,
+        activationStartDate: start,
+        activationMonths: role === "student" ? 1 : months,
+      });
+      if (!result.ok) {
+        const fieldErrors = Object.fromEntries(
+          Object.entries(result.error.fieldErrors ?? {}).map(([key, messages]) => [key, messages[0] ?? result.error.message]),
+        );
+        setErrors(fieldErrors);
+        setGeneralError(result.error.message);
+        setIsSaving(false);
+      }
+    } catch {
+      setGeneralError("Unable to save the user. Please try again.");
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <ModalPanel labelledBy="user-form-title" onCancel={onCancel} busy={isSaving}>
+      <form onSubmit={submit} className="w-full p-5 sm:p-7">
+        <h2 id="user-form-title" className="text-xl font-semibold text-slate-950">{editing ? "Edit user" : "Add user"}</h2>
+        <p className="mt-2 text-sm text-slate-500">{editing ? "Changes are applied to Supabase Auth and the linked profile." : "The user receives an email invitation to set a private password."}</p>
+        {generalError && <div role="alert" className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{generalError}</div>}
+        <div className="mt-6 grid gap-5">
+          <TextField label="Full name" value={fullName} error={errors.fullName} onChange={setFullName} />
+          <TextField label="Email" type="email" value={email} error={errors.email} onChange={setEmail} />
+          <TextField label="Phone (optional)" type="tel" value={phone} error={errors.phone} onChange={setPhone} />
+          <div className="grid gap-5 sm:grid-cols-2">
+            <TextField label="Age (optional)" type="number" min={MIN_PROFILE_AGE} max={MAX_PROFILE_AGE} value={age} error={errors.age} onChange={setAge} />
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              Gender (optional)
+              <Select value={gender} onChange={(event) => setGender(event.target.value as ProfileGender | "")} className="h-11 rounded-xl border bg-slate-50 px-3">
+                <option value="">Not specified</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </Select>
+            </label>
+          </div>
+          <TextAreaField label="Home address (optional)" value={homeAddress} error={errors.homeAddress} maxLength={MAX_HOME_ADDRESS_LENGTH} onChange={setHomeAddress} />
+          <div className="grid gap-5 sm:grid-cols-2">
+            <label className="grid gap-2 text-sm font-medium text-slate-700">Role<Select value={role} onChange={(event) => { const next = event.target.value as ManagedUserRole; setRole(next); if (next === "student") setMonths(1); }} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="student">Student</option><option value="teacher">Teacher</option></Select></label>
+            <label className="grid gap-2 text-sm font-medium text-slate-700">Status<Select value={status} onChange={(event) => setStatus(event.target.value as "active" | "inactive")} className="h-11 rounded-xl border bg-slate-50 px-3"><option value="active">Active</option><option value="inactive">Inactive</option></Select></label>
+            {role === "teacher" && <TextField label="Activation start date" type="date" value={start} error={errors.activationStartDate} onChange={setStart} />}
+            {role === "student" ? <p className="text-sm text-slate-600">Enabled students can sign in. Course approval is managed separately.</p> : <TextField label="Activation duration in months" type="number" min={1} max={36} value={String(months)} error={errors.activationMonths} onChange={(value) => setMonths(Number(value))} />}
+          </div>
+          {role === "teacher" && <div className="rounded-xl border bg-teal-50 p-4 text-sm"><p className="text-xs font-medium text-slate-500">Preview only — server recalculates expiration</p><p className="mt-1 font-semibold text-slate-900">{expiration ? formatDate(expiration) : "Select a valid date"}</p></div>}
+          {role === "teacher" ? <fieldset className="border-t pt-5"><legend className="font-semibold text-slate-950">Assigned question banks</legend><p className="mt-2 text-sm text-slate-500">Teachers can view and add questions only in these banks. They cannot edit or delete questions.</p><div className="mt-4 grid gap-3 sm:grid-cols-2">{banks.map(bank => <label key={bank.id} className="flex items-center gap-3 rounded-xl border p-3 text-sm text-slate-700"><input type="checkbox" checked={teacherBankIds.includes(bank.id)} disabled={isSaving} onChange={event => setTeacherBankIds(current => event.target.checked ? [...current, bank.id] : current.filter(id => id !== bank.id))} className="size-4 shrink-0 accent-teal-700" />{bank.name}</label>)}</div>{!banks.length && <p className="mt-3 text-sm text-slate-500">Create a question bank before assigning a teacher.</p>}{errors.teacherBankIds && <p role="alert" className="mt-2 text-sm text-rose-700">{errors.teacherBankIds}</p>}</fieldset> : <section className="border-t pt-5"><h3 className="font-semibold text-slate-950">Question Bank Access</h3><p className="mt-2 text-sm text-slate-500">Account changes do not grant courses.</p><Link href="/admin/access-requests" className="mt-3 inline-block text-sm font-semibold text-teal-700">Review course access requests</Link></section>}
+        </div>
+        <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" disabled={isSaving} onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50">Cancel</button><button type="submit" disabled={isSaving} className="rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? "Saving…" : editing ? "Save Changes" : "Send Invitation"}</button></div>
+      </form>
+    </ModalPanel>
+  );
+}
+
+export function ReactivateDialog({ user, onCancel, onConfirm }: { readonly user: PlatformUser; readonly onCancel: () => void; readonly onConfirm: (months: number) => Promise<ServerResult<PlatformUser>> }) {
+  const [months, setMonths] = useState(user.role === "student" ? 1 : Math.max(1, user.activationMonths ?? 1));
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState("");
+  const expiration = addCalendarMonths(getTodayDate(), user.role === "student" ? 1 : months);
+  async function confirm() { setIsPending(true); setError(""); const result = await onConfirm(user.role === "student" ? 1 : months); if (!result.ok) { setError(result.error.message); setIsPending(false); } }
+  return <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4"><div role="dialog" aria-modal="true" aria-labelledby="reactivate-title" className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-2xl"><h2 id="reactivate-title" className="text-lg font-semibold text-slate-950">Reactivate {user.fullName}</h2><p className="mt-2 text-sm text-slate-500">{user.role === "student" ? "Enable this account without changing course approvals." : "A new activation period begins on the server today."}</p>{error && <div role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</div>}{user.role === "student" ? <p className="mt-5 rounded-xl bg-teal-50 p-4 text-sm text-slate-700">Student account: <strong>No account expiration</strong></p> : <label className="mt-5 grid gap-2 text-sm font-medium text-slate-700">Activation months<input type="number" min={1} max={36} value={months} onChange={(event) => setMonths(Math.min(36, Math.max(1, Number(event.target.value))))} className="h-11 rounded-xl border bg-slate-50 px-3" /></label>}{user.role === "teacher" && <p className="mt-4 text-sm text-slate-600">Preview expiration: <strong>{formatDate(expiration)}</strong></p>}<div className="mt-6 flex justify-end gap-3"><button type="button" disabled={isPending} onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50">Cancel</button><button type="button" disabled={isPending} onClick={confirm} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{isPending ? "Reactivating…" : "Reactivate"}</button></div></div></div>;
+}
+
+export function DeactivateDialog({ user, onCancel, onConfirm }: { readonly user: PlatformUser; readonly onCancel: () => void; readonly onConfirm: () => Promise<ServerResult<PlatformUser>> }) {
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState("");
+  async function confirm() { setIsPending(true); setError(""); const result = await onConfirm(); if (!result.ok) { setError(result.error.message); setIsPending(false); } }
+  return <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/55 p-4"><div role="alertdialog" aria-modal="true" aria-labelledby="deactivate-user-title" className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-2xl"><h2 id="deactivate-user-title" className="text-lg font-semibold text-slate-950">Deactivate {user.fullName}?</h2><p className="mt-3 text-sm leading-6 text-slate-500">Access stops on the next protected request. The Auth identity and historical records are retained.</p>{error && <div role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</div>}<div className="mt-6 flex justify-end gap-3"><button type="button" autoFocus disabled={isPending} onClick={onCancel} className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50">Cancel</button><button type="button" disabled={isPending} onClick={confirm} className="rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{isPending ? "Deactivating…" : "Deactivate User"}</button></div></div></div>;
+}
+
+function TextField({ label, value, error, type = "text", min, max, onChange }: { readonly label: string; readonly value: string; readonly error?: string | undefined; readonly type?: "text" | "email" | "tel" | "date" | "number"; readonly min?: number; readonly max?: number; readonly onChange: (value: string) => void }) { return <label className="grid min-w-0 gap-2 text-sm font-medium text-slate-700">{label}<input type={type} min={min} max={max} value={value} onChange={(event) => onChange(event.target.value)} aria-invalid={Boolean(error)} className={cn("h-11 w-full min-w-0 rounded-xl border bg-slate-50 px-3 text-base sm:text-sm", error && "border-rose-400")} />{error && <span className="text-xs text-rose-700">{error}</span>}</label>; }
+function TextAreaField({ label, value, error, maxLength, onChange }: { readonly label: string; readonly value: string; readonly error?: string | undefined; readonly maxLength: number; readonly onChange: (value: string) => void }) { return <label className="grid min-w-0 gap-2 text-sm font-medium text-slate-700">{label}<textarea rows={3} maxLength={maxLength} value={value} onChange={(event) => onChange(event.target.value)} aria-invalid={Boolean(error)} className={cn("w-full min-w-0 rounded-xl border bg-slate-50 px-3 py-2.5 text-base sm:text-sm", error && "border-rose-400")} />{error && <span className="text-xs text-rose-700">{error}</span>}</label>; }
+function safeExpiration(start: string, months: number): string { try { return start ? addCalendarMonths(start, months) : ""; } catch { return ""; } }
+function formatDate(value: string): string { return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(`${value}T00:00:00`)); }

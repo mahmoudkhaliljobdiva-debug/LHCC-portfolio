@@ -1,0 +1,238 @@
+import "server-only";
+
+import { requireRole } from "@/lib/auth/server";
+import { getPortalPreviewContext } from "@/lib/portal-preview/server";
+import type { Profile } from "@/types/profile";
+import type { PreviewRole } from "@/types/portal-preview";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { readAllRows } from "@/lib/supabase/pagination";
+import { getAdminWalletTransactions } from "@/lib/wallet/server";
+import type { Database } from "@/lib/supabase/database.types";
+import type { DashboardData, DashboardMetric, StudentActivityData } from "@/types/dashboard";
+import type { UserRole as AppUserRole } from "@/types/roles";
+import type { StudentBankUsage, UserUsageSummary } from "@/types/user-management";
+import { getScoreReporting, getUniqueQuestionCount, sortRecentActivity } from "@/utils/dashboard-reporting";
+import { getWalletSummary } from "@/utils/wallet-analytics";
+
+type DbRole = Database["public"]["Enums"]["user_role"];
+type Activity = DashboardData["recentActivity"][number];
+const dbRoles: Record<AppUserRole, DbRole> = { admin: "ADMIN", teacher: "TEACHER", student: "STUDENT" };
+const attemptFields = "id,student_id,question_bank_id,started_at,submitted_at,total_questions,correct_answers,incorrect_answers,score_percentage,status,updated_at";
+
+export interface TeacherBankSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly questionCount: number;
+  readonly attempts: number;
+  readonly averageScore: number;
+}
+
+export async function getDashboardData(role: AppUserRole): Promise<DashboardData> {
+  const profile = await requireRole(dbRoles[role]);
+  const db = await createClient();
+  return readDashboardData(role, profile, db, false);
+}
+
+export async function getDashboardDataForAdmin(role: PreviewRole, subjectId: string): Promise<DashboardData> {
+  const { subject } = await getPortalPreviewContext(role, subjectId);
+  return readDashboardData(role, subject, createAdminClient(), true);
+}
+
+async function readDashboardData(role: AppUserRole, profile: Profile, db: Awaited<ReturnType<typeof createClient>>, preview: boolean): Promise<DashboardData> {
+  const previewStudent = preview && role === "student";
+  const previewScope = previewStudent ? await Promise.all([
+    readAllRows((from, to) => db.from("question_attempts").select("id").eq("student_id", profile.id).order("id").range(from, to)),
+    readAllRows((from, to) => db.from("user_bank_access").select("question_bank_id").eq("user_id", profile.id).eq("status", "ACTIVE").order("id").range(from, to)),
+  ]) : null;
+  // Learning queries use the caller's session and RLS. Only verified admins
+  // request the profile directory (own-profile RLS) or the guarded wallet RPC.
+  const [profiles, banks, questions, attempts, answers, requests, access, wallet, portfolio] = await Promise.all([
+    role === "admin" ? readAllRows((from, to) => createAdminClient().from("profiles").select("id,full_name,role,status,expiration_date,created_at").order("id").range(from, to)) : [],
+    readAllRows((from, to) => {
+      const query = db.from("question_banks").select("id,name,description,status,display_order").order("display_order").order("id");
+      // Service-backed View-As must apply the same material boundary as the
+      // Student catalog; it cannot rely on the Admin client's RLS bypass.
+      const scoped = role === "student" ? query.eq("material_kind", "EXAM_TRACK").eq("publication_status", "PUBLISHED") : query;
+      return (preview ? scoped.eq("status", "active") : scoped).range(from, to);
+    }),
+    readAllRows((from, to) => {
+      const query = db.from("bank_questions").select("id,question_bank_id,status").order("id");
+      return (previewStudent ? query.eq("status", "active").in("question_bank_id", previewScope![1].map(item => item.question_bank_id)) : query).range(from, to);
+    }),
+    readAllRows((from, to) => {
+      const query = db.from("question_attempts").select(attemptFields).order("id");
+      return (role === "student" ? query.eq("student_id", profile.id) : query).range(from, to);
+    }),
+    readAllRows((from, to) => {
+      const query = db.from("question_attempt_answers").select("attempt_id,question_id,is_correct,answered_at").order("id");
+      return (previewStudent ? query.in("attempt_id", previewScope![0].map(item => item.id)) : query).range(from, to);
+    }),
+    role === "teacher" ? [] : readAllRows((from, to) => {
+      const query = db.from("user_bank_access_requests").select("id,user_id,question_bank_id,status,requested_at,reviewed_at").order("id");
+      return (previewStudent ? query.eq("user_id", profile.id) : query).range(from, to);
+    }),
+    role === "teacher" ? [] : readAllRows((from, to) => {
+      const query = db.from("user_bank_access").select("id,user_id,question_bank_id,status").order("id");
+      return (previewStudent ? query.eq("user_id", profile.id) : query).range(from, to);
+    }),
+    role === "admin" ? getAdminWalletTransactions() : [],
+    role === "admin" ? readAllRows((from, to) => db.from("portfolio_content").select("section_key,revision,updated_at").order("section_key").range(from, to)) : [],
+  ]);
+  // Privileged preview reads must explicitly reproduce the subject's RLS scope.
+  if (preview && role === "student") {
+    const ownedIds = new Set(attempts.map(item => item.id));
+    answers.splice(0, answers.length, ...answers.filter(item => ownedIds.has(item.attempt_id)));
+    requests.splice(0, requests.length, ...requests.filter(item => item.user_id === profile.id));
+    access.splice(0, access.length, ...access.filter(item => item.user_id === profile.id));
+    const grantedIds = new Set(access.filter(item => item.status === "ACTIVE").map(item => item.question_bank_id));
+    const visible = profile.status === "ACTIVE";
+    questions.splice(0, questions.length, ...questions.filter(item => visible && item.status === "active" && grantedIds.has(item.question_bank_id) && banks.some(bank => bank.id === item.question_bank_id && bank.status === "active")));
+  }
+  const completed = attempts.filter((item) => item.status === "COMPLETED");
+  const reporting = getScoreReporting(completed);
+  const activeBanks = banks.filter((bank) => bank.status === "active");
+  const activeBankIds = new Set(activeBanks.map((bank) => bank.id));
+  const approvedBankIds = new Set(access.filter((item) => item.status === "ACTIVE" && activeBankIds.has(item.question_bank_id)).map((item) => item.question_bank_id));
+  const pendingBankIds = new Set(requests.filter((item) => item.status === "PENDING" && activeBankIds.has(item.question_bank_id) && !approvedBankIds.has(item.question_bank_id)).map((item) => item.question_bank_id));
+  const metrics = createMetrics(role, {
+    totalUsers: profiles.filter((item) => item.role !== "ADMIN").length,
+    activeStudents: profiles.filter((item) => item.role === "STUDENT" && item.status === "ACTIVE").length,
+    activeTeachers: profiles.filter((item) => item.role === "TEACHER" && item.status === "ACTIVE" && item.expiration_date && Date.parse(item.expiration_date) > Date.now()).length,
+    participatingStudents: new Set(attempts.map((item) => item.student_id)).size,
+    banks: activeBanks.length,
+    questions: questions.filter((item) => item.status === "active").length,
+    pending: role === "student" ? pendingBankIds.size : requests.filter((item) => item.status === "PENDING").length,
+    approved: approvedBankIds.size,
+    attempts: attempts.length,
+    completedAttempts: completed.length,
+    answers: answers.length,
+    averageScore: reporting.averageScore,
+    correctAnswers: completed.reduce((sum,a) => sum+a.correct_answers,0),
+    accuracy: completed.length ? Math.round(completed.reduce((sum,a) => sum+a.correct_answers,0)*100/completed.reduce((sum,a) => sum+a.total_questions,0)*100)/100 : 0,
+    bestScore: completed.length ? Math.max(...completed.map(a => Number(a.score_percentage))) : null,
+    lastAttempt: attempts.map(a => a.started_at).sort().at(-1) ?? null,
+    walletBalance: getWalletSummary(wallet).currentBalance,
+  });
+
+  const bankProgress = activeBanks.map((bank) => {
+    const bankAttempts = attempts.filter((item) => item.question_bank_id === bank.id);
+    const ids = new Set(bankAttempts.map((item) => item.id));
+    const activeQuestions = questions.filter((item) => item.question_bank_id === bank.id && item.status === "active");
+    const bankAnswers = answers.filter((item) => ids.has(item.attempt_id));
+    return {
+      id: bank.id, name: bank.name,
+      answered: getUniqueQuestionCount(bankAnswers, activeQuestions),
+      totalQuestions: activeQuestions.length,
+      averageScore: getScoreReporting(bankAttempts.filter((item) => item.status === "COMPLETED")).averageScore,
+    };
+  }).filter((item) => role !== "student" || item.answered > 0 || approvedBankIds.has(item.id));
+
+  const bankName = (id: string) => banks.find((bank) => bank.id === id)?.name ?? "Question bank";
+  const activity: Activity[] = attempts.map((item) => ({ id: "attempt:" + item.id, title: bankName(item.question_bank_id), detail: item.status === "COMPLETED" ? Number(item.score_percentage).toFixed(0) + "% completed attempt" : "Attempt in progress", occurredAt: item.submitted_at ?? item.updated_at }));
+  for (const item of requests) {
+    activity.push({ id: "request:" + item.id, title: bankName(item.question_bank_id), detail: "Access requested", occurredAt: item.requested_at });
+    if (item.reviewed_at) activity.push({ id: "review:" + item.id, title: bankName(item.question_bank_id), detail: item.status === "APPROVED" ? "Access approved" : "Access rejected", occurredAt: item.reviewed_at });
+  }
+  for (const item of wallet) activity.push({ id: "wallet:" + item.id, title: item.name, detail: "Wallet transaction recorded", occurredAt: item.createdAt });
+  for (const item of profiles) activity.push({ id: "profile:" + item.id, title: item.full_name, detail: "Account created", occurredAt: item.created_at });
+  for (const item of portfolio.filter((item) => item.revision > 1)) activity.push({ id: "portfolio:" + item.section_key, title: item.section_key + " page", detail: "Portfolio content updated", occurredAt: item.updated_at });
+  return { displayName: profile.full_name, metrics, scoreTrend: reporting.scoreTrend, scoreDistribution: reporting.scoreDistribution, bankProgress, recentActivity: sortRecentActivity(activity) };
+}
+
+export async function getTeacherBankSummaries(): Promise<readonly TeacherBankSummary[]> {
+  await requireRole("TEACHER");
+  const db = await createClient();
+  return readTeacherBankSummaries(db);
+}
+
+export async function getTeacherBankSummariesForAdmin(subjectId: string) {
+  await getPortalPreviewContext("teacher", subjectId);
+  const db = createAdminClient();
+  const { data, error } = await db.from("teacher_bank_assignments").select("question_bank_id").eq("teacher_id", subjectId);
+  if (error) throw new Error("Unable to load teacher assignments.");
+  return readTeacherBankSummaries(db, data.map(item => item.question_bank_id));
+}
+
+async function readTeacherBankSummaries(db: Awaited<ReturnType<typeof createClient>>, bankIds?: readonly string[]): Promise<readonly TeacherBankSummary[]> {
+  const [banks, questions] = await Promise.all([
+    readAllRows((from, to) => { const query = db.from("question_banks").select("id,name,description").eq("status", "active").order("display_order").order("id"); return (bankIds ? query.in("id", [...bankIds]) : query).range(from, to); }),
+    readAllRows((from, to) => { const query = db.from("bank_questions").select("id,question_bank_id").order("id"); return (bankIds ? query.in("question_bank_id", [...bankIds]) : query).range(from, to); }),
+  ]);
+  return banks.map((bank) => {
+    return { id: bank.id, name: bank.name, description: bank.description, questionCount: questions.filter((item) => item.question_bank_id === bank.id).length, attempts: 0, averageScore: 0 };
+  });
+}
+
+export async function getAdminUserUsageSummaries(): Promise<readonly UserUsageSummary[]> {
+  await requireRole("ADMIN");
+  const db = await createClient();
+  const [data, answers] = await Promise.all([
+    readAllRows((from, to) => db.from("question_attempts").select("id,student_id,correct_answers,incorrect_answers,updated_at").order("id").range(from, to)),
+    readAllRows((from, to) => db.from("question_attempt_answers").select("attempt_id").order("id").range(from, to)),
+  ]);
+  const answerCounts = new Map<string, number>();
+  for (const answer of answers) answerCounts.set(answer.attempt_id,(answerCounts.get(answer.attempt_id) ?? 0)+1);
+  const groups = new Map<string, { correct: number; incorrect: number; answered: number; attempts: number; last: string | null }>();
+  for (const item of data) {
+    const group = groups.get(item.student_id) ?? { correct: 0, incorrect: 0, answered: 0, attempts: 0, last: null };
+    group.correct += item.correct_answers; group.incorrect += item.incorrect_answers; group.attempts += 1;
+    group.answered += answerCounts.get(item.id) ?? 0;
+    group.last = !group.last || item.updated_at > group.last ? item.updated_at : group.last;
+    groups.set(item.student_id, group);
+  }
+  return [...groups.entries()].map(([studentId, item]) => ({ studentId, questionsAnswered: item.answered, attemptsCount: item.attempts, accuracy: item.correct + item.incorrect ? Math.round(item.correct * 100 / (item.correct + item.incorrect)) : 0, lastActivityAt: item.last }));
+}
+
+export async function getStudentActivityData(userId: string): Promise<StudentActivityData> {
+  await requireRole("ADMIN");
+  const admin = createAdminClient();
+  const db = await createClient();
+  const [profileResult, authResult, banks, attempts] = await Promise.all([
+    admin.from("profiles").select("id,full_name,role").eq("id", userId).maybeSingle(),
+    admin.auth.admin.getUserById(userId),
+    readAllRows((from, to) => db.from("question_banks").select("id,name").order("id").range(from, to)),
+    readAllRows((from, to) => db.from("question_attempts").select(attemptFields).eq("student_id", userId).order("id").range(from, to)),
+  ]);
+  if (profileResult.error || (authResult.error && authResult.error.status !== 404)) throw new Error("Student activity could not be loaded.");
+  const profile = profileResult.data;
+  if (!profile || profile.role !== "STUDENT") return { student: null, usage: [], bankNames: {} };
+  const answerRows = await readAllRows((from,to) => db.from("question_attempt_answers")
+    .select("attempt_id,question_attempts!inner(student_id)").eq("question_attempts.student_id",userId).order("id").range(from,to));
+  const usage: StudentBankUsage[] = banks.map((bank) => {
+    const bankAttempts = attempts.filter((attempt) => attempt.question_bank_id === bank.id);
+    const correct = bankAttempts.reduce((sum, item) => sum + item.correct_answers, 0);
+    const incorrect = bankAttempts.reduce((sum, item) => sum + item.incorrect_answers, 0);
+    const attemptIds = new Set(bankAttempts.map(attempt => attempt.id));
+    return { studentId: userId, bankId: bank.id, questionsAnswered: answerRows.filter(answer => attemptIds.has(answer.attempt_id)).length, correctAnswers: correct, incorrectAnswers: incorrect, attemptsCount: bankAttempts.length, lastActivityAt: bankAttempts.map((attempt) => attempt.updated_at).sort().at(-1) ?? null };
+  }).filter((item) => item.attemptsCount > 0);
+  return { student: { id: profile.id, fullName: profile.full_name, email: authResult.data.user?.email ?? "" }, usage, bankNames: Object.fromEntries(banks.map((bank) => [bank.id, bank.name])) };
+}
+
+function money(value: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value); }
+
+function createMetrics(role: AppUserRole, value: { totalUsers: number; activeStudents: number; activeTeachers: number; participatingStudents: number; banks: number; questions: number; pending: number; approved: number; attempts: number; completedAttempts: number; answers: number; averageScore: number; walletBalance: number; correctAnswers: number; accuracy: number; bestScore: number | null; lastAttempt: string | null }): readonly DashboardMetric[] {
+  if (role === "student") return [
+    { label: "Average score", value: `${value.averageScore}%`, helper: "Completed attempts", icon: "score" },
+    { label: "Questions answered", value: String(value.answers), helper: "Recorded answers", icon: "answers" },
+    { label: "Attempts", value: String(value.attempts), helper: "Across all banks", icon: "attempts" },
+    { label: "Approved banks", value: String(value.approved), helper: `${value.pending} pending · ${Math.max(0, value.banks - value.approved - value.pending)} locked`, icon: "banks" },
+    { label: "Correct answers", value: String(value.correctAnswers), helper: "Completed attempts", icon: "answers" },
+    { label: "Accuracy", value: `${value.accuracy}%`, helper: "Completed question totals", icon: "score" },
+    { label: "Best score", value: value.bestScore === null ? "—" : `${value.bestScore.toFixed(2)}%`, helper: "Completed attempts", icon: "score" },
+    { label: "Last attempt", value: value.lastAttempt ? value.lastAttempt.slice(0,10) : "—", helper: "Most recently started · UTC", icon: "attempts" },
+  ];
+  if (role === "teacher") return [
+    { label: "Participating students", value: String(value.participatingStudents), helper: "Learners with recorded attempts", icon: "students" },
+    { label: "Average score", value: `${value.averageScore}%`, helper: "Completed attempts", icon: "score" },
+    { label: "Completed attempts", value: String(value.completedAttempts), helper: `${value.answers} answers recorded`, icon: "attempts" },
+    { label: "Published questions", value: String(value.questions), helper: `${value.banks} active banks`, icon: "banks" },
+  ];
+  return [
+    { label: "Managed users", value: String(value.totalUsers), helper: `${value.activeStudents} active students`, icon: "users" },
+    { label: "Active teachers", value: String(value.activeTeachers), helper: "Enabled educator accounts", icon: "students" },
+    { label: "Question banks", value: String(value.banks), helper: `${value.questions} published questions`, icon: "banks" },
+    { label: "Wallet balance", value: money(value.walletBalance), helper: `${value.pending} access requests pending`, icon: "wallet" },
+  ];
+}

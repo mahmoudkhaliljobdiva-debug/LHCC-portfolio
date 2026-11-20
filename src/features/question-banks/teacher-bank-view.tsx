@@ -1,0 +1,6 @@
+import { TeacherQuestionForm } from "@/features/question-banks/teacher-question-form";
+import type { getTeacherBank } from "@/lib/teacher/server";
+
+export function TeacherBankView({ course, readOnly = false }: { readonly course: NonNullable<Awaited<ReturnType<typeof getTeacherBank>>>; readonly readOnly?: boolean }) {
+  return <><h1 className="text-2xl font-semibold text-slate-950">{course.bank.name}</h1><p className="mt-2 text-sm text-slate-500">{course.bank.description}</p><section className="mt-6 grid gap-4" aria-label="Bank questions">{course.questions.map((question, index) => <article key={question.id} className="rounded-2xl border bg-white p-5"><p className="text-xs font-medium text-slate-500">Question {index + 1} · {question.status}</p><h2 className="mt-2 whitespace-pre-wrap font-semibold text-slate-900">{question.text}</h2><ol className="mt-4 list-inside list-[upper-alpha] space-y-2 text-sm text-slate-700">{question.options.map(option => <li key={option.id} className="whitespace-pre-wrap">{option.text}</li>)}</ol></article>)}{!course.questions.length && <p className="rounded-2xl border bg-white p-6 text-sm text-slate-500">No questions have been added yet.</p>}</section>{!readOnly && <TeacherQuestionForm bankId={course.bank.id} />}</>;
+}

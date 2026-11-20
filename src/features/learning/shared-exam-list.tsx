@@ -1,0 +1,7 @@
+import Link from "next/link";
+import type { Route } from "next";
+import { Users } from "lucide-react";
+import type { ExamBank } from "@/types/exam";
+export function SharedExamList({bank}:{bank:ExamBank}) {
+  return <div className="space-y-6"><header><Link href={`/student/banks/${bank.id}` as Route} className="inline-flex min-h-11 items-center text-sm font-semibold text-teal-700">Back to material</Link><h1 className="mt-4 text-3xl font-semibold text-slate-950">Shared Random Exams</h1><p className="mt-3 text-slate-600">{bank.name} · Fixed published questions and order. Your answers and results are private to your account.</p></header><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{bank.sharedExams.map(e=><Link key={e.id} href={`/student/banks/${bank.id}/setup?source=SHARED&sourceId=${e.id}` as Route} className="learning-card rounded-2xl border bg-white p-6"><span className="learning-icon grid size-12 place-items-center rounded-xl bg-teal-50 text-teal-700"><Users className="size-6" aria-hidden="true"/></span><h2 className="mt-4 font-semibold text-slate-950">{e.title}</h2><p className="mt-3 text-sm text-slate-600">{e.questionCount} fixed questions{e.timeLimitMinutes?` · ${e.timeLimitMinutes} min configured`:" · No configured time limit"}</p><span className="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-teal-700">Prepare your exam</span></Link>)}</div>{!bank.sharedExams.length&&<p className="rounded-xl border bg-white p-6 text-slate-600">No shared random exams have been published yet.</p>}</div>;
+}
