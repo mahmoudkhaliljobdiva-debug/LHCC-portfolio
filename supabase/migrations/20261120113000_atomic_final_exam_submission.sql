@@ -93,6 +93,9 @@ AS $function$
 $function$
 ;
 
-REVOKE ALL ON FUNCTION private.submit_exam_with_answers(uuid,jsonb,bigint) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION private.submit_exam_with_answers(uuid,jsonb,bigint) FROM PUBLIC,anon;
 REVOKE ALL ON FUNCTION public.submit_exam_with_answers(uuid,jsonb,bigint) FROM PUBLIC,anon;
+-- Public SQL wrappers execute as the caller, so authenticated requires execute
+-- on the underlying private SECURITY DEFINER function, as with submit_exam.
+GRANT EXECUTE ON FUNCTION private.submit_exam_with_answers(uuid,jsonb,bigint) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.submit_exam_with_answers(uuid,jsonb,bigint) TO authenticated;
