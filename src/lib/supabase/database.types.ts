@@ -1105,6 +1105,7 @@ export type Database = {
         Returns: Json
       }
       submit_exam: { Args: { attempt_id: string }; Returns: string }
+      submit_exam_with_answers: { Args: { attempt_id: string; answer_map: Json; expected_version: number }; Returns: string }
       teacher_add_question: {
         Args: { item_id: string; payload: Json }
         Returns: undefined

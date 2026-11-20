@@ -58,6 +58,37 @@ export async function saveExamAnswer(input: { attemptId: string; questionId: str
     return { ok: true, data: data! };
   } catch { return failure("Answer not saved. Please retry before leaving this page."); }
 }
+// One authenticated database transaction saves every exam-mode selection,
+ // grades the server snapshot, and marks the attempt complete.
+export async function submitExamWithAnswers(input: {
+  attemptId: string; answers: Record<string,string>; expectedVersion: number;
+}): Promise<ServerResult<string>> {
+  try {
+    const parsed = z.object({
+      attemptId: examId,
+      answers: z.record(contentId, contentId).refine(items => Object.keys(items).length <= 300),
+      expectedVersion: z.number().int().min(0),
+    }).strict().safeParse(input);
+    if (!parsed.success || !await authorized()) return failure("Check your exam session and try again.");
+    const db = await createClient();
+    const { data, error } = await db.rpc("submit_exam_with_answers", {
+      attempt_id: parsed.data.attemptId,
+      answer_map: parsed.data.answers,
+      expected_version: parsed.data.expectedVersion,
+    });
+    if (error?.code === "40001") return { ok: false, error: {
+      code: "CONFLICT", message: "This exam was changed in another tab. Your selections remain here. Refresh to review the latest saved answers before submitting.",
+    } };
+    if (error || !data) return failure("We could not finish your exam. Your selections are still on this page; please check your connection and try again.");
+    revalidatePath(`/student/exams/${parsed.data.attemptId}/result`);
+    revalidatePath("/student"); revalidatePath("/student/exams"); revalidatePath("/student/analytics");
+    revalidatePath("/admin", "layout");
+    return { ok: true, data };
+  } catch {
+    return failure("Submission was not confirmed. Your answers are still on this page. Please retry.");
+  }
+}
+
 export async function submitExam(attemptId: string): Promise<ServerResult<string>> {
   try {
     if (!examId.safeParse(attemptId).success || !await authorized()) return failure("Active student access is required.");
