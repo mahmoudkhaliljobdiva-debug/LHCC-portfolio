@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 
 import { useAdminQuestionBanks } from "@/features/question-banks/admin-question-bank-provider";
 import { cn } from "@/lib/cn";
+import { formatAccessPrice } from "@/utils/access-price";
 import type { AdminQuestionBank, QuestionBankInput, QuestionBankStatus } from "@/types/question-bank";
 
 type BankDialogState = { readonly mode: "add"; readonly bank?: never } | { readonly mode: "edit"; readonly bank: AdminQuestionBank };
@@ -64,7 +65,7 @@ export function AdminQuestionBankList() {
                 <div className="flex items-start justify-between gap-4"><span className="grid size-11 place-items-center rounded-xl bg-teal-50 text-teal-700"><BookOpen className="size-5" /></span><span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold capitalize", bank.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600")}>{bank.status}</span></div>
                 <h2 className="mt-5 text-lg font-semibold text-slate-950">{bank.name}</h2>
                 <p className="mt-2 min-h-12 text-sm leading-6 text-slate-500">{bank.description}</p>
-                <div className="mt-5 grid grid-cols-3 gap-3 rounded-xl bg-slate-50 p-3 text-xs"><div><p className="text-slate-500">Questions</p><p className="mt-1 font-semibold text-slate-900">{questionCount}</p></div><div><p className="text-slate-500">Price</p><p className="mt-1 font-semibold text-slate-900">{formatCurrency(bank.price)}</p></div><div><p className="text-slate-500">Created</p><p className="mt-1 flex items-center gap-1 font-semibold text-slate-900"><CalendarDays className="size-3" />{formatDate(bank.createdAt)}</p></div></div>
+                <div className="mt-5 grid grid-cols-3 gap-3 rounded-xl bg-slate-50 p-3 text-xs"><div><p className="text-slate-500">Questions</p><p className="mt-1 font-semibold text-slate-900">{questionCount}</p></div><div><p className="text-slate-500">Price</p><p className="mt-1 font-semibold text-slate-900">{formatAccessPrice(bank.price)}</p></div><div><p className="text-slate-500">Created</p><p className="mt-1 flex items-center gap-1 font-semibold text-slate-900"><CalendarDays className="size-3" />{formatDate(bank.createdAt)}</p></div></div>
                 <div className="mt-5 flex items-center gap-2 border-t pt-4">
                   <button type="button" onClick={(event) => { event.stopPropagation(); router.push(`/admin/question-banks/${bank.id}`); }} className="mr-auto rounded-lg bg-teal-700 px-3 py-2 text-xs font-semibold text-white">Open Bank</button>
                   <button type="button" aria-label={`Edit ${bank.name}`} onClick={(event) => { event.stopPropagation(); setDialog({ mode: "edit", bank }); setNotice(null); }} className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg border p-2 text-slate-600 hover:bg-slate-50"><Edit3 className="size-4" /></button>
@@ -143,4 +144,3 @@ function Field({ label, value, error, multiline = false, autoFocus = false, inpu
 }
 
 function formatDate(value: string): string { return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value)); }
-function formatCurrency(value: number): string { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value); }
