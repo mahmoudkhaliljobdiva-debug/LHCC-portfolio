@@ -6,6 +6,7 @@ import {
   Gauge,
   PanelsTopLeft,
   Settings,
+  UserCircle,
    Users,
 } from "lucide-react";
 

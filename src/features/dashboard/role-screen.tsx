@@ -31,7 +31,9 @@ export async function RoleScreen({ role, section }: { readonly role: UserRole; r
     const content = await getPortfolioContent();
     return content ? <PortfolioEditor initialContent={content} /> : <RealFeatureState title="Portfolio content" message="Portfolio content has not been configured yet." />;
   }
-  if (section === "exams") return <RealFeatureState title="Exams & assessments" message="Exams are not configured for this platform yet." />;
+  if (section === "exams") return role === "student"
+    ? <Page title="My Exams" subtitle="Return to unfinished sessions and review completed results."><StudentLearningOverview /></Page>
+    : <RealFeatureState title="Exams & assessments" message="Exams are not configured for this platform yet." />;
   if (section === "questions") return <RealFeatureState title="Question management" message={role === "teacher" ? "Explore published questions and learning performance by question bank." : "Manage published questions from their question bank."} href={role === "admin" ? "/admin/question-banks" : "/teacher/question-banks"} action="Open question banks" />;
   if (section === "profile" || section === "settings") {
     const profile = await requireRole(role === "admin" ? "ADMIN" : role === "teacher" ? "TEACHER" : "STUDENT");
