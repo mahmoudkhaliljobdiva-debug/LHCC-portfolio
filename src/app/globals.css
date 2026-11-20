@@ -606,3 +606,10 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--color-primary)
   .lhcc-drawer-backdrop, .lhcc-route-content, .lhcc-feedback, .lhcc-icon-reveal, .lhcc-modal[open], .lhcc-modal::backdrop, .lhcc-spinner { animation: none !important; }
   .lhcc-press:active, .lhcc-nav-link:hover .lhcc-nav-icon, .lhcc-nav-link:active .lhcc-nav-icon { transform: none !important; }
 }
+
+/* Consistent grid card spacing for admin, teacher, and student portals.
+   Opt in per card: do not change tables, modal forms, or arbitrary sections. */
+.lhcc-card-grid { align-items: stretch; }
+.lhcc-card-stack { display: flex; flex-direction: column; min-width: 0; min-height: 100%; }
+.lhcc-card-body { flex: 1 1 auto; min-width: 0; }
+.lhcc-card-footer { margin-top: auto; padding-top: 1rem; }

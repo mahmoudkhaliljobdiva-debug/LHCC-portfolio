@@ -12,7 +12,7 @@ export function MetricCard({
   readonly icon: LucideIcon;
 }) {
   return (
-    <article className="rounded-2xl border bg-white p-5 shadow-sm">
+    <article className="lhcc-card-stack rounded-2xl border bg-white p-5 shadow-sm sm:p-6">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-slate-500">{label}</p>
@@ -22,7 +22,7 @@ export function MetricCard({
           <Icon className="size-[18px]" />
         </span>
       </div>
-      <p className="mt-4 text-xs font-medium text-teal-700">{helper}</p>
+      <p className="lhcc-card-footer text-xs font-medium text-teal-700">{helper}</p>
     </article>
   );
 }

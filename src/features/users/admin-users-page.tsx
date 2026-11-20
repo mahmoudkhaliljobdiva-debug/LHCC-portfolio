@@ -152,7 +152,7 @@ export function AdminUsersPage({ initialUsers, initialError, usage, initialRole,
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {summaryCards.map(({ label, value, icon: Icon }) => (
-          <article key={label} className="rounded-2xl border bg-white p-5 shadow-sm">
+          <article key={label} className="lhcc-card-stack rounded-2xl border bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center justify-between">
               <div><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p></div>
               <span className="grid size-10 place-items-center rounded-xl bg-teal-50 text-teal-700"><Icon className="size-5" /></span>

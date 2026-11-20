@@ -40,13 +40,13 @@ export function AdminMaterials({ kind, page, items, total, specialties, folders,
   }
 
   function renderMaterialCard(material: LearningMaterial) {
-    return <article key={material.id} className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+    return <article key={material.id} className="lhcc-card-stack rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-900">
         <div className="flex items-start gap-3"><span className="grid shrink-0 place-items-center rounded-xl bg-teal-50 p-3 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300"><MaterialIcon icon={material.icon} className="size-12" /></span>
           <div className="min-w-0 flex-1"><h2 dir="auto" className="break-words text-lg font-semibold text-slate-950 dark:text-slate-50">{isSubject ? <Link className="hover:underline focus-visible:outline-2" href={`/admin/subjects/${encodeURIComponent(material.id)}/questions`}>{material.name}</Link> : material.name}</h2>
             <p dir="auto" className="mt-1 break-words text-sm text-slate-600 dark:text-slate-300">{material.specialtyId ? specialtyNames.get(material.specialtyId) ?? "Specialty unavailable" : "Unassigned specialty"}</p>
           </div>
         </div>
-        <p dir="auto" className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-slate-600 dark:text-slate-300">{material.description || "No description provided."}</p>
+        <div className="lhcc-card-body"><p dir="auto" className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-slate-600 dark:text-slate-300">{material.description || "No description provided."}</p></div>
         <dl className="my-4 grid grid-cols-2 gap-3 text-sm">
           {isSubject ? <div><dt className="text-slate-500 dark:text-slate-400">Questions</dt><dd className="mt-1 font-semibold">{material.questionCount ?? 0}</dd></div> : null}
           <div><dt className="text-slate-500 dark:text-slate-400">Publication</dt><dd className="mt-1 font-medium text-slate-800 dark:text-slate-200">{material.publicationStatus === "DRAFT" ? "Draft" : material.publicationStatus === "PUBLISHED" ? "Published" : "Archived"}</dd></div>
@@ -54,7 +54,7 @@ export function AdminMaterials({ kind, page, items, total, specialties, folders,
           {material.examCategory ? <div><dt className="text-slate-500 dark:text-slate-400">Exam category</dt><dd className="mt-1 text-slate-800 dark:text-slate-200">{categoryLabels[material.examCategory]}</dd></div> : null}
           <div><dt className="text-slate-500 dark:text-slate-400">Language</dt><dd className="mt-1 text-slate-800 dark:text-slate-200">{languageLabels[material.language]}</dd></div>
         </dl>
-        <div className="mt-auto flex flex-wrap gap-3 pt-2"><button type="button" className={secondaryButton} onClick={() => { setFeedback(""); setEditing({ value: material, isNew: false }); }}>Edit<span className="sr-only"> {material.name}</span></button>
+        <div className="lhcc-card-footer flex flex-wrap gap-3 border-t"><button type="button" className={secondaryButton} onClick={() => { setFeedback(""); setEditing({ value: material, isNew: false }); }}>Edit<span className="sr-only"> {material.name}</span></button>
           <Link href={isSubject ? `/admin/subjects/${encodeURIComponent(material.id)}/questions` : `/admin/question-banks/${encodeURIComponent(material.id)}`} className={secondaryButton}>Manage questions</Link>{isSubject && (material.chapterCount ?? 0) > 0 ? <Link href={`/admin/subjects/${encodeURIComponent(material.id)}/lessons`} className={secondaryButton}>Chapters & lessons</Link> : null}
         </div>
       </article>;
