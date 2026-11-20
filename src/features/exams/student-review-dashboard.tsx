@@ -28,13 +28,13 @@ export function StudentReviewDashboard({ review }: { readonly review: MissedRevi
       <p className="mt-2 text-sm text-slate-600">Your most frequently missed questions from completed exams.</p>
       {review.questions.length ? <div className="mt-4 space-y-2">
         {review.questions.slice(0,3).map(item => <Link key={`${item.questionId}-${item.sourceKind}`}
-          href={`/student/exams/review/${encodeURIComponent(item.questionId)}?source=${item.sourceKind}` as Route}
+          href={`/student/missed-questions/review/${encodeURIComponent(item.questionId)}?source=${item.sourceKind}` as Route}
           className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 transition-colors hover:border-teal-500 hover:bg-teal-50">
           <div className="min-w-0"><p className="text-xs font-semibold text-teal-700">{item.specialty} · {item.sourceLabel}</p><p className="mt-1 line-clamp-2 text-sm text-slate-800">{item.questionText}</p></div>
           <span className="shrink-0 text-xs font-semibold text-rose-700">{item.wrongCount}× missed</span>
         </Link>)}
       </div> : <p className="mt-5 rounded-xl border border-dashed p-5 text-sm text-slate-600">No missed questions from completed exams yet.</p>}
-      <Link href="/student/exams" className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-teal-700">Review all mistakes <ArrowRight aria-hidden="true" className="size-4"/></Link>
+      <Link href="/student/missed-questions" className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-teal-700">Review all mistakes <ArrowRight aria-hidden="true" className="size-4"/></Link>
     </div>
   </section>;
 }

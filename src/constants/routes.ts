@@ -12,6 +12,7 @@ export const ROUTES = {
     dashboard: "/student",
     questionBanks: "/student/question-banks",
     exams: "/student/exams",
+    missedQuestions: "/student/missed-questions",
     analytics: "/student/analytics",
     profile: "/student/profile",
   },

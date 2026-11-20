@@ -2,6 +2,7 @@ import {
    BookOpen,
   CircleDollarSign,
   ClipboardCheck,
+  Target,
   FileQuestion,
   Gauge,
   PanelsTopLeft,
@@ -19,6 +20,7 @@ export const ROLE_NAVIGATION = {
     { label: "My Learning", href: ROUTES.student.dashboard, icon: Gauge },
     { label: "My Courses", href: ROUTES.student.questionBanks, icon: BookOpen },
     { label: "My Exams", href: ROUTES.student.exams, icon: ClipboardCheck },
+    { label: "Missed Questions", href: ROUTES.student.missedQuestions, icon: Target },
   ],
   teacher: [
     { label: "Dashboard", href: ROUTES.teacher.dashboard, icon: Gauge },

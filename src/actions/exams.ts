@@ -81,7 +81,7 @@ export async function submitExamWithAnswers(input: {
     } };
     if (error || !data) return failure("We could not finish your exam. Your selections are still on this page; please check your connection and try again.");
     revalidatePath(`/student/exams/${parsed.data.attemptId}/result`);
-    revalidatePath("/student"); revalidatePath("/student/exams"); revalidatePath("/student/analytics");
+    revalidatePath("/student"); revalidatePath("/student/exams"); revalidatePath("/student/missed-questions"); revalidatePath("/student/analytics");
     revalidatePath("/admin", "layout");
     return { ok: true, data };
   } catch {
@@ -98,7 +98,7 @@ export async function submitExam(attemptId: string): Promise<ServerResult<string
     // Keep the submitting form mounted until its response navigates to results.
     // Revalidating its entire layout can stream a completed-page redirect first.
     revalidatePath(`/student/exams/${attemptId}/result`);
-    revalidatePath("/student"); revalidatePath("/student/exams"); revalidatePath("/student/analytics");
+    revalidatePath("/student"); revalidatePath("/student/exams"); revalidatePath("/student/missed-questions"); revalidatePath("/student/analytics");
     revalidatePath("/admin", "layout");
     return { ok: true, data };
   } catch { return failure("Submission failed. Your saved answers are retained; please retry."); }

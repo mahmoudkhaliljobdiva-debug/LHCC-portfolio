@@ -41,7 +41,7 @@ export function MissedQuestionsSection({ review }: { readonly review: MissedRevi
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
         <div className="flex items-center gap-2 text-teal-700"><RotateCcw className="size-5" aria-hidden="true" /><span className="text-xs font-bold uppercase tracking-wide">Focus area</span></div>
-        <h2 id="most-missed-title" className="mt-2 text-xl font-semibold text-slate-950 sm:text-2xl">Most Missed Questions</h2>
+        <h1 id="most-missed-title" className="mt-2 text-xl font-semibold text-slate-950 sm:text-2xl">Most Missed Questions</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Review questions you answered incorrectly in completed exams, grouped by specialty and exam type. The most frequently missed appear first.</p>
       </div>
       <div className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800">
@@ -79,7 +79,7 @@ export function MissedQuestionsSection({ review }: { readonly review: MissedRevi
                 const classes="flex min-h-16 w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition-[border-color,background-color,box-shadow] hover:border-teal-500 hover:bg-teal-50 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600";
                 return <div key={key}>
                   <button type="button" className={`hidden md:flex ${classes}`} onClick={()=>setSelected(q)} aria-label={`Review question missed ${q.wrongCount} times: ${q.questionText.slice(0,80)}`}>{row}</button>
-                  <Link className={`flex md:hidden ${classes}`} href={`/student/exams/review/${encodeURIComponent(q.questionId)}?source=${q.sourceKind}` as Route} aria-label={`Open question review: ${q.questionText.slice(0,80)}`}>{row}</Link>
+                  <Link className={`flex md:hidden ${classes}`} href={`/student/missed-questions/review/${encodeURIComponent(q.questionId)}?source=${q.sourceKind}` as Route} aria-label={`Open question review: ${q.questionText.slice(0,80)}`}>{row}</Link>
                 </div>;
               })}</div>
             </div>)}</div>
