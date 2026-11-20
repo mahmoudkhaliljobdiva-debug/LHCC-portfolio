@@ -3,16 +3,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Check, ListChecks, LoaderCircle, ShieldCheck, BarChart3, FileCheck2, X } from "lucide-react";
-import { AnswerFeedback, answerOptionTone } from "@/features/learning/answer-feedback";
-import { checkPracticeAnswer, readCurrentExam, saveExamAnswer, submitExam, submitExamWithAnswers } from "@/actions/exams";
+import { ArrowLeft, ChevronRight, Clock, Check, ListChecks, LoaderCircle, ShieldCheck, BarChart3, FileCheck2 } from "lucide-react";
+import { answerOptionTone } from "@/features/learning/answer-feedback";
+import { checkPracticeAnswer, readCurrentExam, saveExamAnswer, submitExamWithAnswers } from "@/actions/exams";
 import type { ExamAttempt } from "@/types/exam";
 
 export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOnly?: boolean }) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null); const heading = useRef<HTMLHeadingElement>(null);
   const [index, setIndex] = useState(0);
-  const examMode = exam.learningMode === "EXAM";
+  // Exam and Practice both save and reveal feedback only at final submission.
+  const examMode = exam.learningMode === "EXAM" || exam.learningMode === "PRACTICE";
   const [draftReady, setDraftReady] = useState(false);
   const [localChanges, setLocalChanges] = useState(false);
   const [processingStep, setProcessingStep] = useState<"saving"|"grading"|"preparing"|"done">("saving");
@@ -33,8 +34,7 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
   const [queuedCount, setQueuedCount] = useState(0);
   const failed = Object.values(errors).some(Boolean) || Boolean(saveIssue);
   const answered = Object.keys(answers).length;
-  // Practice answers must be saved immediately for "Check answer".
-  // Exam mode stores draft selections only in this browser until confirmation.
+  // Both modes keep a local browser draft and submit the entire answer set atomically.
   const pendingAnswers = examMode ? false : saving || queuedCount > 0;
   // Preserve the current question and any unsaved selection while accepting
   // confirmed changes from another tab. A conflict requires explicit review.
@@ -91,9 +91,7 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
     submitLock.current = true; setSubmitting(true); setProcessingStep("saving"); setSubmitError("");
     let completed = false;
     try {
-      const result = examMode
-        ? await submitExamWithAnswers({ attemptId: exam.id, answers, expectedVersion: versionRef.current })
-        : await submitExam(exam.id);
+      const result = await submitExamWithAnswers({ attemptId: exam.id, answers, expectedVersion: versionRef.current });
       if (result.ok) {
         completed = true;
         setProcessingStep("done");
@@ -101,7 +99,7 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
         dialog.current?.close();
         // Results are loaded from the completed server snapshot, never from
         // guessed client-side scoring or a cached in-progress route.
-        window.location.replace(`/student/exams/${exam.id}/result`);
+        router.replace(`/student/exams/${exam.id}/result` as Route);
       } else {
         setSubmitError(result.error.message);
       }
@@ -118,12 +116,6 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
       }
     }
   }, [exam.id,answers,examMode,draftReady,failed,readOnly]);
-  useEffect(() => {
-    const handler = (event: BeforeUnloadEvent) => {
-      if (saving || checking || submitting || failed || (examMode && localChanges)) event.preventDefault();
-    };
-    window.addEventListener("beforeunload",handler); return () => window.removeEventListener("beforeunload",handler);
-  }, [saving,checking,submitting,failed,examMode,localChanges]);
   useEffect(() => {
     if (!exam.deadlineAt) return;
     const tick = () => setRemaining(Math.max(0,Math.ceil((Date.parse(exam.deadlineAt!)-Date.now())/1000)));
@@ -170,28 +162,22 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
   }
 
   function chooseAnswer(optionId: string) {
-    if (readOnly || expired || checked || submitting || checking || locks.current || submitLock.current || (writeBlocked.current && !examMode)) return;
+    if (readOnly || expired || submitting || locks.current || submitLock.current || !draftReady) return;
     const chosenId = question.id;
     if (answers[chosenId] !== optionId) {
       setAnswers(previous => ({ ...previous, [chosenId]: optionId }));
-      if (examMode) {
-        // No network requests or grading during exam selection.
-        setLocalChanges(true);
-      } else {
-        // Practice mode retains its existing versioned save/check workflow.
-        setErrors(previous => ({ ...previous, [chosenId]: "" }));
-        const queuedIndex = queue.current.findIndex((entry,position) =>
-          position >= (writing.current ? 1 : 0) && entry.questionId === chosenId,
-        );
-        if (queuedIndex >= 0) queue.current[queuedIndex] = { questionId: chosenId, optionId };
-        else queue.current.push({ questionId: chosenId, optionId });
-        setQueuedCount(queue.current.length);
-        void flushAnswers();
-      }
+      setLocalChanges(true);
     }
-    if (examMode && index < exam.questions.length - 1) {
-      setIndex(index + 1);
+    // Immediately advance when a choice is selected, regardless of learning mode.
+    // Previous questions remain accessible via the numbered navigator.
+    if (index < exam.questions.length - 1) {
+      setIndex(current => Math.min(current + 1, exam.questions.length - 1));
       requestAnimationFrame(() => heading.current?.focus());
+    } else if (!dialog.current?.open) {
+      // Last question: show only the app's custom submit confirmation.
+      requestAnimationFrame(() => {
+        if (!dialog.current?.open && !submitLock.current) dialog.current?.showModal();
+      });
     }
   }
 
@@ -214,7 +200,7 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
       setAnswers(Object.fromEntries(latest.questions.filter(q=>q.selectedOptionId).map(q=>[q.id,q.selectedOptionId!])));
       setFeedback(Object.fromEntries(latest.questions.filter(q=>q.correctOptionId!==undefined).map(q=>[q.id,{outcome:q.outcome!,correctOptionId:q.correctOptionId!}])));
       setErrors({});
-      if (latest.status==='COMPLETED') window.location.replace(`/student/exams/${exam.id}/result`);
+      if (latest.status==='COMPLETED') router.replace(`/student/exams/${exam.id}/result` as Route);
     } catch { setSubmitError("Unable to load the latest answers. Reconnect and retry."); }
     finally { locks.current=false; setSaving(false); }
   }
@@ -229,7 +215,6 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
   function backToCourse() {
     // Do not leave while a queued answer is unsaved or being checked.
     if (pendingAnswers || failed || checking || submitting || locks.current || submitLock.current) return;
-    if (examMode && localChanges && !window.confirm("Your exam has not been submitted. Selected answers are saved only in this tab. Leave the exam?")) return;
     router.push(`/student/banks/${exam.bankId}` as Route);
   }
   return <div className="mx-auto min-w-0 max-w-5xl space-y-5">
@@ -243,7 +228,7 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
       </button>
     </div>}
     <header className="overflow-hidden rounded-3xl border border-t-4 border-t-teal-600 bg-white p-5 shadow-sm sm:p-7">
-      <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0"><p className="text-sm font-medium text-teal-700 dark:text-teal-200">{exam.learningMode === "PRACTICE" ? "Practice · feedback after checking" : "Exam · feedback after submission"}</p><h1 className="mt-2 break-words text-2xl font-semibold text-slate-950">{exam.title ?? exam.bankName}{exam.year ? ` · ${exam.year}` : ""}</h1><p className="mt-2 text-sm text-slate-600">{exam.bankName}</p></div>{remaining !== null && <p className="inline-flex items-center gap-2 rounded-xl border px-4 py-3 font-mono text-slate-900" aria-label="Time remaining"><Clock className="size-4" />{Math.floor(remaining/60)}:{String(remaining%60).padStart(2,"0")}</p>}</div>
+      <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0"><p className="text-sm font-medium text-teal-700 dark:text-teal-200">{exam.learningMode === "PRACTICE" ? "Practice · feedback after submission" : "Exam · feedback after submission"}</p><h1 className="mt-2 break-words text-2xl font-semibold text-slate-950">{exam.title ?? exam.bankName}{exam.year ? ` · ${exam.year}` : ""}</h1><p className="mt-2 text-sm text-slate-600">{exam.bankName}</p></div>{remaining !== null && <p className="inline-flex items-center gap-2 rounded-xl border px-4 py-3 font-mono text-slate-900" aria-label="Time remaining"><Clock className="size-4" />{Math.floor(remaining/60)}:{String(remaining%60).padStart(2,"0")}</p>}</div>
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm">
         <p className="font-semibold text-slate-800">Answered {answered} of {exam.totalQuestions}</p>
         {examMode
@@ -267,14 +252,24 @@ export function ExamForm({ exam, readOnly = false }: { exam: ExamAttempt; readOn
       <button type="button" onClick={retryAnswers} disabled={saving || checking} className="min-h-11 rounded-xl border border-rose-400 px-4 font-semibold">{saveIssue.conflict ? "Load latest saved answers" : "Retry saving"}</button>
     </div>}
     <section className="min-w-0 rounded-3xl border bg-white p-5 shadow-sm sm:p-7" aria-labelledby="question-heading">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><span className="rounded-full bg-teal-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-teal-800 dark:bg-slate-800 dark:text-teal-200">Question {index+1} of {exam.totalQuestions}</span><span className="text-xs font-medium text-slate-500">{exam.learningMode === "EXAM" ? "Select an answer to continue automatically" : "Check your answer before continuing"}</span></div>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><span className="rounded-full bg-teal-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-teal-800 dark:bg-slate-800 dark:text-teal-200">Question {index+1} of {exam.totalQuestions}</span><span className="text-xs font-medium text-slate-500">Select an answer to continue automatically</span></div>
       {question.caseTitle && <div className="mb-6 rounded-xl border border-teal-200 bg-teal-50 p-4 dark:bg-slate-800"><h2 className="break-words font-semibold text-slate-950">{question.caseTitle}</h2><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-7 text-slate-700">{question.caseDescription}</p></div>}
       <h2 id="question-heading" ref={heading} tabIndex={-1} className="whitespace-pre-wrap break-words text-lg font-semibold leading-7 text-slate-950 outline-none sm:text-xl">{question.text}</h2>
       {question.sourceNumber && <p className="mt-2 break-words text-sm text-slate-500">Original source question: {question.sourceNumber}</p>}
-      <fieldset disabled={readOnly || expired || submitting || checking || Boolean(checked) || Boolean(saveIssue)} className="mt-6"><legend className="sr-only">Choose one answer</legend><div className="grid gap-3 md:grid-cols-2">{question.options.map((option,i) => <label key={option.id} className={`group flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border p-4 text-sm leading-6 text-slate-700 shadow-sm transition-[border-color,background-color,box-shadow] duration-150 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-teal-600 sm:p-5 ${answerOptionTone(checked ? checked.correctOptionId===option.id : undefined, answers[question.id]===option.id)} ${answers[question.id]===option.id ? "ring-2 ring-teal-500/40" : "hover:border-teal-500/60 hover:shadow-md"}`}><input className="mt-1 size-5 shrink-0 accent-teal-700" type="radio" name={question.id} value={option.id} checked={answers[question.id] === option.id} onChange={() => chooseAnswer(option.id)} /><span className="flex min-w-0 gap-2"><span className="shrink-0 font-semibold">{String.fromCharCode(65+i)}.</span><span className="whitespace-pre-wrap break-words">{option.text}</span></span>{checked?.correctOptionId === option.id ? <Check aria-label="Correct answer" className="size-5 shrink-0 text-emerald-700 dark:text-emerald-200"/> : checked && answers[question.id]===option.id ? <X aria-label="Incorrect answer" className="size-5 shrink-0 text-rose-700 dark:text-rose-200"/> : null}</label>)}</div></fieldset>
-      {checked && <AnswerFeedback key={question.id} correct={checked.outcome}/>}
-      {exam.learningMode === "EXAM" && !readOnly && !expired && <p className="mt-4 text-xs text-slate-500">Your selections are kept in this tab and saved to the exam when you confirm submission. Use Previous or the navigator to review them.</p>}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t pt-5"><button disabled={index===0 || checking || submitting} onClick={() => navigate(index-1)} className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-3 text-sm font-semibold disabled:opacity-40"><ChevronLeft className="size-4" />Previous</button>{exam.learningMode === "PRACTICE" && !readOnly && <button disabled={!answers[question.id] || failed || pendingAnswers || checking || Boolean(checked) || expired} onClick={() => void check()} className="min-h-11 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white disabled:opacity-40">{checking ? "Checking…" : checked ? "Checked" : "Check answer"}</button>}<button disabled={index===exam.questions.length-1 || checking || submitting} onClick={() => navigate(index+1)} className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-3 text-sm font-semibold disabled:opacity-40">Next<ChevronRight className="size-4" /></button></div>
+      <fieldset disabled={readOnly || expired || submitting || Boolean(saveIssue) || !draftReady} className="mt-6"><legend className="sr-only">Choose one answer</legend><div className="grid gap-3 md:grid-cols-2">{question.options.map((option,i) => <label key={option.id} className={`group flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border p-4 text-sm leading-6 text-slate-700 shadow-sm transition-[border-color,background-color,box-shadow] duration-150 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-teal-600 sm:p-5 ${answerOptionTone(undefined, answers[question.id]===option.id)} ${answers[question.id]===option.id ? "ring-2 ring-teal-500/40" : "hover:border-teal-500/60 hover:shadow-md"}`}><input className="mt-1 size-5 shrink-0 accent-teal-700" type="radio" name={question.id} value={option.id} checked={answers[question.id] === option.id} onChange={() => chooseAnswer(option.id)} /><span className="flex min-w-0 gap-2"><span className="shrink-0 font-semibold">{String.fromCharCode(65+i)}.</span><span className="whitespace-pre-wrap break-words">{option.text}</span></span></label>)}</div></fieldset>
+      {!readOnly && !expired && <p className="mt-4 text-xs text-slate-500">Your answers will be saved when you confirm submission. Use the question navigator below to revisit any question.</p>}
+      <div className="mt-6 flex justify-end border-t pt-5">
+        {index < exam.questions.length - 1
+          ? <button type="button" disabled={submitting} onClick={() => navigate(index + 1)}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 text-sm font-semibold text-slate-700 disabled:opacity-40">
+              Skip for now <ChevronRight className="size-4" aria-hidden="true" />
+            </button>
+          : <button type="button" disabled={readOnly || submitting || !draftReady}
+              onClick={() => dialog.current?.showModal()}
+              className="inline-flex min-h-11 items-center rounded-xl bg-teal-700 px-5 text-sm font-semibold text-white disabled:opacity-40">
+              Review & submit
+            </button>}
+      </div>
     </section>
     <nav aria-label="Question navigator" className="rounded-3xl border bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
