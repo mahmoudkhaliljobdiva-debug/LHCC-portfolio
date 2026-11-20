@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { requestBankAccess } from "@/actions/bank-access";
+import { formatAccessPrice } from "@/utils/access-price";
 import type { StudentBank } from "@/types/bank-access";
 
 const labels = { LOCKED: "Locked", PENDING: "Pending Approval", APPROVED: "Access Granted", REJECTED: "Access Request Rejected" };
@@ -34,7 +35,7 @@ function BankCard({ bank, previewBase }: { readonly bank: StudentBank; readonly 
     {bank.accessRevoked && bank.accessState === "LOCKED" && <p role="status" className="mt-3 text-sm text-slate-600">Access revoked. Your saved progress is retained.</p>}
     <h2 dir="auto" className="mt-5 break-words font-semibold text-slate-950">{bank.name}</h2>
     <p dir="auto" className="mt-2 min-h-10 break-words text-sm leading-6 text-slate-500">{bank.description}</p>
-    <p className="mt-3 text-sm font-semibold text-slate-800">{bank.price > 0 ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(bank.price) : "Access by administrator approval"}</p>
+    <p className="mt-3 text-sm font-semibold text-slate-800">{formatAccessPrice(bank.price)}</p>
     {bank.accessState === "REJECTED" && bank.rejectionReason && <p className="mt-3 text-sm text-slate-600">Reason: {bank.rejectionReason}</p>}
     <div className="mt-5 border-t pt-4">
       {bank.accessState === "APPROVED" ? <Link href={`${previewBase ?? "/student"}/banks/${bank.id}` as import("next").Route} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white">Open Course<span className="sr-only">: {bank.name}</span></Link> : <button type="button" disabled={Boolean(previewBase) || pending || bank.accessState === "PENDING"} onClick={request} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">{pending ? "Sending…" : bank.accessState === "PENDING" ? "Pending Approval" : bank.accessState === "REJECTED" ? "Request Again" : "Request Access"}<span className="sr-only">: {bank.name}</span></button>}
