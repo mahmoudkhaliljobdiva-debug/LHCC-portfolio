@@ -108,7 +108,7 @@ export function DashboardShell({
             className="lhcc-press hidden min-h-11 w-full items-center justify-center gap-3 rounded-xl border px-3 text-sm text-slate-600 hover:bg-slate-50 lg:flex" onClick={() => { setPeeking(false); setCollapsed(current => !current); }}>
             {collapsed ? <PanelLeftOpen className="size-5 shrink-0" /> : <PanelLeftClose className="size-5 shrink-0" />}<span className="lhcc-sidebar-label">{previewing ? "Keep expanded" : "Collapse navigation"}</span>
           </button>
-          <NavigationLink href="/" aria-label="Back to website" className="lhcc-collapsed-home hidden min-h-11 items-center justify-center gap-3 rounded-xl border text-teal-700"><House className="size-5 shrink-0" /><span className="lhcc-sidebar-label text-sm">Back to website</span></NavigationLink>
+          {role !== "student" && <NavigationLink href="/" aria-label="Back to website" className="lhcc-collapsed-home hidden min-h-11 items-center justify-center gap-3 rounded-xl border text-teal-700"><House className="size-5 shrink-0" /><span className="lhcc-sidebar-label text-sm">Back to website</span></NavigationLink>}
           {role === "student"
             ? <button type="button" onClick={() => { setOpen(false); goBack(); }}
                 disabled={isLiveExam || !canNavigateBack}
