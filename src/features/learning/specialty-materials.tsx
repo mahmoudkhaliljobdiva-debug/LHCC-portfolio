@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { LockKeyhole } from "lucide-react";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { QuestionBankGrid } from "@/features/question-banks/question-bank-grid";
@@ -20,7 +21,8 @@ export function SpecialtyMaterials({ materials, banks }: {
         <MaterialIcon icon={material.icon} className="size-12 text-teal-700 dark:text-teal-200" />
         <h3 dir="auto" className="mt-4 break-words text-lg font-semibold text-slate-950">{material.name}</h3>
         <p dir="auto" className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-600">{material.description}</p>
-        <p className="mt-4 flex items-start gap-2 text-sm text-slate-600"><LockKeyhole className="mt-0.5 size-4 shrink-0" aria-hidden="true" />{group.key === "SUBJECT" ? "Subject lessons require approved Subjects access." : "Questions and exams require approved track access."}</p>
+        <p className="mt-4 flex items-start gap-2 text-sm text-slate-600"><LockKeyhole className="mt-0.5 size-4 shrink-0" aria-hidden="true" />{group.key === "SUBJECT" ? "Ungraded PDF study preview. Answer keys await editorial review." : "Questions and exams require approved track access."}</p>
+        {group.key === "SUBJECT" && banks && <Link href={`/student/medical/${material.id}` as Route} className="mt-5 inline-flex min-h-12 items-center rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white">Study questions</Link>}
         {group.key !== "SUBJECT" && <Link href="/student/question-banks" className="mt-5 inline-flex min-h-12 items-center rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white">Sign In / Request Access</Link>}
       </article>)}</div>}</div>
   </section>)}</div>;
