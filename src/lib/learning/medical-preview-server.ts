@@ -6,8 +6,10 @@ import { createClient } from "@/lib/supabase/server";
 const studyQuestionSchema = z.object({
   id: z.string().min(1),
   text: z.string().min(1),
-  options: z.array(z.object({ id: z.string(), text: z.string() })).min(4),
-  order: z.number().int().nullable().optional(),
+  options: z.array(z.object({ id: z.string(), text: z.string() })),
+  quality: z.enum(["SOURCE_EXTRACTED", "NEEDS_OCR_REVIEW"]),
+  filename: z.string().min(1),
+  pageStart: z.number().int().positive().nullable(),
 });
 const studyPreviewSchema = z.object({
   bank: z.object({ id: z.string(), name: z.string(), description: z.string() }),
@@ -18,8 +20,9 @@ const studyPreviewSchema = z.object({
 
 export type MedicalStudyPreview = z.infer<typeof studyPreviewSchema>;
 
-/** Student-only study view; deliberately excludes private answer keys,
- * correctOptionId, and grading until editorial approval.
+/** Student-only OCR study view of all staged Medicine drafts.
+ * Private solution keys, correctOptionId, and grading are excluded.
+ * Unreliable text/choices remain explicitly labelled as OCR drafts.
  */
 export async function getMedicalStudyPreview(bankId: string,page: number): Promise<MedicalStudyPreview> {
   await requireRole("STUDENT");
