@@ -71,3 +71,37 @@ export async function bulkSetSubjectQuestionStatus(
     return { ok: false, error: { code: "INTERNAL_ERROR", message: "Bulk status update could not be completed." } };
   }
 }
+
+
+/** In-place admin review of an existing OCR draft.
+ * Never silently assign an answer key or activate an unreviewed question.
+ * Supabase handles stage, explicit approval and import in one transaction.
+ */
+export async function reviewAndImportStagedSubjectQuestion(
+  bankId: string, stagingId: string, input: unknown,
+): Promise<ServerResult<{ questionId: string }>> {
+  const auth = await authorizeActiveAdmin();
+  if (!auth.ok) return auth;
+  const parsed = reviewedSubjectQuestionSchema.safeParse(input);
+  if (!z.string().min(1).max(200).safeParse(bankId).success ||
+      !z.uuid().safeParse(stagingId).success || !parsed.success ||
+      !parsed.data.sourceId || parsed.data.expectedRevision === null) {
+    return { ok: false, error: { code: "VALIDATION_ERROR", message: "Choose a source draft and complete its review and source evidence." } };
+  }
+  try {
+    const { data,error } = await (await createClient()).rpc("save_reviewed_subject_question", {
+      bank_id: bankId, question_id: null,
+      payload: { ...parsed.data, stagingId } as Json,
+    });
+    if (error) return {
+      ok: false, error: { code: error.code === "40001" ? "CONFLICT" : "VALIDATION_ERROR",
+        message: error.code === "40001"
+          ? "This OCR draft was changed. Reload before reviewing it."
+          : "Review could not be completed. Check the verified answer, source evidence, explanation, choices, images and duplicate checks." },
+    };
+    revalidatePath("/admin/subjects", "layout");
+    return { ok: true, data: z.object({ questionId: z.string() }).parse(data) };
+  } catch {
+    return { ok: false, error: { code: "INTERNAL_ERROR", message: "Unable to import this reviewed OCR draft." } };
+  }
+}

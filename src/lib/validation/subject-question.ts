@@ -35,7 +35,7 @@ export const stagedSubjectQuestionSchema = z.object({
   importedAt: z.string().nullable(), reviewedBy: z.uuid().nullable(), reviewedAt: z.string().nullable(), createdAt: z.string(), possibleDuplicates: z.number(),
 });
 export const adminSubjectQuestionsSchema = z.object({
-  bank: z.object({ id: contentId, name: z.string(), specialtyName: z.string().nullable() }), questionCount: z.number().int(), pendingCount: z.number().int(),
+  bank: z.object({ id: contentId, name: z.string(), specialtyName: z.string().nullable() }), questionCount: z.number().int(), extractedCount: z.number().int().nonnegative(), pendingCount: z.number().int(),
   chapters: z.array(z.object({ id: z.uuid(), title: z.string() })), sources: z.array(subjectSourceSchema),
   items: z.array(subjectQuestionSchema.or(stagedSubjectQuestionSchema)), total: z.number().int(),
 });

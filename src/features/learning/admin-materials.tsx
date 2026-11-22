@@ -48,14 +48,18 @@ export function AdminMaterials({ kind, page, items, total, specialties, folders,
         </div>
         <div className="lhcc-card-body"><p dir="auto" className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-slate-600 dark:text-slate-300">{material.description || "No description provided."}</p></div>
         <dl className="my-4 grid grid-cols-2 gap-3 text-sm">
-          {isSubject ? <div><dt className="text-slate-500 dark:text-slate-400">Questions</dt><dd className="mt-1 font-semibold">{material.questionCount ?? 0}</dd></div> : null}
+          {isSubject ? <>
+            <div><dt className="text-slate-500 dark:text-slate-400">Extracted PDF questions</dt><dd className="mt-1 font-semibold">{material.extractedCount ?? material.questionCount ?? 0}</dd></div>
+            <div><dt className="text-slate-500 dark:text-slate-400">Imported questions</dt><dd className="mt-1 font-semibold">{material.questionCount ?? 0}</dd></div>
+            <div><dt className="text-slate-500 dark:text-slate-400">Awaiting import</dt><dd className="mt-1 font-semibold text-amber-700 dark:text-amber-200">{material.draftCount ?? 0}</dd></div>
+          </> : null}
           <div><dt className="text-slate-500 dark:text-slate-400">Publication</dt><dd className="mt-1 font-medium text-slate-800 dark:text-slate-200">{material.publicationStatus === "DRAFT" ? "Draft" : material.publicationStatus === "PUBLISHED" ? "Published" : "Archived"}</dd></div>
           <div><dt className="text-slate-500 dark:text-slate-400">Availability</dt><dd className="mt-1 font-medium text-slate-800 dark:text-slate-200">{material.status === "active" ? "Active" : "Inactive"}</dd></div>
           {material.examCategory ? <div><dt className="text-slate-500 dark:text-slate-400">Exam category</dt><dd className="mt-1 text-slate-800 dark:text-slate-200">{categoryLabels[material.examCategory]}</dd></div> : null}
           <div><dt className="text-slate-500 dark:text-slate-400">Language</dt><dd className="mt-1 text-slate-800 dark:text-slate-200">{languageLabels[material.language]}</dd></div>
         </dl>
         <div className="lhcc-card-footer flex flex-wrap gap-3 border-t"><button type="button" className={secondaryButton} onClick={() => { setFeedback(""); setEditing({ value: material, isNew: false }); }}>Edit<span className="sr-only"> {material.name}</span></button>
-          <Link href={isSubject ? `/admin/subjects/${encodeURIComponent(material.id)}/questions` : `/admin/question-banks/${encodeURIComponent(material.id)}`} className={secondaryButton}>Manage questions</Link>{isSubject && (material.chapterCount ?? 0) > 0 ? <Link href={`/admin/subjects/${encodeURIComponent(material.id)}/lessons`} className={secondaryButton}>Chapters & lessons</Link> : null}
+          <Link href={isSubject ? `/admin/subjects/${encodeURIComponent(material.id)}/questions?view=review` : `/admin/question-banks/${encodeURIComponent(material.id)}`} className={secondaryButton}>{isSubject && (material.draftCount ?? 0) > 0 ? "Review extracted questions" : "Manage questions"}</Link>{isSubject && (material.chapterCount ?? 0) > 0 ? <Link href={`/admin/subjects/${encodeURIComponent(material.id)}/lessons`} className={secondaryButton}>Chapters & lessons</Link> : null}
         </div>
       </article>;
   }
@@ -103,7 +107,7 @@ export function AdminMaterials({ kind, page, items, total, specialties, folders,
 function MaterialForm({ initial, isNew, specialties, onClose, onSaved }: {
   initial: LearningMaterial; isNew: boolean; specialties: MaterialSpecialtyOption[]; onClose: () => void; onSaved: () => void;
 }) {
-  const [draft, setDraft] = useState<MaterialInput>(() => { const value = { ...initial }; delete value.questionCount; delete value.chapterCount; return value; });
+  const [draft, setDraft] = useState<MaterialInput>(() => { const value = { ...initial }; delete value.questionCount; delete value.extractedCount; delete value.draftCount; delete value.chapterCount; return value; });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const titleId = useId();
