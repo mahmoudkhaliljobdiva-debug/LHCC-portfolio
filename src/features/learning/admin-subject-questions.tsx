@@ -69,12 +69,12 @@ export function AdminSubjectQuestions({ data, page, search, chapter, view }: { d
   if (view === "review") return <AdminSubjectDrafts data={data} page={page} search={search} />;
   return <div className="space-y-5">
     <nav aria-label="Breadcrumb" className="flex flex-wrap gap-2 text-sm"><Link className="text-teal-700 dark:text-teal-300" href="/admin/subjects">Subjects</Link><span>/</span><span>{data.bank.specialtyName ?? "Unassigned specialty"}</span><span>/</span><span>{data.bank.name}</span><span>/ Questions</span></nav>
-    <header className={card}><div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0"><h1 className="break-words text-2xl font-semibold sm:text-3xl">{data.bank.name} questions</h1><p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{data.extractedCount} extracted entries · {data.questionCount} imported questions · {data.pendingCount} awaiting review/import</p></div><button onClick={() => setEditing("new")} className={subjectButtonClass}><Plus className="size-4" />Add question</button></div>
+    <header className={card}><div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0"><h1 className="break-words text-2xl font-semibold sm:text-3xl">{data.bank.name} questions</h1><p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{data.extractedCount} source-extracted entries · {data.questionCount} imported · {data.pendingCount} awaiting import · {data.needsReviewCount} need editorial review</p></div><button onClick={() => setEditing("new")} className={subjectButtonClass}><Plus className="size-4" />Add question</button></div>
       <div className="mt-4 flex flex-wrap gap-3">
         <span className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Imported questions ({data.questionCount})</span>
-        <Link href={`/admin/subjects/${encodeURIComponent(data.bank.id)}/questions?view=review` as Route} className={subjectButtonClass}>
-          <FileWarning className="size-4" aria-hidden="true" />Review OCR drafts ({data.pendingCount})
-        </Link>
+        {data.pendingCount > 0 && <Link href={`/admin/subjects/${encodeURIComponent(data.bank.id)}/questions?view=review` as Route} className={subjectButtonClass}>
+          <FileWarning className="size-4" aria-hidden="true" />Unimported OCR drafts ({data.pendingCount})
+        </Link>}
       </div>
       <p className="mt-4 text-sm leading-6 text-amber-800 dark:text-amber-200">Student OCR previews include unverified content. Only explicitly reviewed and approved questions are eligible for scored exams.</p>
       {data.chapters.length ? <Link href={`/admin/subjects/${encodeURIComponent(data.bank.id)}/lessons`} className={`${subjectButtonClass} mt-4`}>Chapters & lessons</Link> : null}
@@ -97,6 +97,9 @@ export function AdminSubjectQuestions({ data, page, search, chapter, view }: { d
       {grouped && (index === 0 || chapterLabel(visibleItems[index - 1]!) !== chapterLabel(item)) ? <h2 className="mb-3 text-lg font-semibold">{chapterLabel(item)}</h2> : null}
       <article className={card}>
         <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><label className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleQuestion(item.id)} disabled={busy} aria-label={`Select question ${item.displayOrder ?? page * 20 + index + 1}`} />Select</label><h2 className="font-semibold">Question {item.displayOrder ?? page * 20 + index + 1}</h2></div><span className="text-sm">{item.status} · {item.approvalStatus}</span></div>
+        {(item.approvalStatus !== "APPROVED" || item.options.length < 2 || item.correctOptionId === null) && <p className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
+          Needs source/answer review{item.options.length < 2 ? ` · Only ${item.options.length} extracted ${item.options.length===1 ? "choice" : "choices"}` : ""}. This question is inactive and excluded from scored exams.
+        </p>}
         {item.groupInstructions ? <p className="mt-3 whitespace-pre-wrap rounded-xl border p-4" dir="auto">{item.groupInstructions}</p> : null}
         {item.caseTitle || item.caseDescription ? <section className="mt-3 rounded-xl border p-4"><h3 className="font-semibold" dir="auto">{item.caseTitle}</h3><p dir="auto" className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{item.caseDescription}</p></section> : null}
         <p className="mt-4 whitespace-pre-wrap break-words text-base leading-7" dir="auto">{item.text}</p>

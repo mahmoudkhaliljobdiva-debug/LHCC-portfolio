@@ -35,6 +35,7 @@ export const materialRecordSchema = materialFields.extend({
   questionCount: z.number().int().nonnegative().optional(),
   extractedCount: z.number().int().nonnegative().optional(),
   draftCount: z.number().int().nonnegative().optional(),
+  needsReviewCount: z.number().int().nonnegative().optional(),
   chapterCount: z.number().int().nonnegative().optional(),
 }).superRefine(validateClassification);
 export const subjectMetadataSchema = materialFields.extend({
