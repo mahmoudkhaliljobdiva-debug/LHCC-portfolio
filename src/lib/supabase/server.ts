@@ -2,10 +2,13 @@ import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 import type { Database } from "@/lib/supabase/database.types";
 
-export async function createClient() {
+// A Supabase client is session-bound. Deduplicate ONLY within the current
+// React server request, never process-wide or across student sessions.
+export const createClient = cache(async function createClient() {
   // Reading cookies first establishes the request boundary so authenticated
   // routes are never statically prerendered with a shared auth state.
   const cookieStore = await cookies();
@@ -31,4 +34,4 @@ export async function createClient() {
       },
     },
   });
-}
+});

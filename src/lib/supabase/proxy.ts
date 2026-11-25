@@ -15,12 +15,18 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   const supabase = createServerClient<Database>(url, anonKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
-      setAll: (cookiesToSet) => {
+      setAll: (cookiesToSet, cacheHeaders) => {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
         });
+        // Supabase SSR returns non-cacheable response headers on any token
+        // refresh. Forward them so a CDN cannot cache another user's session.
+        for (const [name, value] of Object.entries(cacheHeaders ?? {})) {
+          response.headers.set(name, value);
+        }
+        response.headers.set("Cache-Control", "private, no-store, max-age=0");
       },
     },
   });

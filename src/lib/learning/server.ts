@@ -1,17 +1,31 @@
 import "server-only";
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
+import { createPublicReadClient, getPublicContentRevision } from "@/lib/cache/public-content";
 import { readAllRows } from "@/lib/supabase/pagination";
 import { catalogSchema, specialtySchema, sharedDefinitionSchema } from "@/lib/validation/learning-catalog";
 
-// Request-local only. Public payload explicitly excludes questions, keys and PDFs.
-export const getLearningCatalog = cache(async () => {
-  const db = await createClient(); const { data, error } = await db.rpc("learning_catalog");
-  if (error) throw new Error("Unable to load the learning catalog.");
-  return catalogSchema.parse(data);
-});
+// Shared public payload: published specialty/material metadata ONLY.
+ // No student access, prices by user, exam answers, session cookies, or private rows.
+ // Using the catalog revision as the cache argument invalidates on any content edit.
+const getCachedLearningCatalog = unstable_cache(
+  async (_revision: string) => {
+    const { data, error } = await createPublicReadClient().rpc("learning_catalog");
+    if (error) throw new Error("Unable to load the learning catalog.");
+    return catalogSchema.parse(data);
+  },
+  ["lhcc-public-learning-catalog-v1"],
+  { revalidate: 120, tags: ["lhcc-public-content"] },
+);
+
+// React.cache keeps the revision request to one per server render, and
+// unstable_cache shares the catalog data safely across visitors and requests.
+export const getLearningCatalog = cache(async () =>
+  getCachedLearningCatalog(await getPublicContentRevision()),
+);
 export async function getAdminCatalog() {
   await requireRole("ADMIN"); const db = await createClient();
   const [specialties, banks] = await Promise.all([
