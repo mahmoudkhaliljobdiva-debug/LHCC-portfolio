@@ -84,7 +84,10 @@ export function LiveSyncProvider({ children }: { readonly children: React.ReactN
     window.addEventListener("focus", wake); document.addEventListener("visibilitychange", wake);
     window.addEventListener("storage", wake);
     // Revision-only, bounded safety net for lost events; no expensive dashboard polling.
-    const interval = setInterval(wake, 60000);
+    // Spread the 60-second safety-net checks across clients: a cohort of
+    // students signing in together should not all poll the database at once.
+    // Realtime broadcasts still refresh immediately; only fallback polling jitters.
+    const interval = setInterval(wake, 55000 + Math.floor(Math.random() * 15000));
     schedule();
     return () => {
       disposed = true; if (timer) clearTimeout(timer); clearInterval(interval);
