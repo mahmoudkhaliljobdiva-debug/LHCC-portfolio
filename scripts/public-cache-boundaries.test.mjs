@@ -11,6 +11,7 @@ const [publicCache, catalog, portfolio, server, proxy, routes] = await Promise.a
   get("src/proxy.ts"),
 ]);
 assert(publicCache.includes("catalog_revision"), "Published content uses live revision");
+assert(publicCache.includes("getCachedPublicRevision") && publicCache.includes("revalidate: 5"), "Revision checks are shared and bounded to five seconds");
 assert(publicCache.includes("persistSession: false"), "Public client never persists a session");
 assert(!publicCache.includes("serviceRole") && !publicCache.includes("SUPABASE_SECRET_KEY"), "No privileged key in cached data source");
 assert(catalog.includes("unstable_cache") && catalog.includes("createPublicReadClient"), "Published catalog shares a public cache");
