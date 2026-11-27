@@ -41,6 +41,7 @@ export interface BankAccess {
 }
 
 export interface StudentBank extends CourseBank {
+  material_kind: "SUBJECT" | "EXAM_TRACK";
   accessState: BankAccessStatus;
   accessRevoked?: boolean;
   rejectionReason: string | null;
