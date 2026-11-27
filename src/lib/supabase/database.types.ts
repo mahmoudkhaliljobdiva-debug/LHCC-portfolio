@@ -1202,12 +1202,10 @@ export type Database = {
         Args: { target_specialty_id: string }
         Returns: string
       }
-      reset_portfolio_content: { Args: never; Returns: undefined }
       review_course_package_access: {
         Args: { decision: string; reason?: string; target_request_id: string }
         Returns: undefined
       }
-      revoke_bank_access: { Args: { request_id: string }; Returns: undefined }
       revoke_course_package_access: {
         Args: { target_request_id: string }
         Returns: undefined
