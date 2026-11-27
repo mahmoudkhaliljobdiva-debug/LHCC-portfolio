@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, BookOpenText, ShieldAlert, FileQuestion, CircleA
 import { notFound } from "next/navigation";
 import { getLearningCatalog } from "@/lib/learning/server";
 import { getMedicalStudyPreview } from "@/lib/learning/medical-preview-server";
+import { getStudentBanks } from "@/lib/bank-access/server";
 
 const PAGE_SIZE=20;
 export default async function MedicalSubjectStudyPage({
@@ -18,6 +19,10 @@ export default async function MedicalSubjectStudyPage({
   const page=rawPage ? Number(rawPage) : 0;
   const med=(await getLearningCatalog()).find(s => s.slug==="medical");
   if (!med?.materials.some(m => m.id===bankId && m.materialKind==="SUBJECT")) notFound();
+  const bank=(await getStudentBanks()).find(item => item.id===bankId && item.material_kind==="SUBJECT");
+  if (!bank || bank.accessState!=="APPROVED") {
+    return <section className="rounded-2xl border bg-white p-6"><h1 className="text-xl font-semibold text-slate-950">Course access required</h1><p className="mt-3 text-sm text-slate-600">Request access to this course and wait for LHCC administration to approve it before reading its study questions.</p><Link href="/student/question-banks" className="mt-5 inline-flex min-h-11 items-center font-semibold text-teal-700">Browse courses</Link></section>;
+  }
   const study=await getMedicalStudyPreview(bankId,page);
   if (page>0 && page*PAGE_SIZE>=study.total) notFound();
   const lastPage=Math.max(1,Math.ceil(study.total/PAGE_SIZE));
