@@ -29,29 +29,21 @@ export async function getStudentBanksForAdmin(subjectId: string) {
 
 async function readStudentBanks(db: Awaited<ReturnType<typeof createClient>>, subjectId: string): Promise<StudentBank[]> {
   const [banks, requests, grants] = await Promise.all([
-    // Subject access will be resolved through its group entitlements, never
-    // through the legacy per-bank request/sale workflow (including Admin preview).
+    // Show every active, admin-published course, even with zero active questions.
+    // Actual question/study content remains server-authorized after approval.
     readAllRows((from, to) => db.from("question_banks").select("*").eq("status", "active")
-      .eq("material_kind", "EXAM_TRACK").eq("publication_status", "PUBLISHED")
+      .eq("publication_status", "PUBLISHED").in("material_kind", ["EXAM_TRACK", "SUBJECT"])
       .order("display_order").order("id").range(from, to)),
     readAllRows((from, to) => db.from("user_bank_access_requests").select("*").eq("user_id", subjectId).order("requested_at", { ascending: false }).order("id").range(from, to)),
     readAllRows((from, to) => db.from("user_bank_access").select("*").eq("user_id", subjectId).order("id").range(from, to)),
   ]);
-  // Only advertise banks that have real, active questions. This includes
-  // exam-only tracks (their active questions may be excluded from random pools).
-  // Use an ID-only query; never expose correct answers or private solutions.
-  if (!banks.length) return [];
-  const activeQuestions = await readAllRows((from, to) => db.from("bank_questions")
-    .select("id,question_bank_id")
-    .eq("status", "active")
-    .in("question_bank_id", banks.map(bank => bank.id))
-    .order("id").range(from, to));
-  const populatedBankIds = new Set(activeQuestions.map(item => item.question_bank_id));
-  return banks.filter(bank => populatedBankIds.has(bank.id)).map((bank) => {
+  // Visibility reflects the admin's Published/Active flags, not the student's
+  // existing approval or the number of imported questions.
+  return banks.map((bank) => {
     const request = requests.find((item) => item.question_bank_id === bank.id);
     const grant = grants.find((item) => item.question_bank_id === bank.id);
     const approved = grant?.status === "ACTIVE";
-    return { ...bank, status: "active", accessState: approved ? "APPROVED" : request?.status === "PENDING" || request?.status === "REJECTED" ? request.status : "LOCKED", accessRevoked: grant?.status === "REVOKED", rejectionReason: request?.rejection_reason ?? null };
+    return { ...bank, material_kind: bank.material_kind === "SUBJECT" ? "SUBJECT" as const : "EXAM_TRACK" as const, status: "active" as const, accessState: approved ? "APPROVED" as const : request?.status === "PENDING" || request?.status === "REJECTED" ? request.status : "LOCKED" as const, accessRevoked: grant?.status === "REVOKED", rejectionReason: request?.rejection_reason ?? null };
   });
 }
 
