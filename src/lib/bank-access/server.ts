@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { readAllRows } from "@/lib/supabase/pagination";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPortalPreviewContext } from "@/lib/portal-preview/server";
-import type { AdminAccessRequest, StudentBank, CoursePackage } from "@/types/bank-access";
+import type { AdminAccessRequest, BankAccessStatus, StudentBank, CoursePackage } from "@/types/bank-access";
 import { getLearningCatalog } from "@/lib/learning/server";
 import type { QuestionBankStoreData } from "@/types/question-bank";
 
@@ -47,10 +47,14 @@ async function readStudentBanks(db: Awaited<ReturnType<typeof createClient>>, su
     const grant = grants.find((item) => item.question_bank_id === bank.id);
     const packageGrant = packageGrants.find(item => item.specialty_id === bank.specialty_id);
     const packageRequest = packageRequests.find(item => item.specialty_id === bank.specialty_id);
-    const packageAccessState = packageGrant?.status === "ACTIVE" ? "APPROVED" as const
-      : packageRequest?.status === "PENDING" || packageRequest?.status === "REJECTED"
-        ? packageRequest.status : "LOCKED" as const;
+    const packageAccessState: BankAccessStatus = packageGrant?.status === "ACTIVE" ? "APPROVED"
+      : packageRequest?.status === "PENDING" ? "PENDING"
+        : packageRequest?.status === "REJECTED" ? "REJECTED" : "LOCKED";
     const approved = grant?.status === "ACTIVE" || packageAccessState === "APPROVED";
+    const accessState: BankAccessStatus = approved ? "APPROVED"
+      : packageAccessState === "PENDING" || packageAccessState === "REJECTED" ? packageAccessState
+        : request?.status === "PENDING" ? "PENDING"
+          : request?.status === "REJECTED" ? "REJECTED" : "LOCKED";
     return {
       ...bank,
       material_kind: bank.material_kind === "SUBJECT" ? "SUBJECT" as const : "EXAM_TRACK" as const,
@@ -58,10 +62,7 @@ async function readStudentBanks(db: Awaited<ReturnType<typeof createClient>>, su
       packageAccessState,
       packageAccessRevoked: packageGrant?.status === "REVOKED",
       packageRejectionReason: packageRequest?.rejection_reason ?? null,
-      accessState: approved ? "APPROVED" as const
-        : packageAccessState === "PENDING" || packageAccessState === "REJECTED" ? packageAccessState
-          : request?.status === "PENDING" || request?.status === "REJECTED" ? request.status
-            : "LOCKED" as const,
+      accessState,
       accessRevoked: grant?.status === "REVOKED" || packageGrant?.status === "REVOKED",
       rejectionReason: packageRequest?.rejection_reason ?? request?.rejection_reason ?? null,
     };
