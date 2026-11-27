@@ -2,6 +2,7 @@ import { RoleScreen } from "@/features/dashboard/role-screen";
 import { getStudentBanks } from "@/lib/bank-access/server";
 import { notFound, redirect } from "next/navigation";
 import { StudentLearningOverview } from "@/features/exams/student-learning-overview";
+import { QuestionBankGrid } from "@/features/question-banks/question-bank-grid";
 import { StudentReviewDashboard } from "@/features/exams/student-review-dashboard";
 import { getStudentMissedReview } from "@/lib/exams/missed-review-server";
 import { BookOpen, ClipboardList, ArrowRight } from "lucide-react";
@@ -15,14 +16,21 @@ export default async function StudentPage({ params }: { params: Promise<{ sectio
     return <RoleScreen role="student" section={section[0]} />;
   }
   const [banks, review] = await Promise.all([getStudentBanks(), getStudentMissedReview(3)]);
-  const approved = banks.filter(bank => bank.accessState === "APPROVED");
+  const approved = banks.filter(bank => bank.accessState === "APPROVED" && bank.material_kind === "EXAM_TRACK");
   return <div className="space-y-7">
     <header>
       <p className="text-sm font-semibold text-teal-700">Your learning workspace</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">My Learning</h1>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Pick up an unfinished exam, open your courses, or review your results—all in one place.</p>
     </header>
-    <StudentLearningOverview banks={approved} />
+    <StudentLearningOverview banks={approved} showCourses={false} />
+    <section aria-labelledby="student-courses-heading" className="space-y-4">
+      <div>
+        <h2 id="student-courses-heading" className="text-xl font-semibold text-slate-950">Courses</h2>
+        <p className="mt-1 text-sm text-slate-600">All published LHCC courses in one place. Request access, check approval, or open your course.</p>
+      </div>
+      <QuestionBankGrid banks={banks} />
+    </section>
     <StudentReviewDashboard review={review} />
     <section aria-label="More student actions" className="grid gap-4 sm:grid-cols-2">
       <Link href="/student/question-banks" className="lhcc-card-stack group rounded-2xl border bg-white p-5 shadow-sm transition-colors hover:border-teal-500 sm:p-6">
