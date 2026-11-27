@@ -78,7 +78,7 @@ export const getStudentCoursePackages = cache(async (): Promise<CoursePackage[]>
       .map(material => byId.get(material.id))
       .filter((bank): bank is StudentBank => Boolean(bank));
     if (!materials.length) return [];
-    const first = materials[0];
+    const first = materials[0]!;
     const allGranted = materials.every(bank => bank.accessState === "APPROVED");
     const accessState = first.packageAccessState === "APPROVED" || allGranted
       ? "APPROVED" as const : first.packageAccessState;
