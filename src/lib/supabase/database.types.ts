@@ -1143,12 +1143,6 @@ export type Database = {
         ]
       }
     }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      admin_bank_data: { Args: never; Returns: Json }
-
     }
     Views: {
       [_ in never]: never
