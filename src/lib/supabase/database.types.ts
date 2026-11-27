@@ -806,6 +806,123 @@ export type Database = {
           },
         ]
       }
+      course_package_access: {
+        Row: {
+          granted_at: string
+          granted_by: string
+          id: string
+          request_id: string | null
+          revoked_at: string | null
+          specialty_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by: string
+          id?: string
+          request_id?: string | null
+          revoked_at?: string | null
+          specialty_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          request_id?: string | null
+          revoked_at?: string | null
+          specialty_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_package_access_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_package_access_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
+            referencedRelation: "course_package_access_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_package_access_specialty_id_fkey"
+            columns: ["specialty_id"]
+            isOneToOne: false
+            referencedRelation: "specialties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_package_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_package_access_requests: {
+        Row: {
+          id: string
+          rejection_reason: string | null
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          specialty_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          rejection_reason?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          specialty_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          rejection_reason?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          specialty_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_package_access_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_package_access_requests_specialty_id_fkey"
+            columns: ["specialty_id"]
+            isOneToOne: false
+            referencedRelation: "specialties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_package_access_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_bank_access: {
         Row: {
           created_at: string
@@ -942,6 +1059,7 @@ export type Database = {
         Row: {
           amount: number
           category: string | null
+          course_package_access_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -957,6 +1075,7 @@ export type Database = {
         Insert: {
           amount: number
           category?: string | null
+          course_package_access_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -972,6 +1091,7 @@ export type Database = {
         Update: {
           amount?: number
           category?: string | null
+          course_package_access_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -985,6 +1105,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_course_package_access_id_fkey"
+            columns: ["course_package_access_id"]
+            isOneToOne: false
+            referencedRelation: "course_package_access"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "wallet_transactions_created_by_fkey"
             columns: ["created_by"]
@@ -1070,6 +1197,19 @@ export type Database = {
       }
       learning_catalog: { Args: never; Returns: Json }
       learning_progress: { Args: never; Returns: Json }
+      list_course_package_requests: { Args: never; Returns: Json }
+      request_course_package_access: {
+        Args: { target_specialty_id: string }
+        Returns: string
+      }
+      review_course_package_access: {
+        Args: { decision: string; reason?: string; target_request_id: string }
+        Returns: undefined
+      }
+      revoke_course_package_access: {
+        Args: { target_request_id: string }
+        Returns: undefined
+      }
       list_bank_access_requests: { Args: never; Returns: Json }
       manage_bank_content: {
         Args: { item_id: string; operation: string; payload?: Json }

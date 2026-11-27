@@ -1,15 +1,16 @@
-import { QuestionBankGrid } from "@/features/question-banks/question-bank-grid";
-import { getStudentBanks } from "@/lib/bank-access/server";
+import { CoursePackageGrid } from "@/features/question-banks/course-package-grid";
+import { getStudentCoursePackages } from "@/lib/bank-access/server";
 
 export default async function StudentBanksPage() {
-  const banks = await getStudentBanks();
+  const packages = await getStudentCoursePackages();
   return <main className="space-y-6">
     <header>
       <h1 className="text-2xl font-semibold text-slate-950 sm:text-3xl">Courses</h1>
       <p className="mt-2 text-sm text-slate-600">
-        All available courses published by LHCC. Request access once and track approval here.
+        Three learning packages: Medicine, Dentistry, and Nursing Colloquium.
+        Request access once per package; LHCC administration reviews your request.
       </p>
     </header>
-    <QuestionBankGrid banks={banks} />
+    <CoursePackageGrid packages={packages} />
   </main>;
 }

@@ -1,8 +1,8 @@
 import { RoleScreen } from "@/features/dashboard/role-screen";
-import { getStudentBanks } from "@/lib/bank-access/server";
+import { getStudentBanks, getStudentCoursePackages } from "@/lib/bank-access/server";
 import { notFound, redirect } from "next/navigation";
 import { StudentLearningOverview } from "@/features/exams/student-learning-overview";
-import { QuestionBankGrid } from "@/features/question-banks/question-bank-grid";
+import { CoursePackageGrid } from "@/features/question-banks/course-package-grid";
 import { StudentReviewDashboard } from "@/features/exams/student-review-dashboard";
 import { getStudentMissedReview } from "@/lib/exams/missed-review-server";
 import { BookOpen, ClipboardList, ArrowRight } from "lucide-react";
@@ -15,7 +15,7 @@ export default async function StudentPage({ params }: { params: Promise<{ sectio
     if (section[0] === "exams") redirect("/student/exams");
     return <RoleScreen role="student" section={section[0]} />;
   }
-  const [banks, review] = await Promise.all([getStudentBanks(), getStudentMissedReview(3)]);
+  const [banks, packages, review] = await Promise.all([getStudentBanks(), getStudentCoursePackages(), getStudentMissedReview(3)]);
   const approved = banks.filter(bank => bank.accessState === "APPROVED" && bank.material_kind === "EXAM_TRACK");
   return <div className="space-y-7">
     <header>
@@ -27,9 +27,9 @@ export default async function StudentPage({ params }: { params: Promise<{ sectio
     <section aria-labelledby="student-courses-heading" className="space-y-4">
       <div>
         <h2 id="student-courses-heading" className="text-xl font-semibold text-slate-950">Courses</h2>
-        <p className="mt-1 text-sm text-slate-600">All published LHCC courses in one place. Request access, check approval, or open your course.</p>
+        <p className="mt-1 text-sm text-slate-600">Medicine (12 subjects), Dentistry Mock Exams, and Nursing Colloquium. Request access once per package.</p>
       </div>
-      <QuestionBankGrid banks={banks} />
+      <CoursePackageGrid packages={packages} />
     </section>
     <StudentReviewDashboard review={review} />
     <section aria-label="More student actions" className="grid gap-4 sm:grid-cols-2">

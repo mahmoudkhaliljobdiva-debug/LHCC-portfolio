@@ -26,6 +26,47 @@ export async function requestBankAccess(bankId: string): Promise<ServerResult<nu
   } catch { return failure("Unable to request access. Please try again."); }
 }
 
+export async function requestCoursePackageAccess(specialtyId: string): Promise<ServerResult<null>> {
+  if (!z.uuid().safeParse(specialtyId).success || !await studentAuthorized()) {
+    return failure("Sign in with an enabled student account and choose a valid package.");
+  }
+  try {
+    const db = await createClient();
+    const { error } = await db.rpc("request_course_package_access", { target_specialty_id: specialtyId });
+    if (error) return failure(error.code === "23505"
+      ? "A request is already pending or access is already granted."
+      : "Unable to request this package. It may be unavailable.");
+    refreshAccess();
+    return { ok: true, data: null };
+  } catch { return failure("Unable to request this package. Please try again."); }
+}
+
+async function reviewPackage(requestId: string, decision: "APPROVED" | "REJECTED", reason: string | null): Promise<ServerResult<null>> {
+  const parsed = z.object({ id: z.uuid(), reason: z.string().trim().max(1000).nullable() }).safeParse({ id: requestId, reason });
+  if (!parsed.success) return failure("Check the package request and rejection reason.");
+  const auth = await authorizeActiveAdmin(); if (!auth.ok) return auth;
+  try {
+    const db = await createClient();
+    const { error } = await db.rpc("review_course_package_access", {
+      target_request_id: parsed.data.id, decision, ...(parsed.data.reason ? { reason: parsed.data.reason } : {}),
+    });
+    if (error) return failure("Unable to review this package request.");
+    refreshAccess(); return { ok: true, data: null };
+  } catch { return failure("Unable to review package request. Please retry."); }
+}
+export async function approveCoursePackageRequest(id: string) { return reviewPackage(id, "APPROVED", null); }
+export async function rejectCoursePackageRequest(id: string, reason: string) { return reviewPackage(id, "REJECTED", reason); }
+export async function revokeCoursePackageRequest(id: string): Promise<ServerResult<null>> {
+  if (!z.uuid().safeParse(id).success) return failure("Choose a valid package approval.");
+  const auth = await authorizeActiveAdmin(); if (!auth.ok) return auth;
+  try {
+    const db = await createClient();
+    const { error } = await db.rpc("revoke_course_package_access", { target_request_id: id });
+    if (error) return failure("Unable to revoke package access.");
+    refreshAccess(); return { ok: true, data: null };
+  } catch { return failure("Unable to revoke package access. Please retry."); }
+}
+
 async function review(requestId: string, decision: "APPROVED" | "REJECTED", reason: string | null): Promise<ServerResult<null>> {
   const parsed = z.object({ id: z.uuid(), reason: z.string().trim().max(1000).nullable() }).safeParse({ id: requestId, reason });
   if (!parsed.success) return failure("Check the request and rejection reason.");
