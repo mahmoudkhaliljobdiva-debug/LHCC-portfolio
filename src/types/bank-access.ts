@@ -42,12 +42,30 @@ export interface BankAccess {
 
 export interface StudentBank extends CourseBank {
   material_kind: "SUBJECT" | "EXAM_TRACK";
+  specialty_id: string | null;
+  packageAccessState: BankAccessStatus;
+  packageAccessRevoked: boolean;
+  packageRejectionReason: string | null;
   accessState: BankAccessStatus;
   accessRevoked?: boolean;
   rejectionReason: string | null;
 }
 
+export interface CoursePackage {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  materials: StudentBank[];
+  accessState: BankAccessStatus;
+  accessRevoked: boolean;
+  rejectionReason: string | null;
+  totalPrice: number;
+}
+
 export interface AdminAccessRequest extends BankAccessRequest {
+  kind?: "PACKAGE" | "COURSE";
+  specialty_id?: string;
   accessActive?: boolean;
   student_name: string;
   bank_name: string;
