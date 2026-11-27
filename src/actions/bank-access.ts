@@ -48,7 +48,7 @@ async function reviewPackage(requestId: string, decision: "APPROVED" | "REJECTED
   try {
     const db = await createClient();
     const { error } = await db.rpc("review_course_package_access", {
-      target_request_id: parsed.data.id, decision, reason: parsed.data.reason,
+      target_request_id: parsed.data.id, decision, ...(parsed.data.reason ? { reason: parsed.data.reason } : {}),
     });
     if (error) return failure("Unable to review this package request.");
     refreshAccess(); return { ok: true, data: null };
