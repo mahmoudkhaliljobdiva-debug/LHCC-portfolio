@@ -5,8 +5,8 @@ import { getStudentBanks } from "@/lib/bank-access/server";
 import { getExamBank } from "@/lib/exams/server";
 import type { StudentBank } from "@/types/bank-access";
 
-export async function StudentLearningOverview({ banks: providedBanks }: { readonly banks?: readonly StudentBank[] } = {}) {
-  const approved = (providedBanks ?? await getStudentBanks()).filter(bank => bank.accessState === "APPROVED");
+export async function StudentLearningOverview({ banks: providedBanks, showCourses = true }: { readonly banks?: readonly StudentBank[]; readonly showCourses?: boolean } = {}) {
+  const approved = (providedBanks ?? await getStudentBanks()).filter(bank => bank.accessState === "APPROVED" && bank.material_kind === "EXAM_TRACK");
   const loaded = await Promise.all(approved.map(bank => getExamBank(bank.id)));
   const courses = loaded.filter((bank): bank is NonNullable<typeof bank> => bank !== null);
   const unfinished = courses.flatMap(course =>
@@ -26,7 +26,7 @@ export async function StudentLearningOverview({ banks: providedBanks }: { readon
         </Link>)}
       </div>
     </section>}
-    <section aria-labelledby="my-courses-heading">
+    {showCourses && <section aria-labelledby="my-courses-heading">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div><h2 id="my-courses-heading" className="text-xl font-semibold text-slate-950">My Courses</h2><p className="mt-1 text-sm text-slate-600">Only courses with available questions or published exams appear here.</p></div>
         <Link href="/student/question-banks" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-teal-700">All courses <ArrowRight aria-hidden="true" className="size-4" /></Link>
@@ -61,6 +61,6 @@ export async function StudentLearningOverview({ banks: providedBanks }: { readon
           <BookOpen aria-hidden="true" className="size-4" />Browse courses
         </Link>
       </div>}
-    </section>
+    </section>}
   </div>;
 }
