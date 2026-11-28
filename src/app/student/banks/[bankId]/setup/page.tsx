@@ -10,7 +10,12 @@ export default async function Page({ params,searchParams }: { params: Promise<{ 
   const past = source === "PAST" ? bank.pastExams.find(e => e.id===query.sourceId) : null; const clinical = source === "CASE" ? bank.cases.find(c => c.id===query.sourceId) : null;
   const shared = source === "SHARED" ? bank.sharedExams.find(e=>e.id===query.sourceId) : null;
   if ((source === "PAST" && !past) || (source === "CASE" && !clinical) || (source === "SHARED" && !shared)) notFound();
-  const initial: LearningSetup = { bankId,source:source as LearningSetup["source"],sourceId:past?.id ?? clinical?.id ?? shared?.id ?? chapter?.id ?? null,mode:["ALL","CASE","CHAPTER"].includes(source) ? "PRACTICE" : "EXAM",count:Math.max(1,Math.min(bank.generation.defaultCount,bank.examCount)),timeLimitMinutes:past?.timeLimitMinutes ?? shared?.timeLimitMinutes ?? null,
+  const title = past?.title ?? shared?.title ?? "";
+  const isMock = (source === "PAST" || source === "SHARED") && (/mock/i.test(title) || /mock/i.test(bank.name));
+  const fixedMockMinutes = isMock && bank.specialty?.slug === "dentistry" ? 120
+    : isMock && bank.specialty?.slug === "medical" ? 180 : null;
+  const adminTimer = source === "PAST" || source === "SHARED";
+  const initial: LearningSetup = { bankId,source:source as LearningSetup["source"],sourceId:past?.id ?? clinical?.id ?? shared?.id ?? chapter?.id ?? null,mode:["ALL","CASE","CHAPTER"].includes(source) ? "PRACTICE" : "EXAM",count:Math.max(1,Math.min(bank.generation.defaultCount,bank.examCount)),timeLimitMinutes:fixedMockMinutes ?? past?.timeLimitMinutes ?? shared?.timeLimitMinutes ?? null,
     ...(source === "RANDOM" ? { prioritizeIncorrect: bank.generation.prioritizeIncorrect } : {}) };
-  return <ExamSetup initial={initial} title={past?.title ?? clinical?.title ?? shared?.title ?? chapter?.title ?? (source === "ALL" ? "Complete Question Bank" : "AI-Generated Exam")} year={past?.year ?? null} available={past?.questionCount ?? clinical?.questionCount ?? shared?.questionCount ?? chapter?.questionCount ?? bank.available} />;
+  return <ExamSetup initial={initial} adminTimer={adminTimer} title={past?.title ?? clinical?.title ?? shared?.title ?? chapter?.title ?? (source === "ALL" ? "Complete Question Bank" : "AI-Generated Exam")} year={past?.year ?? null} available={past?.questionCount ?? clinical?.questionCount ?? shared?.questionCount ?? chapter?.questionCount ?? bank.available} />;
 }

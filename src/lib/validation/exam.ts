@@ -7,7 +7,7 @@ export const examSchema = z.object({
   totalQuestions: z.number().int().min(1), answerVersion: z.number().int().min(0).default(0), startedAt: z.string(), submittedAt: z.string().nullable(),
   title: z.string().optional(), year: z.number().nullable().optional(),
   learningMode: z.enum(["PRACTICE", "EXAM"]).default("EXAM"), source: z.enum(["RANDOM", "ALL", "CASE", "PAST", "SHARED", "CHAPTER"]).default("RANDOM"),
-  deadlineAt: z.string().nullable().default(null), unanswered: z.number().optional(), timeTakenSeconds: z.number().nullable().optional(),
+  deadlineAt: z.string().nullable().default(null), sourceId: contentId.nullable().optional(), unanswered: z.number().optional(), timeTakenSeconds: z.number().nullable().optional(),
   result: z.object({ correct: z.number(), incorrect: z.number(), score: z.number() }).nullable(),
   questions: z.array(z.object({ id: contentId, text: z.string(), order: z.number().int(),
     sourceNumber: z.string().nullable().default(null),
