@@ -14,7 +14,7 @@ export default async function Page({ params,searchParams }: { params: Promise<{ 
   const isMock = (source === "PAST" || source === "SHARED") && (/mock/i.test(title) || /mock/i.test(bank.name));
   const fixedMockMinutes = isMock && bank.specialty?.slug === "dentistry" ? 120
     : isMock && bank.specialty?.slug === "medical" ? 180 : null;
-  const adminTimer = source === "PAST" || source === "SHARED";
+  const adminTimer = fixedMockMinutes !== null;
   const initial: LearningSetup = { bankId,source:source as LearningSetup["source"],sourceId:past?.id ?? clinical?.id ?? shared?.id ?? chapter?.id ?? null,mode:["ALL","CASE","CHAPTER"].includes(source) ? "PRACTICE" : "EXAM",count:Math.max(1,Math.min(bank.generation.defaultCount,bank.examCount)),timeLimitMinutes:fixedMockMinutes ?? past?.timeLimitMinutes ?? shared?.timeLimitMinutes ?? null,
     ...(source === "RANDOM" ? { prioritizeIncorrect: bank.generation.prioritizeIncorrect } : {}) };
   return <ExamSetup initial={initial} adminTimer={adminTimer} title={past?.title ?? clinical?.title ?? shared?.title ?? chapter?.title ?? (source === "ALL" ? "Complete Question Bank" : "AI-Generated Exam")} year={past?.year ?? null} available={past?.questionCount ?? clinical?.questionCount ?? shared?.questionCount ?? chapter?.questionCount ?? bank.available} />;
