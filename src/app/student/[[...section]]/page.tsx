@@ -17,7 +17,7 @@ export default async function StudentPage({ params }: { params: Promise<{ sectio
     return <RoleScreen role="student" section={section[0]} />;
   }
   const [banks, packages, review, profile] = await Promise.all([getStudentBanks(), getStudentCoursePackages(), getStudentMissedReview(3), requireRole("STUDENT")]);
-  const firstName = profile.full_name.trim().replace(/^(?:Dr\\.?|Doctor)\\s+/i,"").split(/\\s+/)[0] || "Student";
+  const firstName = profile.full_name.trim().replace(/^(?:Dr\.?|Doctor)\s+/i,"").split(/\s+/)[0] || "Student";
   const greetings = [
     `Welcome Dr ${firstName}!`,
     `Keep going, Dr ${firstName} — every question brings progress.`,
