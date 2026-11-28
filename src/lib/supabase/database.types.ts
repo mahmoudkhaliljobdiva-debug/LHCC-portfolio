@@ -1230,6 +1230,8 @@ export type Database = {
       revoke_bank_access: { Args: { request_id: string }; Returns: undefined }
       save_exam_answer_versioned: { Args: { attempt_id: string; question_id: string; option_id: string; expected_version: number }; Returns: number }
       reset_portfolio_content: { Args: never; Returns: undefined }
+      admin_set_student_specialty: { Args: { target_user: string; selected_slug: string }; Returns: string }
+      student_recent_answers: { Args: { max_answers?: number }; Returns: Json }
       review_bank_access: {
         Args: { decision: string; reason?: string; request_id: string }
         Returns: undefined
