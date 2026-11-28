@@ -8,7 +8,7 @@ export interface AccountRegistrationInput {
   readonly confirmPassword: string;
   readonly age: number;
   readonly gender: ProfileGender | "";
-  readonly specialty: StudentSpecialty;
+  readonly specialty: StudentSpecialty | "";
   readonly homeAddress: string;
   readonly countryCode: string;
   readonly phone: string;
