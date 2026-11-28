@@ -314,6 +314,7 @@ export type Database = {
           phone: string | null
           reactivated_at: string | null
           role: Database["public"]["Enums"]["user_role"]
+          specialty_id: string | null
           status: Database["public"]["Enums"]["user_status"]
           updated_at: string
         }
@@ -334,6 +335,7 @@ export type Database = {
           phone?: string | null
           reactivated_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          specialty_id?: string | null
           status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
         }
@@ -354,6 +356,7 @@ export type Database = {
           phone?: string | null
           reactivated_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          specialty_id?: string | null
           status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
         }
@@ -1196,6 +1199,7 @@ export type Database = {
         Returns: boolean
       }
       learning_catalog: { Args: never; Returns: Json }
+      choose_student_specialty: { Args: { specialty_slug: string }; Returns: string }
       learning_progress: { Args: never; Returns: Json }
       list_course_package_requests: { Args: never; Returns: Json }
       request_course_package_access: {

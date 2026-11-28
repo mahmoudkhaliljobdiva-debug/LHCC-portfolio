@@ -7,8 +7,8 @@ export default async function StudentBanksPage() {
     <header>
       <h1 className="text-2xl font-semibold text-slate-950 sm:text-3xl">Courses</h1>
       <p className="mt-2 text-sm text-slate-600">
-        Three learning packages: Medicine, Dentistry, and Nursing Colloquium.
-        Request access once per package; LHCC administration reviews your request.
+        Your chosen specialty's courses and exams are listed here.
+        Request access once; LHCC administration reviews your request.
       </p>
     </header>
     <CoursePackageGrid packages={packages} />

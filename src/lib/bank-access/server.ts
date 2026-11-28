@@ -14,7 +14,7 @@ import type { QuestionBankStoreData } from "@/types/question-bank";
 export const getStudentBanks = cache(async (): Promise<StudentBank[]> => {
   const profile = await requireRole("STUDENT");
   const db = await createClient();
-  return readStudentBanks(db, profile.id);
+  return readStudentBanks(db, profile.id, profile.specialty_id);
 });
 
 export async function getAdminBankOptions(): Promise<readonly { id: string; name: string }[]> {
@@ -25,15 +25,16 @@ export async function getAdminBankOptions(): Promise<readonly { id: string; name
 
 export async function getStudentBanksForAdmin(subjectId: string) {
   const { subject } = await getPortalPreviewContext("student", subjectId);
-  return readStudentBanks(createAdminClient(), subject.id);
+  return readStudentBanks(createAdminClient(), subject.id, subject.specialty_id);
 }
 
-async function readStudentBanks(db: Awaited<ReturnType<typeof createClient>>, subjectId: string): Promise<StudentBank[]> {
+async function readStudentBanks(db: Awaited<ReturnType<typeof createClient>>, subjectId: string, specialtyId: string | null): Promise<StudentBank[]> {
+  if (!specialtyId) return [];
   const [banks, requests, grants, packageRequests, packageGrants] = await Promise.all([
     // Show every active, admin-published course, even with zero active questions.
     // Actual question/study content remains server-authorized after approval.
     readAllRows((from, to) => db.from("question_banks").select("*").eq("status", "active")
-      .eq("publication_status", "PUBLISHED").in("material_kind", ["EXAM_TRACK", "SUBJECT"])
+      .eq("publication_status", "PUBLISHED").eq("specialty_id", specialtyId).in("material_kind", ["EXAM_TRACK", "SUBJECT"])
       .order("display_order").order("id").range(from, to)),
     readAllRows((from, to) => db.from("user_bank_access_requests").select("*").eq("user_id", subjectId).order("requested_at", { ascending: false }).order("id").range(from, to)),
     readAllRows((from, to) => db.from("user_bank_access").select("*").eq("user_id", subjectId).order("id").range(from, to)),
@@ -71,9 +72,9 @@ async function readStudentBanks(db: Awaited<ReturnType<typeof createClient>>, su
 
 
 export const getStudentCoursePackages = cache(async (): Promise<CoursePackage[]> => {
-  const [catalog, banks] = await Promise.all([getLearningCatalog(), getStudentBanks()]);
+  const [catalog, banks, profile] = await Promise.all([getLearningCatalog(), getStudentBanks(), requireRole("STUDENT")]);
   const byId = new Map(banks.map(bank => [bank.id, bank]));
-  return catalog.flatMap(specialty => {
+  return catalog.filter(specialty => specialty.id === profile.specialty_id).flatMap(specialty => {
     const materials = specialty.materials
       .map(material => byId.get(material.id))
       .filter((bank): bank is StudentBank => Boolean(bank));

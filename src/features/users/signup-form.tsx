@@ -10,9 +10,9 @@ import { useState } from "react";
 import { registerAccount } from "@/actions/auth";
 import { MAX_HOME_ADDRESS_LENGTH, MAX_PROFILE_AGE, MIN_PROFILE_AGE } from "@/constants/profile";
 import { DEFAULT_COUNTRY_CODE, type CountryOption } from "@/data/countries";
-import type { ProfileGender } from "@/types/account";
+import type { ProfileGender, StudentSpecialty } from "@/types/account";
 
-type RegistrationField = "fullName" | "email" | "password" | "confirmPassword" | "age" | "gender" | "homeAddress" | "countryCode" | "phone";
+type RegistrationField = "fullName" | "email" | "password" | "confirmPassword" | "age" | "gender" | "homeAddress" | "countryCode" | "phone" | "specialty";
 
 const inputClassName = "h-12 w-full min-w-0 rounded-xl border bg-white px-4 text-base text-slate-900 placeholder:text-slate-400 sm:text-sm";
 
@@ -23,6 +23,7 @@ export function SignupForm({ countryOptions }: { readonly countryOptions: readon
   const [confirmPassword, setConfirmPassword] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<ProfileGender | "">("");
+  const [specialty, setSpecialty] = useState<StudentSpecialty | "">("");
   const [homeAddress, setHomeAddress] = useState("");
   const [countryCode, setCountryCode] = useState<string>(DEFAULT_COUNTRY_CODE);
   const [phone, setPhone] = useState("");
@@ -38,6 +39,7 @@ export function SignupForm({ countryOptions }: { readonly countryOptions: readon
     if (field === "confirmPassword") setConfirmPassword(value);
     if (field === "age") setAge(value);
     if (field === "gender") setGender(value as ProfileGender | "");
+    if (field === "specialty") setSpecialty(value as StudentSpecialty | "");
     if (field === "homeAddress") setHomeAddress(value);
     if (field === "countryCode") setCountryCode(value);
     if (field === "phone") setPhone(value);
@@ -64,6 +66,7 @@ export function SignupForm({ countryOptions }: { readonly countryOptions: readon
         confirmPassword,
         age: age === "" ? 0 : Number(age),
         gender,
+        specialty,
         homeAddress,
         countryCode,
         phone,
@@ -105,6 +108,15 @@ export function SignupForm({ countryOptions }: { readonly countryOptions: readon
       {success && <div role="status" className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{success}</div>}
 
       <form onSubmit={submit} className="mt-7 grid gap-5">
+        <Field label="Your learning specialty" error={fieldErrors.specialty?.[0]}>
+          <Select required value={specialty} onChange={event => updateField("specialty",event.target.value)} className={inputClassName}>
+            <option value="" disabled hidden>Choose one specialty</option>
+            <option value="dentistry">Dentistry</option>
+            <option value="medical">Medicine (MD)</option>
+            <option value="nursing">Nursing</option>
+          </Select>
+          <span className="text-xs font-normal leading-5 text-slate-500">You will only see courses and exams for this specialty. Choose carefully; an administrator must assist with later changes.</span>
+        </Field>
         <Field label="Full name" error={fieldErrors.fullName?.[0]}>
           <input type="text" required autoComplete="name" maxLength={200} value={fullName} onChange={(event) => updateField("fullName", event.target.value)} placeholder="Your full name" aria-invalid={Boolean(fieldErrors.fullName?.length)} className={inputClassName} />
         </Field>

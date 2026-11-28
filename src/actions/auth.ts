@@ -98,6 +98,7 @@ export async function registerAccount(
           home_address: parsed.data.homeAddress,
           phone,
           country_code: parsed.data.countryCode,
+          specialty_slug: parsed.data.specialty,
         },
       },
     });

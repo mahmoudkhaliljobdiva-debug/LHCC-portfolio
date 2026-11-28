@@ -18,6 +18,7 @@ export const accountRegistrationSchema = z.object({
     .min(MIN_PROFILE_AGE, "Age must be greater than 0.")
     .max(MAX_PROFILE_AGE, `Age must be ${MAX_PROFILE_AGE} or younger.`),
   gender: z.enum(["male", "female"], { error: "Select a gender." }),
+  specialty: z.enum(["dentistry", "medical", "nursing"], { error: "Choose Dentistry, Medicine or Nursing." }),
   homeAddress: z.string().trim().min(1, "Home address is required.").max(
     MAX_HOME_ADDRESS_LENGTH,
     `Home address must be ${MAX_HOME_ADDRESS_LENGTH} characters or fewer.`,
