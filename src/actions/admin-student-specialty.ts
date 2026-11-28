@@ -9,9 +9,9 @@ export async function setAdminStudentSpecialty(input:unknown):Promise<ServerResu
   await requireRole("ADMIN");
   const parsed=schema.safeParse(input);
   if(!parsed.success)return {ok:false,error:{code:"VALIDATION_ERROR",message:"Choose a valid student and specialty."}};
-  const {data,error}=await (await createClient()).rpc("admin_set_student_specialty" as never,{
+  const {data,error}=await (await createClient()).rpc("admin_set_student_specialty",{
     target_user:parsed.data.userId,selected_slug:parsed.data.specialty
-  } as never);
+  });
   if(error||!data)return {ok:false,error:{code:"FORBIDDEN",message:"Unable to assign specialty. Check the selected student."}};
   revalidatePath("/admin/users");
   revalidatePath("/admin/view-as","layout");
